@@ -54,7 +54,7 @@ const AdminPanel = () => {
   const handleDeleteTool = async (toolId) => {
     if (window.confirm('Are you sure you want to delete this tool?')) {
       try {
-        await dispatch(deleteTools(toolId)).unwrap();
+        await dispatch(deleteTool(toolId)).unwrap();
         toast.success('Tool deleted successfully');
       } catch (error) {
         toast.error('Failed to delete tool');
