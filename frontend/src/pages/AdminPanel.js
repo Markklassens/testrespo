@@ -641,8 +641,6 @@ const AdminPanel = () => {
   );
 };
 
-export default AdminPanel;
-
 const AdminPanel = () => {
   const dispatch = useDispatch();
   const { user } = useAuth();
