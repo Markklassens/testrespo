@@ -417,10 +417,10 @@ const Tools = () => {
                   {tool.name}
                 </h3>
                 {tool.is_hot && (
-                  <FireIcon className="h-4 w-4 text-red-500 ml-2" title="Hot Tool" />
+                  <span className="h-4 w-4 text-red-500 ml-2" title="Hot Tool">🔥</span>
                 )}
                 {tool.is_featured && (
-                  <SparklesIcon className="h-4 w-4 text-purple-500 ml-1" title="Featured Tool" />
+                  <span className="h-4 w-4 text-purple-500 ml-1" title="Featured Tool">✨</span>
                 )}
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-400">
