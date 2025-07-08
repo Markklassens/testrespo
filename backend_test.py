@@ -213,8 +213,8 @@ def test_protected_routes():
     """Test protected routes with different user types"""
     # Test accessing user profile without token
     print_test_header("Protected Routes - User Profile Without Token")
-    response = make_request("GET", "/api/auth/me", expected_status=401)
-    assert response.status_code == 401
+    response = make_request("GET", "/api/auth/me", expected_status=403)  # FastAPI returns 403 for missing token
+    assert response.status_code == 403
     print("✅ Accessing user profile without token validation passed")
     
     # Test accessing user profile with token
