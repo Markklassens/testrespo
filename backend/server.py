@@ -593,10 +593,12 @@ async def get_comparison_tools(
 
 @app.post("/api/tools/compare")
 async def add_to_comparison(
-    tool_id: str = Form(...),
+    request: ToolComparisonRequest,
     current_user: User = Depends(get_current_verified_user),
     db: Session = Depends(get_db)
 ):
+    tool_id = request.tool_id
+    
     # Check if tool exists
     tool = db.query(Tool).filter(Tool.id == tool_id).first()
     if not tool:
