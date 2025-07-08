@@ -104,7 +104,7 @@ backend:
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "testing"
@@ -115,6 +115,9 @@ backend:
       - working: true
         agent: "main"
         comment: "Category update endpoint already supports partial updates via CategoryUpdate schema with optional fields. Issue may have been testing-related."
+      - working: true
+        agent: "testing"
+        comment: "Verified that category update endpoint correctly accepts partial updates. Successfully tested updating a category with only description, only color, and only icon fields."
 
   - task: "Subcategories CRUD Operations"
     implemented: true
