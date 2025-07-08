@@ -350,3 +350,31 @@ class AnalyticsResponse(BaseModel):
     total_reviews: int
     recent_blogs: List[BlogResponse]
     recent_reviews: List[ReviewResponse]
+
+# Advanced Analytics Schema
+class AdvancedAnalyticsResponse(BaseModel):
+    user_stats: Dict[str, int]
+    content_stats: Dict[str, int]  
+    review_stats: Dict[str, Any]
+    recent_activity: Dict[str, Any]
+
+# SEO Tool Status Schema
+class SEOToolStatus(BaseModel):
+    tool_id: str
+    tool_name: str
+    has_meta_title: bool
+    has_meta_description: bool
+    has_ai_content: bool
+    optimizations_count: int
+    last_updated: datetime
+
+# Role Management Schemas
+class RoleUpdateRequest(BaseModel):
+    user_id: str
+    new_role: str
+
+class RoleUpdateResponse(BaseModel):
+    message: str
+    user_id: str
+    old_role: str
+    new_role: str
