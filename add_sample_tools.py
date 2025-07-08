@@ -324,9 +324,17 @@ def add_sample_tools():
             
             print("Successfully logged in as admin")
             
+            # Get available categories
+            categories_response = requests.get(f"{base_url}/api/categories")
+            categories = categories_response.json()
+            
+            # Use different categories for variety
+            category_ids = [cat["id"] for cat in categories[:6]]  # Use first 6 categories
+            
             # Add each sample tool
-            for tool in sample_tools:
+            for i, tool in enumerate(sample_tools):
                 tool["id"] = str(uuid.uuid4())
+                tool["category_id"] = category_ids[i % len(category_ids)]  # Rotate through categories
                 
                 response = requests.post(f"{base_url}/api/tools", json=tool, headers=headers)
                 if response.status_code == 200:
