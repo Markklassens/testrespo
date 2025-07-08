@@ -841,7 +841,7 @@ async def like_blog(
 @app.put("/api/categories/{category_id}", response_model=CategoryResponse)
 async def update_category(
     category_id: str,
-    category_update: CategoryBase,
+    category_update: CategoryUpdate,
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
@@ -849,7 +849,8 @@ async def update_category(
     if not db_category:
         raise HTTPException(status_code=404, detail="Category not found")
     
-    for field, value in category_update.dict(exclude_unset=True).items():
+    update_data = category_update.dict(exclude_unset=True)
+    for field, value in update_data.items():
         setattr(db_category, field, value)
     
     db.commit()
