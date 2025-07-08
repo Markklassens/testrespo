@@ -557,3 +557,5 @@ agent_communication:
     message: "Completed comprehensive backend testing for MarketMindAI. Found several issues that need to be fixed: 1) Authentication errors return 403 instead of 401 status codes, 2) Category update endpoint doesn't accept partial updates, 3) Tools comparison endpoint has issues with form data processing. All other endpoints are working correctly."
   - agent: "testing"
     message: "Verified all fixed issues in the MarketMindAI backend. Authentication errors now correctly return 401 status codes, category update endpoint accepts partial updates, and tools comparison endpoint correctly processes JSON data. All tests are now passing."
+  - agent: "testing"
+    message: "Completed testing of Super Admin endpoints in MarketMindAI. Found two issues: 1) The CSV sample file download endpoint returns the wrong Content-Type header ('text/csv; charset=utf-8' instead of 'text/csv'), 2) The tools comparison functionality is still failing with a 422 error. All other Super Admin endpoints are working correctly, including user management, reviews management, advanced analytics, role management, and SEO management."
