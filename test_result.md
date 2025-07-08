@@ -170,7 +170,7 @@ backend:
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "testing"
@@ -181,6 +181,9 @@ backend:
       - working: true
         agent: "main"
         comment: "Tools comparison endpoint uses ToolComparisonRequest schema which accepts JSON with tool_id field. No form data issues detected."
+      - working: true
+        agent: "testing"
+        comment: "Verified that tools comparison endpoint correctly accepts JSON data with tool_id field. Successfully tested adding a tool to comparison and removing it."
 
   - task: "Blogs CRUD Operations"
     implemented: true
