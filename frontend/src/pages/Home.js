@@ -248,7 +248,7 @@ const Home = () => {
             <AnimatedCarousel
               title="🔥 Trending Tools"
               tools={analytics.trending_tools}
-              icon={TrendingUpIcon}
+              icon={StarIcon}
               color="bg-red-500"
             />
 
@@ -269,7 +269,7 @@ const Home = () => {
             <AnimatedCarousel
               title="✨ Featured Tools"
               tools={analytics.featured_tools}
-              icon={SparklesIcon}
+              icon={StarIcon}
               color="bg-purple-500"
             />
 
@@ -283,7 +283,7 @@ const Home = () => {
             <AnimatedCarousel
               title="🔥 Hot Tools"
               tools={analytics.hot_tools}
-              icon={TrendingUpIcon}
+              icon={StarIcon}
               color="bg-orange-500"
             />
 
