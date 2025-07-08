@@ -1129,80 +1129,81 @@ async def download_sample_csv(
     
     # Get sample categories for reference
     sample_categories = db.query(Category).limit(3).all()
-    category_ids = [cat.id for cat in sample_categories] if sample_categories else ["category-uuid-1", "category-uuid-2"]
     
-    # Create sample CSV data
-    sample_data = [
-        {
-            "name": "Example Tool 1",
-            "description": "This is a comprehensive project management tool designed for teams",
-            "short_description": "Project management made easy",
-            "website_url": "https://example-tool1.com",
-            "pricing_model": "Freemium",
-            "pricing_details": "Free tier available, Pro starts at $10/month",
-            "features": "Task management, Team collaboration, Time tracking, Reporting",
-            "target_audience": "Small to medium businesses",
-            "company_size": "SMB",
-            "integrations": "Slack, Google Drive, Dropbox, GitHub",
-            "logo_url": "https://example.com/logo1.png",
-            "category_id": category_ids[0] if category_ids else "category-uuid-1",
-            "industry": "Technology",
-            "employee_size": "11-50",
-            "revenue_range": "1M-10M",
-            "location": "San Francisco, CA",
-            "is_hot": "true",
-            "is_featured": "false",
-            "meta_title": "Example Tool 1 - Project Management Solution",
-            "meta_description": "Streamline your project management with Example Tool 1",
-            "slug": "example-tool-1"
-        },
-        {
-            "name": "Example Tool 2",
-            "description": "Advanced analytics platform for data-driven decision making",
-            "short_description": "Analytics platform for businesses",
-            "website_url": "https://example-tool2.com",
-            "pricing_model": "Paid",
-            "pricing_details": "Starting at $50/month",
-            "features": "Data visualization, Custom dashboards, Real-time analytics, AI insights",
-            "target_audience": "Enterprise businesses",
-            "company_size": "Enterprise",
-            "integrations": "Salesforce, HubSpot, Google Analytics, Facebook Ads",
-            "logo_url": "https://example.com/logo2.png",
-            "category_id": category_ids[1] if len(category_ids) > 1 else "category-uuid-2",
-            "industry": "Finance",
-            "employee_size": "201-1000",
-            "revenue_range": "10M-100M",
-            "location": "New York, NY",
-            "is_hot": "false",
-            "is_featured": "true",
-            "meta_title": "Example Tool 2 - Business Analytics Platform",
-            "meta_description": "Transform your data into actionable insights with Example Tool 2",
-            "slug": "example-tool-2"
-        }
-    ]
+    # Read the sample CSV file
+    import os
+    csv_file_path = os.path.join(os.path.dirname(__file__), "static", "tools_sample.csv")
     
-    # Generate CSV content
-    if not sample_data:
-        raise HTTPException(status_code=500, detail="Could not generate sample data")
-    
-    # Create CSV string
-    import io
-    import csv
-    
-    output = io.StringIO()
-    writer = csv.DictWriter(output, fieldnames=sample_data[0].keys())
-    writer.writeheader()
-    writer.writerows(sample_data)
-    csv_content = output.getvalue()
-    
-    # Return as downloadable file
-    from fastapi.responses import Response
-    
-    return Response(
-        content=csv_content,
-        media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=tools_sample.csv"}
-    )
+    try:
+        with open(csv_file_path, 'r') as file:
+            csv_content = file.read()
+        
+        # Replace placeholder category IDs with actual ones
+        if sample_categories:
+            csv_content = csv_content.replace(
+                "REPLACE_WITH_ACTUAL_CATEGORY_ID", 
+                sample_categories[0].id
+            )
+        else:
+            csv_content = csv_content.replace(
+                "REPLACE_WITH_ACTUAL_CATEGORY_ID", 
+                "CREATE_CATEGORIES_FIRST"
+            )
+        
+        # Return as downloadable file
+        from fastapi.responses import Response
+        
+        return Response(
+            content=csv_content,
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=tools_sample.csv"}
+        )
+        
+    except FileNotFoundError:
+        # Fallback to programmatic generation
+        sample_data = [
+            {
+                "name": "Example Tool 1",
+                "description": "This is a comprehensive project management tool designed for teams",
+                "short_description": "Project management made easy",
+                "website_url": "https://example-tool1.com",
+                "pricing_model": "Freemium",
+                "pricing_details": "Free tier available, Pro starts at $10/month",
+                "features": "Task management, Team collaboration, Time tracking, Reporting",
+                "target_audience": "Small to medium businesses",
+                "company_size": "SMB",
+                "integrations": "Slack, Google Drive, Dropbox, GitHub",
+                "logo_url": "https://example.com/logo1.png",
+                "category_id": sample_categories[0].id if sample_categories else "CREATE_CATEGORIES_FIRST",
+                "industry": "Technology",
+                "employee_size": "11-50",
+                "revenue_range": "1M-10M",
+                "location": "San Francisco, CA",
+                "is_hot": "true",
+                "is_featured": "false",
+                "meta_title": "Example Tool 1 - Project Management Solution",
+                "meta_description": "Streamline your project management with Example Tool 1",
+                "slug": "example-tool-1"
+            }
+        ]
+        
+        # Generate CSV content
+        import io
+        import csv
+        
+        output = io.StringIO()
+        writer = csv.DictWriter(output, fieldnames=sample_data[0].keys())
+        writer.writeheader()
+        writer.writerows(sample_data)
+        csv_content = output.getvalue()
+        
+        from fastapi.responses import Response
+        
+        return Response(
+            content=csv_content,
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=tools_sample.csv"}
+        )
 
 # Role Management Routes
 @app.post("/api/admin/users/{user_id}/promote")
