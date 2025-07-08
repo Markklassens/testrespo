@@ -281,7 +281,7 @@ backend:
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "testing"
@@ -292,6 +292,9 @@ backend:
       - working: true
         agent: "main"
         comment: "Fixed authentication error handling to return proper 401 status codes for authentication failures."
+      - working: true
+        agent: "testing"
+        comment: "Verified that authentication errors now correctly return 401 status codes. Error handling is working as expected."
 
 frontend:
   - task: "Frontend Authentication"
