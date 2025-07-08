@@ -507,8 +507,384 @@ async def get_subcategories(category_id: Optional[str] = None, db: Session = Dep
     subcategories = query.all()
     return subcategories
 
-# Keep other existing routes...
-# [Previous implementations for tools, blogs, reviews, comments, etc.]
+# Tools Routes
+@app.get("/api/tools", response_model=List[ToolResponse])
+async def get_tools(
+    skip: int = 0,
+    limit: int = 20,
+    category_id: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    query = db.query(Tool)
+    if category_id:
+        query = query.filter(Tool.category_id == category_id)
+    tools = query.offset(skip).limit(limit).all()
+    return tools
+
+@app.get("/api/tools/{tool_id}", response_model=ToolResponse)
+async def get_tool(tool_id: str, db: Session = Depends(get_db)):
+    tool = db.query(Tool).filter(Tool.id == tool_id).first()
+    if not tool:
+        raise HTTPException(status_code=404, detail="Tool not found")
+    
+    # Increment view count
+    tool.views += 1
+    db.commit()
+    
+    return tool
+
+@app.post("/api/tools", response_model=ToolResponse)
+async def create_tool(
+    tool: ToolCreate,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    db_tool = Tool(
+        id=str(uuid.uuid4()),
+        **tool.dict()
+    )
+    db.add(db_tool)
+    db.commit()
+    db.refresh(db_tool)
+    return db_tool
+
+@app.put("/api/tools/{tool_id}", response_model=ToolResponse)
+async def update_tool(
+    tool_id: str,
+    tool_update: ToolUpdate,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    db_tool = db.query(Tool).filter(Tool.id == tool_id).first()
+    if not db_tool:
+        raise HTTPException(status_code=404, detail="Tool not found")
+    
+    for field, value in tool_update.dict(exclude_unset=True).items():
+        setattr(db_tool, field, value)
+    
+    db.commit()
+    db.refresh(db_tool)
+    return db_tool
+
+@app.delete("/api/tools/{tool_id}")
+async def delete_tool(
+    tool_id: str,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    db_tool = db.query(Tool).filter(Tool.id == tool_id).first()
+    if not db_tool:
+        raise HTTPException(status_code=404, detail="Tool not found")
+    
+    db.delete(db_tool)
+    db.commit()
+    return {"message": "Tool deleted successfully"}
+
+# Tool Comparison Routes
+@app.get("/api/tools/compare")
+async def get_comparison_tools(
+    current_user: User = Depends(get_current_verified_user),
+    db: Session = Depends(get_db)
+):
+    tools = db.query(Tool).join(user_tool_comparison).filter(
+        user_tool_comparison.c.user_id == current_user.id
+    ).all()
+    return tools
+
+@app.post("/api/tools/compare")
+async def add_to_comparison(
+    tool_id: str = Form(...),
+    current_user: User = Depends(get_current_verified_user),
+    db: Session = Depends(get_db)
+):
+    # Check if tool exists
+    tool = db.query(Tool).filter(Tool.id == tool_id).first()
+    if not tool:
+        raise HTTPException(status_code=404, detail="Tool not found")
+    
+    # Check if already in comparison
+    existing = db.execute(
+        user_tool_comparison.select().where(
+            user_tool_comparison.c.user_id == current_user.id,
+            user_tool_comparison.c.tool_id == tool_id
+        )
+    ).first()
+    
+    if existing:
+        raise HTTPException(status_code=400, detail="Tool already in comparison")
+    
+    # Add to comparison
+    db.execute(
+        user_tool_comparison.insert().values(
+            user_id=current_user.id,
+            tool_id=tool_id
+        )
+    )
+    db.commit()
+    
+    return {"message": "Tool added to comparison"}
+
+@app.delete("/api/tools/compare/{tool_id}")
+async def remove_from_comparison(
+    tool_id: str,
+    current_user: User = Depends(get_current_verified_user),
+    db: Session = Depends(get_db)
+):
+    db.execute(
+        user_tool_comparison.delete().where(
+            user_tool_comparison.c.user_id == current_user.id,
+            user_tool_comparison.c.tool_id == tool_id
+        )
+    )
+    db.commit()
+    
+    return {"message": "Tool removed from comparison"}
+
+# Bulk Upload Routes
+@app.post("/api/tools/bulk-upload")
+async def bulk_upload_tools(
+    file: UploadFile = File(...),
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(status_code=400, detail="File must be a CSV")
+    
+    content = await file.read()
+    csv_data = content.decode('utf-8')
+    
+    # Parse CSV and create tools
+    reader = csv.DictReader(io.StringIO(csv_data))
+    created_tools = []
+    errors = []
+    
+    for row_num, row in enumerate(reader, start=2):
+        try:
+            tool_data = {
+                'id': str(uuid.uuid4()),
+                'name': row['name'],
+                'description': row['description'],
+                'category_id': row['category_id'],
+                'slug': row['name'].lower().replace(' ', '-'),
+                **{k: v for k, v in row.items() if k not in ['name', 'description', 'category_id'] and v}
+            }
+            
+            db_tool = Tool(**tool_data)
+            db.add(db_tool)
+            created_tools.append(tool_data['name'])
+            
+        except Exception as e:
+            errors.append(f"Row {row_num}: {str(e)}")
+    
+    if created_tools:
+        db.commit()
+    
+    return {
+        "created_count": len(created_tools),
+        "created_tools": created_tools,
+        "errors": errors
+    }
+
+@app.get("/api/tools/csv-template")
+async def get_csv_template():
+    template_data = [
+        {
+            'name': 'Example Tool',
+            'description': 'Example description',
+            'category_id': 'category-uuid',
+            'pricing_model': 'Freemium',
+            'company_size': 'SMB',
+            'website_url': 'https://example.com'
+        }
+    ]
+    
+    return {"template": template_data}
+
+# Blog Routes
+@app.get("/api/blogs", response_model=List[BlogResponse])
+async def get_blogs(
+    skip: int = 0,
+    limit: int = 20,
+    status: str = "published",
+    category_id: Optional[str] = None,
+    author_id: Optional[str] = None,
+    search: Optional[str] = None,
+    sort_by: str = "created_at",
+    db: Session = Depends(get_db)
+):
+    query = db.query(Blog).filter(Blog.status == status)
+    
+    if category_id:
+        query = query.filter(Blog.category_id == category_id)
+    if author_id:
+        query = query.filter(Blog.author_id == author_id)
+    if search:
+        query = query.filter(
+            Blog.title.ilike(f"%{search}%") | 
+            Blog.content.ilike(f"%{search}%")
+        )
+    
+    # Sorting
+    if sort_by == "views":
+        query = query.order_by(desc(Blog.views))
+    elif sort_by == "likes":
+        query = query.order_by(desc(Blog.likes))
+    elif sort_by == "oldest":
+        query = query.order_by(asc(Blog.created_at))
+    else:
+        query = query.order_by(desc(Blog.created_at))
+    
+    blogs = query.offset(skip).limit(limit).all()
+    return blogs
+
+@app.get("/api/blogs/{blog_id}", response_model=BlogResponse)
+async def get_blog(blog_id: str, db: Session = Depends(get_db)):
+    blog = db.query(Blog).filter(Blog.id == blog_id).first()
+    if not blog:
+        raise HTTPException(status_code=404, detail="Blog not found")
+    
+    # Increment view count
+    blog.views += 1
+    db.commit()
+    
+    return blog
+
+@app.post("/api/blogs", response_model=BlogResponse)
+async def create_blog(
+    blog: BlogCreate,
+    current_user: User = Depends(get_current_verified_user),
+    db: Session = Depends(get_db)
+):
+    # Calculate reading time (average 200 words per minute)
+    word_count = len(blog.content.split())
+    reading_time = max(1, round(word_count / 200))
+    
+    db_blog = Blog(
+        id=str(uuid.uuid4()),
+        author_id=current_user.id,
+        reading_time=reading_time,
+        published_at=datetime.utcnow() if blog.status == "published" else None,
+        **blog.dict()
+    )
+    db.add(db_blog)
+    db.commit()
+    db.refresh(db_blog)
+    return db_blog
+
+@app.put("/api/blogs/{blog_id}", response_model=BlogResponse)
+async def update_blog(
+    blog_id: str,
+    blog_update: BlogUpdate,
+    current_user: User = Depends(get_current_verified_user),
+    db: Session = Depends(get_db)
+):
+    db_blog = db.query(Blog).filter(Blog.id == blog_id).first()
+    if not db_blog:
+        raise HTTPException(status_code=404, detail="Blog not found")
+    
+    # Check permissions
+    if db_blog.author_id != current_user.id and current_user.user_type not in ["admin", "superadmin"]:
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+    
+    update_data = blog_update.dict(exclude_unset=True)
+    
+    # Update reading time if content changed
+    if 'content' in update_data:
+        word_count = len(update_data['content'].split())
+        update_data['reading_time'] = max(1, round(word_count / 200))
+    
+    # Set published_at if status changes to published
+    if update_data.get('status') == 'published' and db_blog.status != 'published':
+        update_data['published_at'] = datetime.utcnow()
+    
+    for field, value in update_data.items():
+        setattr(db_blog, field, value)
+    
+    db.commit()
+    db.refresh(db_blog)
+    return db_blog
+
+@app.delete("/api/blogs/{blog_id}")
+async def delete_blog(
+    blog_id: str,
+    current_user: User = Depends(get_current_verified_user),
+    db: Session = Depends(get_db)
+):
+    db_blog = db.query(Blog).filter(Blog.id == blog_id).first()
+    if not db_blog:
+        raise HTTPException(status_code=404, detail="Blog not found")
+    
+    # Check permissions
+    if db_blog.author_id != current_user.id and current_user.user_type not in ["admin", "superadmin"]:
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+    
+    db.delete(db_blog)
+    db.commit()
+    return {"message": "Blog deleted successfully"}
+
+@app.post("/api/blogs/{blog_id}/like")
+async def like_blog(
+    blog_id: str,
+    current_user: User = Depends(get_current_verified_user),
+    db: Session = Depends(get_db)
+):
+    blog = db.query(Blog).filter(Blog.id == blog_id).first()
+    if not blog:
+        raise HTTPException(status_code=404, detail="Blog not found")
+    
+    blog.likes += 1
+    db.commit()
+    
+    return {"likes": blog.likes}
+
+# Category Management Routes
+@app.put("/api/categories/{category_id}", response_model=CategoryResponse)
+async def update_category(
+    category_id: str,
+    category_update: CategoryBase,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    db_category = db.query(Category).filter(Category.id == category_id).first()
+    if not db_category:
+        raise HTTPException(status_code=404, detail="Category not found")
+    
+    for field, value in category_update.dict(exclude_unset=True).items():
+        setattr(db_category, field, value)
+    
+    db.commit()
+    db.refresh(db_category)
+    return db_category
+
+@app.delete("/api/categories/{category_id}")
+async def delete_category(
+    category_id: str,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    db_category = db.query(Category).filter(Category.id == category_id).first()
+    if not db_category:
+        raise HTTPException(status_code=404, detail="Category not found")
+    
+    db.delete(db_category)
+    db.commit()
+    return {"message": "Category deleted successfully"}
+
+# Subcategory Routes
+@app.post("/api/subcategories", response_model=SubcategoryResponse)
+async def create_subcategory(
+    subcategory: SubcategoryCreate,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    db_subcategory = Subcategory(
+        id=str(uuid.uuid4()),
+        **subcategory.dict()
+    )
+    db.add(db_subcategory)
+    db.commit()
+    db.refresh(db_subcategory)
+    return db_subcategory
 
 if __name__ == "__main__":
     import uvicorn
