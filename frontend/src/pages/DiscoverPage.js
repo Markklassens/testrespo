@@ -52,7 +52,7 @@ const DiscoverPage = () => {
 
   const [pagination, setPagination] = useState({
     page: 1,
-    per_page: 24,
+    per_page: 50, // Increased to show more tools per page
     total: 0,
     total_pages: 0,
     has_next: false,
