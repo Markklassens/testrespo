@@ -19,6 +19,7 @@ const Navbar = () => {
 
   const navLinks = [
     { href: '/', label: 'Home' },
+    { href: '/discover', label: 'Discover' },
     { href: '/tools', label: 'Tools', requireAuth: true },
     { href: '/blogs', label: 'Blogs', requireAuth: true },
   ];
