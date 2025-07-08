@@ -377,7 +377,7 @@ const Dashboard = () => {
                   <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                     Recent Activity
                   </h2>
-                  <TrendingUpIcon className="h-5 w-5 text-green-500" />
+                  <ArrowTrendingUpIcon className="h-5 w-5 text-green-500" />
                 </div>
                 
                 <div className="space-y-3">
