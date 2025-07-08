@@ -447,11 +447,7 @@ test_plan:
     - "Categories CRUD Operations"
     - "Tools Comparison"
     - "Error Handling"
-  stuck_tasks:
-    - "Protected Routes"
-    - "Categories CRUD Operations"
-    - "Tools Comparison"
-    - "Error Handling"
+  stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
