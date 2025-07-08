@@ -96,6 +96,27 @@ const DiscoverPage = () => {
     }
   };
 
+  const fetchAllTools = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get('/api/tools/search?per_page=100');
+      setSearchResults(response.data);
+      setTools(response.data.tools);
+      setPagination(prev => ({
+        ...prev,
+        total: response.data.total,
+        total_pages: response.data.total_pages,
+        has_next: response.data.has_next,
+        has_prev: response.data.has_prev
+      }));
+    } catch (error) {
+      console.error('Error fetching all tools:', error);
+      toast.error('Failed to fetch tools');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const fetchTools = async () => {
     setLoading(true);
     try {
