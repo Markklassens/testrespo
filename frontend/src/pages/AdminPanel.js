@@ -643,29 +643,6 @@ const AdminPanel = () => {
 
 export default AdminPanel;
 
-import React, { useState, useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { useAuth } from '../contexts/AuthContext';
-import { 
-  UserGroupIcon, 
-  CubeIcon, 
-  DocumentTextIcon, 
-  ChartBarIcon,
-  FolderIcon,
-  PlusIcon,
-  PencilIcon,
-  TrashIcon,
-  EyeIcon,
-  ArrowUpTrayIcon
-} from '@heroicons/react/24/outline';
-import { toast } from 'react-hot-toast';
-import LoadingSpinner from '../components/LoadingSpinner';
-import BulkUpload from '../components/BulkUpload';
-import { fetchDashboardAnalytics } from '../store/slices/analyticsSlice';
-import { fetchTools, deleteTool } from '../store/slices/toolsSlice';
-import { fetchBlogs, deleteBlog } from '../store/slices/blogsSlice';
-import { fetchCategories, deleteCategory, createCategory } from '../store/slices/categoriesSlice';
-
 const AdminPanel = () => {
   const dispatch = useDispatch();
   const { user } = useAuth();
