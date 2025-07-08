@@ -256,11 +256,11 @@ backend:
 
   - task: "Tools Comparison"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
-    stuck_count: 1
+    stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "testing"
@@ -277,6 +277,9 @@ backend:
       - working: false
         agent: "testing"
         comment: "Issue found with tools comparison functionality. The test is failing with a 422 Unprocessable Entity error. The endpoint expects JSON data with a tool_id field, but there might be an issue with how the request is being sent in the test."
+      - working: true
+        agent: "testing"
+        comment: "Fixed the tools comparison test by properly sending JSON data instead of form data. The endpoint is now working correctly."
 
   - task: "Blogs CRUD Operations"
     implemented: true
