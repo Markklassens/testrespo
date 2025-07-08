@@ -75,13 +75,6 @@ def verify_token(token: str):
         )
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security), db: Session = Depends(get_db)):
-    if not credentials:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
     token = credentials.credentials
     username = verify_token(token)
     user = db.query(User).filter(User.username == username).first()
