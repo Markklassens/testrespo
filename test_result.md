@@ -541,11 +541,10 @@ test_plan:
   current_focus:
     - "Protected Routes"
     - "Categories CRUD Operations"
-    - "Tools Comparison"
     - "Error Handling"
     - "CSV Sample File"
   stuck_tasks:
-    - "Tools Comparison"
+    - "CSV Sample File"
   test_all: false
   test_priority: "high_first"
 
