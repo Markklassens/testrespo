@@ -70,7 +70,7 @@ const DiscoverPage = () => {
     Promise.all([
       fetchToolsAnalytics(),
       fetchCategories(),
-      fetchTools()
+      fetchAllTools() // Fetch all tools initially
     ]);
   }, []);
 
