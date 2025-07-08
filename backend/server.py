@@ -889,6 +889,394 @@ async def create_subcategory(
     db.refresh(db_subcategory)
     return db_subcategory
 
+# Super Admin User Management Routes
+@app.get("/api/admin/users", response_model=List[UserResponse])
+async def get_all_users(
+    current_user: User = Depends(require_superadmin),
+    skip: int = 0,
+    limit: int = 100,
+    search: Optional[str] = None,
+    user_type: Optional[str] = None,
+    is_active: Optional[bool] = None,
+    db: Session = Depends(get_db)
+):
+    """Get all users with filtering (Super Admin only)"""
+    query = db.query(User)
+    
+    if search:
+        query = query.filter(
+            User.full_name.ilike(f"%{search}%") |
+            User.email.ilike(f"%{search}%") |
+            User.username.ilike(f"%{search}%")
+        )
+    
+    if user_type:
+        query = query.filter(User.user_type == user_type)
+    
+    if is_active is not None:
+        query = query.filter(User.is_active == is_active)
+    
+    users = query.offset(skip).limit(limit).all()
+    return users
+
+@app.get("/api/admin/users/{user_id}", response_model=UserResponse)
+async def get_user_by_id(
+    user_id: str,
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db)
+):
+    """Get user by ID (Super Admin only)"""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+@app.put("/api/admin/users/{user_id}", response_model=UserResponse)
+async def update_user(
+    user_id: str,
+    user_update: UserUpdate,
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db)
+):
+    """Update user details (Super Admin only)"""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Don't allow changing own role
+    if user.id == current_user.id and user_update.user_type is not None:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot change your own role"
+        )
+    
+    update_data = user_update.dict(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(user, field, value)
+    
+    db.commit()
+    db.refresh(user)
+    return user
+
+@app.delete("/api/admin/users/{user_id}")
+async def delete_user(
+    user_id: str,
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db)
+):
+    """Delete user (Super Admin only)"""
+    if user_id == current_user.id:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete your own account"
+        )
+    
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    db.delete(user)
+    db.commit()
+    return {"message": "User deleted successfully"}
+
+@app.post("/api/admin/users", response_model=UserResponse)
+async def create_user(
+    user_data: UserCreate,
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db)
+):
+    """Create new user (Super Admin only)"""
+    # Check if user already exists
+    existing_user = db.query(User).filter(
+        (User.email == user_data.email) | (User.username == user_data.username)
+    ).first()
+    if existing_user:
+        raise HTTPException(
+            status_code=400,
+            detail="User with this email or username already exists"
+        )
+    
+    # Create new user
+    hashed_password = get_password_hash(user_data.password)
+    db_user = User(
+        id=str(uuid.uuid4()),
+        email=user_data.email,
+        username=user_data.username,
+        full_name=user_data.full_name,
+        hashed_password=hashed_password,
+        user_type=user_data.user_type,
+        is_active=True,
+        is_verified=True  # Admin created users are auto-verified
+    )
+    
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+# Reviews Management Routes
+@app.get("/api/admin/reviews", response_model=List[ReviewResponse])
+async def get_all_reviews(
+    current_user: User = Depends(require_admin),
+    skip: int = 0,
+    limit: int = 100,
+    tool_id: Optional[str] = None,
+    is_verified: Optional[bool] = None,
+    db: Session = Depends(get_db)
+):
+    """Get all reviews (Admin only)"""
+    query = db.query(Review)
+    
+    if tool_id:
+        query = query.filter(Review.tool_id == tool_id)
+    
+    if is_verified is not None:
+        query = query.filter(Review.is_verified == is_verified)
+    
+    reviews = query.order_by(desc(Review.created_at)).offset(skip).limit(limit).all()
+    return reviews
+
+@app.put("/api/admin/reviews/{review_id}/verify")
+async def verify_review(
+    review_id: str,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Verify a review (Admin only)"""
+    review = db.query(Review).filter(Review.id == review_id).first()
+    if not review:
+        raise HTTPException(status_code=404, detail="Review not found")
+    
+    review.is_verified = True
+    db.commit()
+    return {"message": "Review verified successfully"}
+
+@app.delete("/api/admin/reviews/{review_id}")
+async def delete_review(
+    review_id: str,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Delete a review (Admin only)"""
+    review = db.query(Review).filter(Review.id == review_id).first()
+    if not review:
+        raise HTTPException(status_code=404, detail="Review not found")
+    
+    db.delete(review)
+    db.commit()
+    return {"message": "Review deleted successfully"}
+
+# Analytics and Dashboard for Super Admin
+@app.get("/api/admin/analytics/advanced")
+async def get_advanced_analytics(
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db)
+):
+    """Get advanced analytics (Super Admin only)"""
+    
+    # User statistics
+    total_users = db.query(User).count()
+    active_users = db.query(User).filter(User.is_active == True).count()
+    verified_users = db.query(User).filter(User.is_verified == True).count()
+    admin_users = db.query(User).filter(User.user_type.in_(["admin", "superadmin"])).count()
+    
+    # Content statistics
+    total_tools = db.query(Tool).count()
+    featured_tools = db.query(Tool).filter(Tool.is_featured == True).count()
+    total_blogs = db.query(Blog).count()
+    published_blogs = db.query(Blog).filter(Blog.status == "published").count()
+    
+    # Review statistics
+    total_reviews = db.query(Review).count()
+    verified_reviews = db.query(Review).filter(Review.is_verified == True).count()
+    avg_rating = db.query(func.avg(Review.rating)).scalar() or 0
+    
+    # Recent activity
+    recent_users = db.query(User).order_by(desc(User.created_at)).limit(10).all()
+    recent_reviews = db.query(Review).order_by(desc(Review.created_at)).limit(10).all()
+    
+    return {
+        "user_stats": {
+            "total": total_users,
+            "active": active_users,
+            "verified": verified_users,
+            "admins": admin_users
+        },
+        "content_stats": {
+            "total_tools": total_tools,
+            "featured_tools": featured_tools,
+            "total_blogs": total_blogs,
+            "published_blogs": published_blogs
+        },
+        "review_stats": {
+            "total": total_reviews,
+            "verified": verified_reviews,
+            "average_rating": float(avg_rating)
+        },
+        "recent_activity": {
+            "users": recent_users,
+            "reviews": recent_reviews
+        }
+    }
+
+# CSV Sample File Generation
+@app.get("/api/admin/tools/sample-csv")
+async def download_sample_csv(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Download sample CSV file for bulk tool upload"""
+    
+    # Get sample categories for reference
+    sample_categories = db.query(Category).limit(3).all()
+    category_ids = [cat.id for cat in sample_categories] if sample_categories else ["category-uuid-1", "category-uuid-2"]
+    
+    # Create sample CSV data
+    sample_data = [
+        {
+            "name": "Example Tool 1",
+            "description": "This is a comprehensive project management tool designed for teams",
+            "short_description": "Project management made easy",
+            "website_url": "https://example-tool1.com",
+            "pricing_model": "Freemium",
+            "pricing_details": "Free tier available, Pro starts at $10/month",
+            "features": "Task management, Team collaboration, Time tracking, Reporting",
+            "target_audience": "Small to medium businesses",
+            "company_size": "SMB",
+            "integrations": "Slack, Google Drive, Dropbox, GitHub",
+            "logo_url": "https://example.com/logo1.png",
+            "category_id": category_ids[0] if category_ids else "category-uuid-1",
+            "industry": "Technology",
+            "employee_size": "11-50",
+            "revenue_range": "1M-10M",
+            "location": "San Francisco, CA",
+            "is_hot": "true",
+            "is_featured": "false",
+            "meta_title": "Example Tool 1 - Project Management Solution",
+            "meta_description": "Streamline your project management with Example Tool 1",
+            "slug": "example-tool-1"
+        },
+        {
+            "name": "Example Tool 2",
+            "description": "Advanced analytics platform for data-driven decision making",
+            "short_description": "Analytics platform for businesses",
+            "website_url": "https://example-tool2.com",
+            "pricing_model": "Paid",
+            "pricing_details": "Starting at $50/month",
+            "features": "Data visualization, Custom dashboards, Real-time analytics, AI insights",
+            "target_audience": "Enterprise businesses",
+            "company_size": "Enterprise",
+            "integrations": "Salesforce, HubSpot, Google Analytics, Facebook Ads",
+            "logo_url": "https://example.com/logo2.png",
+            "category_id": category_ids[1] if len(category_ids) > 1 else "category-uuid-2",
+            "industry": "Finance",
+            "employee_size": "201-1000",
+            "revenue_range": "10M-100M",
+            "location": "New York, NY",
+            "is_hot": "false",
+            "is_featured": "true",
+            "meta_title": "Example Tool 2 - Business Analytics Platform",
+            "meta_description": "Transform your data into actionable insights with Example Tool 2",
+            "slug": "example-tool-2"
+        }
+    ]
+    
+    # Generate CSV content
+    if not sample_data:
+        raise HTTPException(status_code=500, detail="Could not generate sample data")
+    
+    # Create CSV string
+    import io
+    import csv
+    
+    output = io.StringIO()
+    writer = csv.DictWriter(output, fieldnames=sample_data[0].keys())
+    writer.writeheader()
+    writer.writerows(sample_data)
+    csv_content = output.getvalue()
+    
+    # Return as downloadable file
+    from fastapi.responses import Response
+    
+    return Response(
+        content=csv_content,
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=tools_sample.csv"}
+    )
+
+# Role Management Routes
+@app.post("/api/admin/users/{user_id}/promote")
+async def promote_user_to_admin(
+    user_id: str,
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db)
+):
+    """Promote user to admin (Super Admin only)"""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if user.user_type == "superadmin":
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot modify superadmin role"
+        )
+    
+    user.user_type = "admin"
+    db.commit()
+    return {"message": f"User {user.username} promoted to admin"}
+
+@app.post("/api/admin/users/{user_id}/demote")
+async def demote_admin_to_user(
+    user_id: str,
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db)
+):
+    """Demote admin to user (Super Admin only)"""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if user.user_type == "superadmin":
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot demote superadmin"
+        )
+    
+    if user.id == current_user.id:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot demote yourself"
+        )
+    
+    user.user_type = "user"
+    db.commit()
+    return {"message": f"Admin {user.username} demoted to user"}
+
+# SEO Management Routes
+@app.get("/api/admin/seo/tools")
+async def get_tools_seo_status(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Get SEO status for all tools"""
+    tools = db.query(Tool).all()
+    seo_data = []
+    
+    for tool in tools:
+        optimizations = db.query(SEOOptimization).filter(SEOOptimization.tool_id == tool.id).count()
+        seo_data.append({
+            "tool_id": tool.id,
+            "tool_name": tool.name,
+            "has_meta_title": bool(tool.meta_title),
+            "has_meta_description": bool(tool.meta_description),
+            "has_ai_content": bool(tool.ai_content),
+            "optimizations_count": optimizations,
+            "last_updated": tool.last_updated
+        })
+    
+    return seo_data
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
