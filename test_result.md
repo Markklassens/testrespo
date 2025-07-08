@@ -65,7 +65,7 @@ backend:
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "testing"
@@ -79,6 +79,9 @@ backend:
       - working: true
         agent: "main"
         comment: "Fixed authentication status codes to use proper HTTP standards. Now returns 401 for authentication failures."
+      - working: true
+        agent: "testing"
+        comment: "Verified that authentication errors now correctly return 401 status codes. Protected routes and role-based access control are working as expected."
 
   - task: "Categories and Tools API"
     implemented: true
