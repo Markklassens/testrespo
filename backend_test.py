@@ -456,8 +456,8 @@ def test_tools_comparison():
         return False
     
     # Test add to comparison
-    form_data = {"tool_id": test_tool_id}
-    response = make_request("POST", "/api/tools/compare", data=form_data, token=tokens["user"], expected_status=200)
+    json_data = {"tool_id": test_tool_id}
+    response = make_request("POST", "/api/tools/compare", json_data, token=tokens["user"], expected_status=200)
     if response.status_code != 200:
         print("❌ Add to comparison failed")
         return False
