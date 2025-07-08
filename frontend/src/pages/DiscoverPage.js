@@ -731,6 +731,16 @@ const DiscoverPage = () => {
                 </span>
               )}
             </button>
+
+            {/* Show All Tools Button */}
+            {Object.values(filters).some(value => value && value !== 'relevance' && value !== '') && (
+              <button
+                onClick={clearAllFilters}
+                className="flex items-center space-x-2 px-6 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-200"
+              >
+                <span>Show All Tools</span>
+              </button>
+            )}
           </div>
 
           {/* Advanced Filters Panel */}
