@@ -184,6 +184,9 @@ const DiscoverPage = () => {
       sort_by: 'relevance'
     };
     setFilters(clearedFilters);
+    setPagination(prev => ({ ...prev, page: 1 }));
+    // Fetch all tools when filters are cleared
+    fetchAllTools();
   };
 
   const toggleSection = (section) => {
