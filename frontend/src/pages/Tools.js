@@ -10,9 +10,7 @@ import {
   Squares2X2Icon,
   ListBulletIcon,
   ChevronLeftIcon,
-  ChevronRightIcon,
-  FireIcon,
-  SparklesIcon
+  ChevronRightIcon
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 import { toast } from 'react-hot-toast';
