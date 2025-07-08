@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 
 # User Schemas
@@ -16,12 +16,16 @@ class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     user_type: Optional[str] = None
     is_active: Optional[bool] = None
+    groq_api_key: Optional[str] = None
+    claude_api_key: Optional[str] = None
 
 class UserResponse(UserBase):
     id: str
     is_active: bool
     is_verified: bool
     created_at: datetime
+    groq_api_key: Optional[str] = None
+    claude_api_key: Optional[str] = None
     
     class Config:
         from_attributes = True
@@ -52,6 +56,8 @@ class EmailVerification(BaseModel):
 class CategoryBase(BaseModel):
     name: str
     description: Optional[str] = None
+    icon: Optional[str] = None
+    color: Optional[str] = None
 
 class CategoryCreate(CategoryBase):
     pass
@@ -68,6 +74,7 @@ class SubcategoryBase(BaseModel):
     name: str
     description: Optional[str] = None
     category_id: str
+    icon: Optional[str] = None
 
 class SubcategoryCreate(SubcategoryBase):
     pass
@@ -96,6 +103,13 @@ class ToolBase(BaseModel):
     video_url: Optional[str] = None
     category_id: str
     subcategory_id: Optional[str] = None
+    industry: Optional[str] = None
+    employee_size: Optional[str] = None
+    revenue_range: Optional[str] = None
+    location: Optional[str] = None
+    is_hot: bool = False
+    is_featured: bool = False
+    launch_date: Optional[datetime] = None
     meta_title: Optional[str] = None
     meta_description: Optional[str] = None
     slug: str
@@ -119,6 +133,13 @@ class ToolUpdate(BaseModel):
     video_url: Optional[str] = None
     category_id: Optional[str] = None
     subcategory_id: Optional[str] = None
+    industry: Optional[str] = None
+    employee_size: Optional[str] = None
+    revenue_range: Optional[str] = None
+    location: Optional[str] = None
+    is_hot: Optional[bool] = None
+    is_featured: Optional[bool] = None
+    launch_date: Optional[datetime] = None
     meta_title: Optional[str] = None
     meta_description: Optional[str] = None
 
@@ -148,7 +169,8 @@ class BlogBase(BaseModel):
     slug: str
 
 class BlogCreate(BlogBase):
-    pass
+    is_ai_generated: bool = False
+    ai_prompt: Optional[str] = None
 
 class BlogUpdate(BaseModel):
     title: Optional[str] = None
@@ -167,6 +189,7 @@ class BlogResponse(BlogBase):
     views: int
     likes: int
     reading_time: int
+    is_ai_generated: bool
     published_at: Optional[datetime] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
@@ -174,49 +197,76 @@ class BlogResponse(BlogBase):
     class Config:
         from_attributes = True
 
-# Review Schemas
-class ReviewBase(BaseModel):
-    rating: int
-    title: str
+# AI Content Generation Schemas
+class AIContentRequest(BaseModel):
+    prompt: str
+    content_type: str  # blog, tool_description, seo_content
+    provider: Optional[str] = None  # groq, claude, or auto
+    model: Optional[str] = None
+
+class AIContentResponse(BaseModel):
     content: str
-    pros: Optional[str] = None
-    cons: Optional[str] = None
+    provider: str
+    model: str
+    tokens_used: int
+
+# SEO Optimization Schemas
+class SEOOptimizationRequest(BaseModel):
     tool_id: str
+    target_keywords: List[str]
+    search_engine: str  # google, bing
+    provider: Optional[str] = None  # groq, claude, or auto
 
-class ReviewCreate(ReviewBase):
-    pass
+class SEOOptimizationResponse(BaseModel):
+    meta_title: str
+    meta_description: str
+    content: str
+    optimization_score: float
+    keywords_used: List[str]
 
-class ReviewResponse(ReviewBase):
-    id: str
-    user_id: str
-    is_verified: bool
-    helpful_count: int
-    created_at: datetime
-    updated_at: Optional[datetime] = None
-    
-    class Config:
-        from_attributes = True
+# Enhanced Search Schemas
+class AdvancedSearchRequest(BaseModel):
+    q: Optional[str] = None
+    category_id: Optional[str] = None
+    subcategory_id: Optional[str] = None
+    pricing_model: Optional[str] = None
+    company_size: Optional[str] = None
+    industry: Optional[str] = None
+    employee_size: Optional[str] = None
+    revenue_range: Optional[str] = None
+    location: Optional[str] = None
+    is_hot: Optional[bool] = None
+    is_featured: Optional[bool] = None
+    min_rating: Optional[float] = None
+    sort_by: Optional[str] = "relevance"
+    skip: int = 0
+    limit: int = 20
 
-# Enhanced Search Response
-class SearchResponse(BaseModel):
+class PaginatedToolsResponse(BaseModel):
     tools: List[ToolResponse]
     total: int
-    skip: int
-    limit: int
+    page: int
+    per_page: int
+    total_pages: int
+    has_next: bool
+    has_prev: bool
 
-# File Upload Response
-class FileUploadResponse(BaseModel):
-    file_url: str
-    filename: str
+# Analytics Schemas
+class ToolAnalytics(BaseModel):
+    trending_tools: List[ToolResponse]
+    top_rated_tools: List[ToolResponse]
+    most_viewed_tools: List[ToolResponse]
+    newest_tools: List[ToolResponse]
+    featured_tools: List[ToolResponse]
+    hot_tools: List[ToolResponse]
 
-# Analytics Response
-class AnalyticsResponse(BaseModel):
-    total_users: int
-    total_tools: int
-    total_blogs: int
-    total_reviews: int
-    recent_blogs: List[BlogResponse]
-    recent_reviews: List[ReviewResponse]
+class CategoryAnalytics(BaseModel):
+    category_id: str
+    category_name: str
+    tool_count: int
+    avg_rating: float
+    total_views: int
+    recommended_tools: List[ToolResponse]
 
 # Review Schemas
 class ReviewBase(BaseModel):
@@ -259,3 +309,34 @@ class CommentResponse(CommentBase):
     
     class Config:
         from_attributes = True
+
+# Admin Settings Schemas
+class AdminSettingBase(BaseModel):
+    setting_key: str
+    setting_value: Optional[str] = None
+    description: Optional[str] = None
+
+class AdminSettingCreate(AdminSettingBase):
+    pass
+
+class AdminSettingResponse(AdminSettingBase):
+    id: str
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    
+    class Config:
+        from_attributes = True
+
+# File Upload Response
+class FileUploadResponse(BaseModel):
+    file_url: str
+    filename: str
+
+# Analytics Response
+class AnalyticsResponse(BaseModel):
+    total_users: int
+    total_tools: int
+    total_blogs: int
+    total_reviews: int
+    recent_blogs: List[BlogResponse]
+    recent_reviews: List[ReviewResponse]

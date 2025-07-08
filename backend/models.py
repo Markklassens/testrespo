@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Integer, String, Text, DateTime, ForeignKey, Float, Table
+from sqlalchemy import Boolean, Column, Integer, String, Text, DateTime, ForeignKey, Float, Table, JSON
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -27,6 +27,11 @@ class User(Base):
     user_type = Column(String, default="user")  # user, admin, superadmin
     verification_token = Column(String, nullable=True)
     reset_token = Column(String, nullable=True)
+    
+    # AI API Keys for content generation
+    groq_api_key = Column(String, nullable=True)
+    claude_api_key = Column(String, nullable=True)
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
@@ -35,6 +40,7 @@ class User(Base):
     reviews = relationship("Review", back_populates="user")
     comments = relationship("Comment", back_populates="user")
     compared_tools = relationship("Tool", secondary=user_tool_comparison, back_populates="compared_by_users")
+    ai_generated_content = relationship("AIGeneratedContent", back_populates="user")
 
 class Category(Base):
     __tablename__ = "categories"
@@ -42,6 +48,8 @@ class Category(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String, unique=True, nullable=False)
     description = Column(Text, nullable=True)
+    icon = Column(String, nullable=True)  # Icon for UI
+    color = Column(String, nullable=True)  # Color theme for category
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relationships
@@ -56,6 +64,7 @@ class Subcategory(Base):
     name = Column(String, nullable=False)
     description = Column(Text, nullable=True)
     category_id = Column(String, ForeignKey("categories.id"), nullable=False)
+    icon = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relationships
@@ -89,16 +98,31 @@ class Tool(Base):
     category_id = Column(String, ForeignKey("categories.id"), nullable=False)
     subcategory_id = Column(String, ForeignKey("subcategories.id"), nullable=True)
     
+    # Enhanced fields for advanced filtering
+    industry = Column(String, nullable=True)  # Technology, Finance, Healthcare, etc.
+    employee_size = Column(String, nullable=True)  # 1-10, 11-50, 51-200, 201-1000, 1000+
+    revenue_range = Column(String, nullable=True)  # <1M, 1M-10M, 10M-100M, 100M+
+    location = Column(String, nullable=True)  # Headquarters location
+    is_hot = Column(Boolean, default=False)  # Hot/trending flag
+    is_featured = Column(Boolean, default=False)  # Featured tool
+    launch_date = Column(DateTime, nullable=True)  # When tool was launched
+    
     # SEO fields
     meta_title = Column(String, nullable=True)
     meta_description = Column(String, nullable=True)
     slug = Column(String, unique=True, nullable=False)
+    
+    # AI-generated SEO content
+    ai_meta_title = Column(String, nullable=True)
+    ai_meta_description = Column(String, nullable=True)
+    ai_content = Column(Text, nullable=True)
     
     # Relationships
     category = relationship("Category", back_populates="tools")
     subcategory = relationship("Subcategory", back_populates="tools")
     reviews = relationship("Review", back_populates="tool")
     compared_by_users = relationship("User", secondary=user_tool_comparison, back_populates="compared_tools")
+    seo_optimizations = relationship("SEOOptimization", back_populates="tool")
 
 class Blog(Base):
     __tablename__ = "blogs"
@@ -118,6 +142,10 @@ class Blog(Base):
     published_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # AI-generated content flag
+    is_ai_generated = Column(Boolean, default=False)
+    ai_prompt = Column(Text, nullable=True)  # Store the prompt used for AI generation
     
     # SEO fields
     meta_title = Column(String, nullable=True)
@@ -166,3 +194,47 @@ class Comment(Base):
     user = relationship("User", back_populates="comments")
     blog = relationship("Blog", back_populates="comments")
     parent = relationship("Comment", remote_side=[id])
+
+class AIGeneratedContent(Base):
+    __tablename__ = "ai_generated_content"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    content_type = Column(String, nullable=False)  # blog, tool_description, seo_content
+    prompt = Column(Text, nullable=False)
+    generated_content = Column(Text, nullable=False)
+    provider = Column(String, nullable=False)  # groq, claude
+    model = Column(String, nullable=True)  # Model used
+    tokens_used = Column(Integer, default=0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    # Relationships
+    user = relationship("User", back_populates="ai_generated_content")
+
+class SEOOptimization(Base):
+    __tablename__ = "seo_optimizations"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    tool_id = Column(String, ForeignKey("tools.id"), nullable=False)
+    target_keywords = Column(Text, nullable=True)  # JSON array of keywords
+    meta_title = Column(String, nullable=True)
+    meta_description = Column(String, nullable=True)
+    content = Column(Text, nullable=True)
+    search_engine = Column(String, nullable=False)  # google, bing
+    optimization_score = Column(Float, default=0.0)
+    generated_by = Column(String, nullable=False)  # groq, claude
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Relationships
+    tool = relationship("Tool", back_populates="seo_optimizations")
+
+class AdminSettings(Base):
+    __tablename__ = "admin_settings"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    setting_key = Column(String, unique=True, nullable=False)
+    setting_value = Column(Text, nullable=True)
+    description = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
