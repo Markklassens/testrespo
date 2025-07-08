@@ -854,7 +854,9 @@ async def upload_file(
 
 # Serve static files
 from fastapi.staticfiles import StaticFiles
-app.mount("/api/static", StaticFiles(directory="uploads"), name="static")
+uploads_dir = "/app/backend/uploads"
+os.makedirs(uploads_dir, exist_ok=True)
+app.mount("/api/static", StaticFiles(directory=uploads_dir), name="static")
 
 # Analytics Routes
 @app.get("/api/analytics/dashboard")
