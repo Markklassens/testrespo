@@ -333,10 +333,9 @@ class AdminSettingResponse(AdminSettingBase):
     class Config:
         from_attributes = True
 
-# File Upload Response
-class FileUploadResponse(BaseModel):
-    file_url: str
-    filename: str
+# Tool Comparison Schema
+class ToolComparisonRequest(BaseModel):
+    tool_id: str
 
 # Analytics Response
 class AnalyticsResponse(BaseModel):
