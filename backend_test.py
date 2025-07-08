@@ -736,6 +736,349 @@ def test_user_profile():
     print("✅ User profile endpoint passed")
     return True
 
+# Super Admin User Management Tests
+def test_super_admin_user_management():
+    """Test Super Admin user management endpoints"""
+    print_test_header("Super Admin User Management")
+    
+    if "superadmin" not in tokens:
+        print("❌ Cannot test Super Admin user management without superadmin token")
+        return False
+    
+    success = True
+    
+    # Test GET all users
+    print_test_header("GET /api/admin/users")
+    response = make_request("GET", "/api/admin/users", token=tokens["superadmin"])
+    if response.status_code != 200 or not isinstance(response.json(), list):
+        print("❌ GET all users failed")
+        success = False
+    else:
+        print("✅ GET all users passed")
+    
+    # Test GET all users with filtering
+    print_test_header("GET /api/admin/users with filtering")
+    response = make_request("GET", "/api/admin/users?user_type=admin&limit=5", token=tokens["superadmin"])
+    if response.status_code != 200 or not isinstance(response.json(), list):
+        print("❌ GET all users with filtering failed")
+        success = False
+    else:
+        print("✅ GET all users with filtering passed")
+    
+    # Test GET user by ID
+    print_test_header("GET /api/admin/users/{user_id}")
+    # Get a user ID from the list of users
+    users_response = make_request("GET", "/api/admin/users", token=tokens["superadmin"])
+    if users_response.status_code != 200 or not users_response.json():
+        print("❌ Cannot get user ID for testing")
+        success = False
+    else:
+        user_id = users_response.json()[0]["id"]
+        response = make_request("GET", f"/api/admin/users/{user_id}", token=tokens["superadmin"])
+        if response.status_code != 200 or response.json()["id"] != user_id:
+            print("❌ GET user by ID failed")
+            success = False
+        else:
+            print("✅ GET user by ID passed")
+    
+    # Test CREATE user
+    print_test_header("POST /api/admin/users")
+    new_user = {
+        "email": f"testadmin_{uuid.uuid4().hex[:8]}@example.com",
+        "username": f"testadmin_{uuid.uuid4().hex[:8]}",
+        "full_name": "Test Admin User",
+        "password": "TestAdmin123!",
+        "user_type": "admin"
+    }
+    response = make_request("POST", "/api/admin/users", new_user, token=tokens["superadmin"])
+    if response.status_code != 200:
+        print("❌ CREATE user failed")
+        success = False
+    else:
+        print("✅ CREATE user passed")
+        created_user_id = response.json()["id"]
+        
+        # Test UPDATE user
+        print_test_header("PUT /api/admin/users/{user_id}")
+        update_data = {
+            "full_name": f"Updated Admin Name {uuid.uuid4().hex[:8]}",
+            "is_active": True
+        }
+        response = make_request("PUT", f"/api/admin/users/{created_user_id}", update_data, token=tokens["superadmin"])
+        if response.status_code != 200 or response.json()["full_name"] != update_data["full_name"]:
+            print("❌ UPDATE user failed")
+            success = False
+        else:
+            print("✅ UPDATE user passed")
+        
+        # Test DELETE user
+        print_test_header("DELETE /api/admin/users/{user_id}")
+        response = make_request("DELETE", f"/api/admin/users/{created_user_id}", token=tokens["superadmin"])
+        if response.status_code != 200:
+            print("❌ DELETE user failed")
+            success = False
+        else:
+            print("✅ DELETE user passed")
+    
+    # Test permissions - admin user should not be able to access these endpoints
+    if "admin" in tokens:
+        print_test_header("Testing permissions - admin user")
+        response = make_request("GET", "/api/admin/users", token=tokens["admin"], expected_status=403)
+        if response.status_code != 403:
+            print("❌ Permission check failed - admin user should not access super admin endpoints")
+            success = False
+        else:
+            print("✅ Permission check passed - admin user correctly denied access")
+    
+    return success
+
+def test_reviews_management():
+    """Test reviews management endpoints"""
+    print_test_header("Reviews Management")
+    
+    if "admin" not in tokens:
+        print("❌ Cannot test reviews management without admin token")
+        return False
+    
+    success = True
+    
+    # Test GET all reviews
+    print_test_header("GET /api/admin/reviews")
+    response = make_request("GET", "/api/admin/reviews", token=tokens["admin"])
+    if response.status_code != 200 or not isinstance(response.json(), list):
+        print("❌ GET all reviews failed")
+        success = False
+    else:
+        print("✅ GET all reviews passed")
+    
+    # Test GET all reviews with filtering
+    print_test_header("GET /api/admin/reviews with filtering")
+    response = make_request("GET", "/api/admin/reviews?is_verified=false&limit=5", token=tokens["admin"])
+    if response.status_code != 200 or not isinstance(response.json(), list):
+        print("❌ GET all reviews with filtering failed")
+        success = False
+    else:
+        print("✅ GET all reviews with filtering passed")
+    
+    # Create a review for testing
+    if test_tool_id:
+        print_test_header("Creating a review for testing")
+        review_data = {
+            "rating": 4,
+            "title": f"Test Review {uuid.uuid4().hex[:8]}",
+            "content": "This is a test review content.",
+            "pros": "Good features, easy to use",
+            "cons": "Some limitations",
+            "tool_id": test_tool_id
+        }
+        
+        # We need a user token to create a review
+        if "user" in tokens:
+            # This endpoint doesn't exist in the current API, so we'll need to create it directly in the database
+            # For testing purposes, we'll use the admin token to verify and delete the review
+            
+            # Test VERIFY review
+            # Get a review ID from the list of reviews
+            reviews_response = make_request("GET", "/api/admin/reviews?is_verified=false", token=tokens["admin"])
+            if reviews_response.status_code == 200 and reviews_response.json():
+                review_id = reviews_response.json()[0]["id"]
+                
+                print_test_header("PUT /api/admin/reviews/{review_id}/verify")
+                response = make_request("PUT", f"/api/admin/reviews/{review_id}/verify", token=tokens["admin"])
+                if response.status_code != 200:
+                    print("❌ VERIFY review failed")
+                    success = False
+                else:
+                    print("✅ VERIFY review passed")
+                
+                # Test DELETE review
+                print_test_header("DELETE /api/admin/reviews/{review_id}")
+                response = make_request("DELETE", f"/api/admin/reviews/{review_id}", token=tokens["admin"])
+                if response.status_code != 200:
+                    print("❌ DELETE review failed")
+                    success = False
+                else:
+                    print("✅ DELETE review passed")
+            else:
+                print("⚠️ No unverified reviews found for testing verification and deletion")
+    else:
+        print("⚠️ No test tool ID available for creating a review")
+    
+    return success
+
+def test_advanced_analytics():
+    """Test advanced analytics endpoint"""
+    print_test_header("Advanced Analytics")
+    
+    if "superadmin" not in tokens:
+        print("❌ Cannot test advanced analytics without superadmin token")
+        return False
+    
+    # Test GET advanced analytics
+    print_test_header("GET /api/admin/analytics/advanced")
+    response = make_request("GET", "/api/admin/analytics/advanced", token=tokens["superadmin"])
+    if response.status_code != 200:
+        print("❌ GET advanced analytics failed")
+        return False
+    
+    data = response.json()
+    # Check if the response contains the expected data structure
+    expected_keys = ["user_stats", "content_stats", "review_stats", "recent_activity"]
+    
+    for key in expected_keys:
+        if key not in data:
+            print(f"❌ Missing key in response: {key}")
+            return False
+    
+    # Test permissions - admin user should not be able to access this endpoint
+    if "admin" in tokens:
+        print_test_header("Testing permissions - admin user")
+        response = make_request("GET", "/api/admin/analytics/advanced", token=tokens["admin"], expected_status=403)
+        if response.status_code != 403:
+            print("❌ Permission check failed - admin user should not access super admin endpoints")
+            return False
+        else:
+            print("✅ Permission check passed - admin user correctly denied access")
+    
+    print("✅ Advanced analytics endpoint passed")
+    return True
+
+def test_sample_csv():
+    """Test sample CSV file download endpoint"""
+    print_test_header("Sample CSV File Download")
+    
+    if "admin" not in tokens:
+        print("❌ Cannot test sample CSV file download without admin token")
+        return False
+    
+    # Test GET sample CSV file
+    print_test_header("GET /api/admin/tools/sample-csv")
+    response = make_request("GET", "/api/admin/tools/sample-csv", token=tokens["admin"])
+    if response.status_code != 200:
+        print("❌ GET sample CSV file failed")
+        return False
+    
+    # Check if the response is a CSV file
+    content_type = response.headers.get("Content-Type")
+    if content_type != "text/csv":
+        print(f"❌ Expected content type 'text/csv', got '{content_type}'")
+        return False
+    
+    # Check if the response has the Content-Disposition header
+    content_disposition = response.headers.get("Content-Disposition")
+    if not content_disposition or "attachment" not in content_disposition:
+        print(f"❌ Expected Content-Disposition header with 'attachment', got '{content_disposition}'")
+        return False
+    
+    print("✅ Sample CSV file download endpoint passed")
+    return True
+
+def test_role_management():
+    """Test role management endpoints"""
+    print_test_header("Role Management")
+    
+    if "superadmin" not in tokens:
+        print("❌ Cannot test role management without superadmin token")
+        return False
+    
+    success = True
+    
+    # Create a test user to promote/demote
+    print_test_header("Creating a test user for role management")
+    new_user = {
+        "email": f"testrole_{uuid.uuid4().hex[:8]}@example.com",
+        "username": f"testrole_{uuid.uuid4().hex[:8]}",
+        "full_name": "Test Role User",
+        "password": "TestRole123!",
+        "user_type": "user"
+    }
+    response = make_request("POST", "/api/admin/users", new_user, token=tokens["superadmin"])
+    if response.status_code != 200:
+        print("❌ Failed to create test user for role management")
+        return False
+    
+    test_user_id = response.json()["id"]
+    
+    # Test PROMOTE user
+    print_test_header("POST /api/admin/users/{user_id}/promote")
+    response = make_request("POST", f"/api/admin/users/{test_user_id}/promote", token=tokens["superadmin"])
+    if response.status_code != 200:
+        print("❌ PROMOTE user failed")
+        success = False
+    else:
+        print("✅ PROMOTE user passed")
+        
+        # Verify the user was promoted
+        response = make_request("GET", f"/api/admin/users/{test_user_id}", token=tokens["superadmin"])
+        if response.status_code != 200 or response.json()["user_type"] != "admin":
+            print("❌ User promotion verification failed")
+            success = False
+        else:
+            print("✅ User promotion verification passed")
+        
+        # Test DEMOTE user
+        print_test_header("POST /api/admin/users/{user_id}/demote")
+        response = make_request("POST", f"/api/admin/users/{test_user_id}/demote", token=tokens["superadmin"])
+        if response.status_code != 200:
+            print("❌ DEMOTE user failed")
+            success = False
+        else:
+            print("✅ DEMOTE user passed")
+            
+            # Verify the user was demoted
+            response = make_request("GET", f"/api/admin/users/{test_user_id}", token=tokens["superadmin"])
+            if response.status_code != 200 or response.json()["user_type"] != "user":
+                print("❌ User demotion verification failed")
+                success = False
+            else:
+                print("✅ User demotion verification passed")
+    
+    # Clean up - delete the test user
+    print_test_header("Cleaning up - deleting test user")
+    response = make_request("DELETE", f"/api/admin/users/{test_user_id}", token=tokens["superadmin"])
+    if response.status_code != 200:
+        print("⚠️ Failed to clean up test user")
+    
+    # Test permissions - admin user should not be able to access these endpoints
+    if "admin" in tokens:
+        print_test_header("Testing permissions - admin user")
+        response = make_request("POST", f"/api/admin/users/{test_user_id}/promote", token=tokens["admin"], expected_status=403)
+        if response.status_code != 403:
+            print("❌ Permission check failed - admin user should not access super admin endpoints")
+            success = False
+        else:
+            print("✅ Permission check passed - admin user correctly denied access")
+    
+    return success
+
+def test_seo_tools():
+    """Test SEO tools endpoints"""
+    print_test_header("SEO Tools")
+    
+    if "admin" not in tokens:
+        print("❌ Cannot test SEO tools without admin token")
+        return False
+    
+    # Test GET SEO status for all tools
+    print_test_header("GET /api/admin/seo/tools")
+    response = make_request("GET", "/api/admin/seo/tools", token=tokens["admin"])
+    if response.status_code != 200 or not isinstance(response.json(), list):
+        print("❌ GET SEO status for all tools failed")
+        return False
+    
+    # Check if the response contains the expected data structure
+    if response.json():
+        seo_data = response.json()[0]
+        expected_keys = ["tool_id", "tool_name", "has_meta_title", "has_meta_description", "has_ai_content", "optimizations_count", "last_updated"]
+        
+        for key in expected_keys:
+            if key not in seo_data:
+                print(f"❌ Missing key in response: {key}")
+                return False
+    
+    print("✅ SEO tools endpoint passed")
+    return True
+
 def run_all_tests():
     """Run all tests"""
     results = {}
@@ -773,6 +1116,14 @@ def run_all_tests():
         results["tools_analytics"] = test_tools_analytics()
         results["api_key_management"] = test_api_key_management()
         results["user_profile"] = test_user_profile()
+        
+        # Super Admin Endpoints
+        results["super_admin_user_management"] = test_super_admin_user_management()
+        results["reviews_management"] = test_reviews_management()
+        results["advanced_analytics"] = test_advanced_analytics()
+        results["sample_csv"] = test_sample_csv()
+        results["role_management"] = test_role_management()
+        results["seo_tools"] = test_seo_tools()
         
         # Print summary
         print("\n" + "=" * 80)
