@@ -197,6 +197,50 @@ class ReviewResponse(ReviewBase):
     class Config:
         from_attributes = True
 
+# Enhanced Search Response
+class SearchResponse(BaseModel):
+    tools: List[ToolResponse]
+    total: int
+    skip: int
+    limit: int
+
+# File Upload Response
+class FileUploadResponse(BaseModel):
+    file_url: str
+    filename: str
+
+# Analytics Response
+class AnalyticsResponse(BaseModel):
+    total_users: int
+    total_tools: int
+    total_blogs: int
+    total_reviews: int
+    recent_blogs: List[BlogResponse]
+    recent_reviews: List[ReviewResponse]
+
+# Review Schemas
+class ReviewBase(BaseModel):
+    rating: int
+    title: str
+    content: str
+    pros: Optional[str] = None
+    cons: Optional[str] = None
+    tool_id: str
+
+class ReviewCreate(ReviewBase):
+    pass
+
+class ReviewResponse(ReviewBase):
+    id: str
+    user_id: str
+    is_verified: bool
+    helpful_count: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    
+    class Config:
+        from_attributes = True
+
 # Comment Schemas
 class CommentBase(BaseModel):
     content: str
