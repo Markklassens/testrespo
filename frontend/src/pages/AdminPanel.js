@@ -642,7 +642,6 @@ const AdminPanel = () => {
 };
 
 export default AdminPanel;
-  const dispatch = useDispatch();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [showBulkUpload, setShowBulkUpload] = useState(false);
