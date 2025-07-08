@@ -10,4 +10,4 @@ pydantic[email]
 httpx
 openai
 anthropic
-aiofiles
+aiofilesjinja2
