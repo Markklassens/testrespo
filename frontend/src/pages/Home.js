@@ -8,8 +8,6 @@ import {
   UserGroupIcon,
   StarIcon,
   EyeIcon,
-  TrendingUpIcon,
-  SparklesIcon,
   ClockIcon,
   ArrowRightIcon
 } from '@heroicons/react/24/outline';
