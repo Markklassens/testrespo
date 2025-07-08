@@ -641,7 +641,7 @@ const AdminPanel = () => {
   );
 };
 
-const AdminPanel = () => {
+export default AdminPanel;
   const dispatch = useDispatch();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
