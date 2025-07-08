@@ -13,7 +13,7 @@ import {
   SparklesIcon,
   KeyIcon,
   RocketLaunchIcon,
-  TrendingUpIcon,
+  ArrowTrendingUpIcon,
   ArrowRightIcon
 } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
