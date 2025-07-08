@@ -656,15 +656,15 @@ def test_error_handling():
     return True
 
 def test_tools_analytics():
-    """Test tools analytics endpoint"""
-    print_test_header("Tools Analytics")
+    """Test tools analytics endpoint for Discover page carousels"""
+    print_test_header("Tools Analytics for Discover Page")
     response = make_request("GET", "/api/tools/analytics")
     if response.status_code != 200:
         print("❌ Tools analytics endpoint failed")
         return False
     
     data = response.json()
-    # Check if the response contains the expected data structure
+    # Check if the response contains the expected data structure for all required carousels
     expected_keys = [
         "trending_tools", "top_rated_tools", "most_viewed_tools", 
         "newest_tools", "featured_tools", "hot_tools"
@@ -672,13 +672,25 @@ def test_tools_analytics():
     
     for key in expected_keys:
         if key not in data:
-            print(f"❌ Missing key in response: {key}")
+            print(f"❌ Missing carousel in response: {key}")
             return False
         if not isinstance(data[key], list):
             print(f"❌ Expected list for {key}, got {type(data[key])}")
             return False
+        
+        # Check that each carousel contains tool objects with expected properties
+        if data[key]:
+            sample_tool = data[key][0]
+            required_tool_props = ["id", "name", "description", "category_id"]
+            for prop in required_tool_props:
+                if prop not in sample_tool:
+                    print(f"❌ Missing property {prop} in {key} tool")
+                    return False
+            print(f"✅ {key} carousel contains valid tool objects")
+        else:
+            print(f"ℹ️ {key} carousel is empty")
     
-    print("✅ Tools analytics endpoint passed")
+    print("✅ Tools analytics endpoint passed - all required carousels present")
     return True
 
 def test_api_key_management():
