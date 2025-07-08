@@ -75,6 +75,7 @@ function AppContent() {
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<Home />} />
+          <Route path="/discover" element={<DiscoverPage />} />
           <Route path="/login" element={
             <PublicRoute>
               <Login />
