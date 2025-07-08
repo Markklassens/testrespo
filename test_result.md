@@ -239,6 +239,17 @@ test_plan:
     - "Password Reset Flow"
     - "Protected Routes"
     - "Categories and Tools API"
+    - "Frontend Authentication"
+    - "Homepage Navigation"
+    - "User Registration Flow"
+    - "User Login Flow"
+    - "Dashboard Functionality"
+    - "Tools Page"
+    - "Blogs Page"
+    - "Admin Panel Access"
+    - "User Profile"
+    - "Responsive Design"
+    - "Logout Flow"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
