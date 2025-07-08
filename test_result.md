@@ -540,7 +540,9 @@ test_plan:
     - "Categories CRUD Operations"
     - "Tools Comparison"
     - "Error Handling"
-  stuck_tasks: []
+    - "CSV Sample File"
+  stuck_tasks:
+    - "Tools Comparison"
   test_all: false
   test_priority: "high_first"
 
