@@ -288,13 +288,22 @@ const Home = () => {
             />
 
             <div className="text-center mt-12">
-              <Link
-                to="/tools"
-                className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3 rounded-lg text-lg font-semibold transition-colors duration-200 inline-flex items-center"
-              >
-                View All Tools
-                <ArrowRightIcon className="ml-2 h-5 w-5" />
-              </Link>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link
+                  to="/discover"
+                  className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-8 py-3 rounded-lg text-lg font-semibold transition-all duration-200 inline-flex items-center shadow-lg"
+                >
+                  Discover All Tools
+                  <ArrowRightIcon className="ml-2 h-5 w-5" />
+                </Link>
+                <Link
+                  to="/tools"
+                  className="bg-white hover:bg-gray-50 text-purple-600 border-2 border-purple-600 px-8 py-3 rounded-lg text-lg font-semibold transition-colors duration-200 inline-flex items-center"
+                >
+                  Browse Tools
+                  <ArrowRightIcon className="ml-2 h-5 w-5" />
+                </Link>
+              </div>
             </div>
           </div>
         </section>
