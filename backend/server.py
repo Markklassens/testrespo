@@ -1156,7 +1156,10 @@ async def download_sample_csv(
         return Response(
             content=csv_content,
             media_type="text/csv",
-            headers={"Content-Disposition": "attachment; filename=tools_sample.csv"}
+            headers={
+                "Content-Disposition": "attachment; filename=tools_sample.csv",
+                "Content-Type": "text/csv"
+            }
         )
         
     except FileNotFoundError:
