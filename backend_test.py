@@ -413,30 +413,94 @@ def test_tools_crud():
     return True
 
 def test_tools_search():
-    """Test advanced tools search"""
-    print_test_header("Advanced Tools Search")
+    """Test advanced tools search for Discover page"""
+    print_test_header("Advanced Tools Search for Discover Page")
     
     # Test basic search
+    print_test_header("Basic search")
     response = make_request("GET", "/api/tools/search?page=1&per_page=10")
     if response.status_code != 200:
         print("❌ Basic search failed")
         return False
     
-    # Test with filters
-    filters = {
-        "q": "tool",
-        "category_id": test_category_id if test_category_id else "",
-        "pricing_model": "Freemium",
-        "sort_by": "rating"
-    }
+    # Get total tools count for verification
+    total_tools = response.json()["total"]
+    print(f"Total tools in database: {total_tools}")
     
-    query_params = "&".join([f"{k}={v}" for k, v in filters.items() if v])
-    response = make_request("GET", f"/api/tools/search?{query_params}&page=1&per_page=10")
+    # Verify we have at least 23 tools as required
+    if total_tools < 23:
+        print(f"❌ Expected at least 23 tools, but found only {total_tools}")
+        print("⚠️ This may affect the Discover page functionality")
+    else:
+        print(f"✅ Found {total_tools} tools (requirement: at least 23)")
+    
+    # Test search with query parameter
+    print_test_header("Search with query parameter")
+    response = make_request("GET", "/api/tools/search?q=tool")
     if response.status_code != 200:
-        print("❌ Advanced search with filters failed")
+        print("❌ Search with query parameter failed")
+        return False
+    print("✅ Search with query parameter passed")
+    
+    # Test category filtering
+    if test_category_id:
+        print_test_header("Category filtering")
+        response = make_request("GET", f"/api/tools/search?category_id={test_category_id}")
+        if response.status_code != 200:
+            print("❌ Category filtering failed")
+            return False
+        print("✅ Category filtering passed")
+    
+    # Test pricing model filtering
+    print_test_header("Pricing model filtering")
+    response = make_request("GET", "/api/tools/search?pricing_model=Freemium")
+    if response.status_code != 200:
+        print("❌ Pricing model filtering failed")
+        return False
+    print("✅ Pricing model filtering passed")
+    
+    # Test company size filtering
+    print_test_header("Company size filtering")
+    response = make_request("GET", "/api/tools/search?company_size=SMB")
+    if response.status_code != 200:
+        print("❌ Company size filtering failed")
+        return False
+    print("✅ Company size filtering passed")
+    
+    # Test hot tools filtering
+    print_test_header("Hot tools filtering")
+    response = make_request("GET", "/api/tools/search?is_hot=true")
+    if response.status_code != 200:
+        print("❌ Hot tools filtering failed")
+        return False
+    print("✅ Hot tools filtering passed")
+    
+    # Test featured tools filtering
+    print_test_header("Featured tools filtering")
+    response = make_request("GET", "/api/tools/search?is_featured=true")
+    if response.status_code != 200:
+        print("❌ Featured tools filtering failed")
+        return False
+    print("✅ Featured tools filtering passed")
+    
+    # Test sort options
+    sort_options = ["rating", "trending", "views"]
+    for sort_by in sort_options:
+        print_test_header(f"Sort by {sort_by}")
+        response = make_request("GET", f"/api/tools/search?sort_by={sort_by}")
+        if response.status_code != 200:
+            print(f"❌ Sort by {sort_by} failed")
+            return False
+        print(f"✅ Sort by {sort_by} passed")
+    
+    # Test pagination
+    print_test_header("Pagination")
+    response = make_request("GET", "/api/tools/search?page=1&per_page=50")
+    if response.status_code != 200:
+        print("❌ Pagination failed")
         return False
     
-    # Check pagination
+    # Check pagination metadata
     data = response.json()
     expected_pagination_keys = ["total", "page", "per_page", "total_pages", "has_next", "has_prev"]
     for key in expected_pagination_keys:
@@ -444,7 +508,22 @@ def test_tools_search():
             print(f"❌ Missing pagination key: {key}")
             return False
     
-    print("✅ Advanced tools search passed")
+    # Verify per_page is respected
+    if data["per_page"] != 50:
+        print(f"❌ Expected per_page=50, got {data['per_page']}")
+        return False
+    
+    print("✅ Pagination passed")
+    
+    # Test combination of filters
+    print_test_header("Combination of filters")
+    response = make_request("GET", "/api/tools/search?pricing_model=Freemium&company_size=SMB&sort_by=rating&is_featured=true&page=1&per_page=20")
+    if response.status_code != 200:
+        print("❌ Combination of filters failed")
+        return False
+    print("✅ Combination of filters passed")
+    
+    print("✅ Advanced tools search for Discover page passed")
     return True
 
 def test_tools_comparison():
