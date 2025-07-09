@@ -18,6 +18,7 @@ import Blogs from './pages/Blogs';
 import AdminPanel from './pages/AdminPanel';
 import Profile from './pages/Profile';
 import LoadingSpinner from './components/LoadingSpinner';
+import './codespaceCompat';
 import './App.css';
 
 const queryClient = new QueryClient();
