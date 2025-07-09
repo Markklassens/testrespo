@@ -39,17 +39,33 @@ if [ "$ENVIRONMENT" = "prod" ]; then
     
     # Build and deploy with production configuration
     echo "🏗️ Building Docker images for production..."
-    docker-compose -f docker-compose.prod.yml build --no-cache
+    if command -v docker-compose &> /dev/null; then
+        docker-compose -f docker-compose.prod.yml build --no-cache
+    else
+        docker compose -f docker-compose.prod.yml build --no-cache
+    fi
     
     echo "🔄 Stopping existing containers..."
-    docker-compose -f docker-compose.prod.yml down
+    if command -v docker-compose &> /dev/null; then
+        docker-compose -f docker-compose.prod.yml down
+    else
+        docker compose -f docker-compose.prod.yml down
+    fi
     
     echo "🚀 Starting production services..."
-    docker-compose -f docker-compose.prod.yml up -d
+    if command -v docker-compose &> /dev/null; then
+        docker-compose -f docker-compose.prod.yml up -d
+    else
+        docker compose -f docker-compose.prod.yml up -d
+    fi
     
     # Wait for services to be healthy
     echo "⏳ Waiting for services to be healthy..."
-    timeout 300 bash -c 'until docker-compose -f docker-compose.prod.yml ps | grep -q "healthy"; do sleep 5; done'
+    if command -v docker-compose &> /dev/null; then
+        timeout 300 bash -c 'until docker-compose -f docker-compose.prod.yml ps | grep -q "healthy"; do sleep 5; done'
+    else
+        timeout 300 bash -c 'until docker compose -f docker-compose.prod.yml ps | grep -q "healthy"; do sleep 5; done'
+    fi
     
 else
     echo "🔧 Setting up development environment..."
