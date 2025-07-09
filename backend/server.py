@@ -21,35 +21,39 @@ import math
 
 load_dotenv()
 
-# Get frontend URL from environment
+
+# Get environment variables
 FRONTEND_URL = os.getenv('APP_URL', 'http://localhost:3000')
+BACKEND_URL = os.getenv('API_URL', 'http://localhost:8001')
+CODESPACE_NAME = os.getenv('CODESPACE_NAME', '')
 
-app = FastAPI(
-    title="MarketMindAI API",
-    description="Enhanced B2B Blogging and Tools Platform with AI Integration",
-    version="2.0.0"
-)
-
-# CORS middleware with dynamic origins
+# CORS middleware with comprehensive origins
 allowed_origins = [
     "http://localhost:3000",
     "https://localhost:3000",
+    "http://localhost:8001",
+    "https://localhost:8001",
     FRONTEND_URL,
+    BACKEND_URL,
+]
+
+# Add codespace-specific origins
+if CODESPACE_NAME:
+    allowed_origins.extend([
+        f"https://{CODESPACE_NAME}-3000.app.github.dev",
+        f"https://{CODESPACE_NAME}-8001.app.github.dev",
+    ])
+
+# Add common development origins
+additional_origins = [
     "https://fictional-happiness-jjgp7p5p4gp4hq9rw-3000.app.github.dev",
     "https://fictional-happiness-jjgp7p5p4gp4hq9rw-8001.app.github.dev",
 ]
-
-# Add environment-based origins
-if os.getenv('CODESPACE_NAME'):
-    # Add codespace-specific origins
-    codespace_name = os.getenv('CODESPACE_NAME')
-    allowed_origins.extend([
-        f"https://{codespace_name}-3000.app.github.dev",
-        f"https://{codespace_name}-8001.app.github.dev",
-    ])
+allowed_origins.extend(additional_origins)
 
 # Remove duplicates and None values
 allowed_origins = list(set(filter(None, allowed_origins)))
+print(f"Allowed CORS origins: {allowed_origins}")
 
 app.add_middleware(
     CORSMiddleware,
