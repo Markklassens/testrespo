@@ -211,11 +211,11 @@ backend:
 
   - task: "CSV Sample File"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "testing"
@@ -223,6 +223,9 @@ backend:
       - working: false
         agent: "testing"
         comment: "Issue found with CSV sample file download endpoint. The endpoint returns a 200 status code and the CSV content, but the Content-Type header is 'text/csv; charset=utf-8' instead of the expected 'text/csv'. This is a minor issue that doesn't affect functionality but should be fixed for standards compliance."
+      - working: true
+        agent: "testing"
+        comment: "Retested the CSV sample file download endpoint. The endpoint returns a 200 status code with the correct Content-Type header 'text/csv' and proper Content-Disposition header for attachment. The CSV content is properly formatted with sample tool data. The endpoint is working correctly."
 
   - task: "Role Management"
     implemented: true
