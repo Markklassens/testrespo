@@ -72,17 +72,33 @@ else
     
     # Build and deploy with development configuration
     echo "🏗️ Building Docker images for development..."
-    docker-compose build --no-cache
+    if command -v docker-compose &> /dev/null; then
+        docker-compose build --no-cache
+    else
+        docker compose build --no-cache
+    fi
     
     echo "🔄 Stopping existing containers..."
-    docker-compose down
+    if command -v docker-compose &> /dev/null; then
+        docker-compose down
+    else
+        docker compose down
+    fi
     
     echo "🚀 Starting development services..."
-    docker-compose up -d
+    if command -v docker-compose &> /dev/null; then
+        docker-compose up -d
+    else
+        docker compose up -d
+    fi
     
     # Wait for services to be healthy
     echo "⏳ Waiting for services to be healthy..."
-    timeout 300 bash -c 'until docker-compose ps | grep -q "healthy"; do sleep 5; done'
+    if command -v docker-compose &> /dev/null; then
+        timeout 300 bash -c 'until docker-compose ps | grep -q "healthy"; do sleep 5; done'
+    else
+        timeout 300 bash -c 'until docker compose ps | grep -q "healthy"; do sleep 5; done'
+    fi
 fi
 
 # Check service health
