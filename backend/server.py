@@ -3,12 +3,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import create_engine, text, func, desc, asc
-from backend.database import get_db, engine
-from backend.models import *
-from backend.schemas import *
-from backend.auth import *
-from backend.ai_services import ai_manager
-from backend.email_service import send_verification_email, send_password_reset_email, send_welcome_email
+from database import get_db, engine
+from models import *
+from schemas import *
+from auth import *
+from ai_services import ai_manager
+from email_service import send_verification_email, send_password_reset_email, send_welcome_email
 import uuid
 import os
 from dotenv import load_dotenv
