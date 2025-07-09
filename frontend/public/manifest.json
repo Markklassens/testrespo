@@ -1,0 +1,16 @@
+{
+  "short_name": "MarketMindAI",
+  "name": "MarketMindAI - B2B Tools and Blogging Platform",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#7c3aed",
+  "background_color": "#ffffff",
+  "description": "Comprehensive B2B blogging and tools platform with authentication, email verification, and role-based access control."
+}
