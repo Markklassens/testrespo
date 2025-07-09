@@ -545,9 +545,7 @@ test_plan:
     - "Protected Routes"
     - "Categories CRUD Operations"
     - "Error Handling"
-    - "CSV Sample File"
-  stuck_tasks:
-    - "CSV Sample File"
+  stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
