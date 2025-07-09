@@ -21,6 +21,11 @@ import math
 
 load_dotenv()
 
+app = FastAPI(
+    title="MarketMindAI API",
+    description="Enhanced B2B Blogging and Tools Platform with AI Integration",
+    version="2.0.0"
+)
 
 # Get environment variables
 FRONTEND_URL = os.getenv('APP_URL', 'http://localhost:3000')
