@@ -12,3 +12,5 @@ openai
 anthropic
 aiofiles
 jinja2
+distro
+pymongo
