@@ -76,8 +76,8 @@ echo -e "\n5. Database Configuration"
 [ -f "/app/backend/database.py" ]
 check_status "Database configuration exists"
 
-grep -q "postgresql" /app/backend/database.py
-check_status "PostgreSQL configuration detected"
+grep -q "create_engine" /app/backend/database.py
+check_status "SQLAlchemy database configuration detected"
 
 # Check Docker Compose configuration
 echo -e "\n6. Docker Compose Configuration"
