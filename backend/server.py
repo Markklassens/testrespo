@@ -30,7 +30,13 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:3000",
+        "https://fictional-happiness-jjgp7p5p4gp4hq9rw-3000.app.github.dev",
+        "https://fictional-happiness-jjgp7p5p4gp4hq9rw-8001.app.github.dev",
+        "https://*.app.github.dev",  # Allow all GitHub codespace URLs
+        "https://*.preview.emergentagent.com",  # Allow emergent URLs
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
