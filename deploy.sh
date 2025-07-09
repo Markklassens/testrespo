@@ -157,7 +157,15 @@ fi
 echo ""
 echo "📋 Recent logs:"
 echo "--- Backend Logs ---"
-docker-compose -f $COMPOSE_FILE logs --tail=10 backend
+if command -v docker-compose &> /dev/null; then
+    docker-compose -f $COMPOSE_FILE logs --tail=10 backend
+else
+    docker compose -f $COMPOSE_FILE logs --tail=10 backend
+fi
 echo ""
 echo "--- Frontend Logs ---"
-docker-compose -f $COMPOSE_FILE logs --tail=10 frontend
+if command -v docker-compose &> /dev/null; then
+    docker-compose -f $COMPOSE_FILE logs --tail=10 frontend
+else
+    docker compose -f $COMPOSE_FILE logs --tail=10 frontend
+fi
