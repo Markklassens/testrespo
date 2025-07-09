@@ -113,9 +113,15 @@ fi
 sleep 10
 
 # Check if services are running
-BACKEND_STATUS=$(docker-compose -f $COMPOSE_FILE ps backend | grep "Up" || echo "Down")
-FRONTEND_STATUS=$(docker-compose -f $COMPOSE_FILE ps frontend | grep "Up" || echo "Down")
-DB_STATUS=$(docker-compose -f $COMPOSE_FILE ps postgres | grep "Up" || echo "Down")
+if command -v docker-compose &> /dev/null; then
+    BACKEND_STATUS=$(docker-compose -f $COMPOSE_FILE ps backend | grep "Up" || echo "Down")
+    FRONTEND_STATUS=$(docker-compose -f $COMPOSE_FILE ps frontend | grep "Up" || echo "Down")
+    DB_STATUS=$(docker-compose -f $COMPOSE_FILE ps postgres | grep "Up" || echo "Down")
+else
+    BACKEND_STATUS=$(docker compose -f $COMPOSE_FILE ps backend | grep "Up" || echo "Down")
+    FRONTEND_STATUS=$(docker compose -f $COMPOSE_FILE ps frontend | grep "Up" || echo "Down")
+    DB_STATUS=$(docker compose -f $COMPOSE_FILE ps postgres | grep "Up" || echo "Down")
+fi
 
 echo "📊 Service Status:"
 echo "   Backend: $BACKEND_STATUS"
