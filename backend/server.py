@@ -21,22 +21,39 @@ import math
 
 load_dotenv()
 
+# Get frontend URL from environment
+FRONTEND_URL = os.getenv('APP_URL', 'http://localhost:3000')
+
 app = FastAPI(
     title="MarketMindAI API",
     description="Enhanced B2B Blogging and Tools Platform with AI Integration",
     version="2.0.0"
 )
 
-# CORS middleware
+# CORS middleware with dynamic origins
+allowed_origins = [
+    "http://localhost:3000",
+    "https://localhost:3000",
+    FRONTEND_URL,
+    "https://fictional-happiness-jjgp7p5p4gp4hq9rw-3000.app.github.dev",
+    "https://fictional-happiness-jjgp7p5p4gp4hq9rw-8001.app.github.dev",
+]
+
+# Add environment-based origins
+if os.getenv('CODESPACE_NAME'):
+    # Add codespace-specific origins
+    codespace_name = os.getenv('CODESPACE_NAME')
+    allowed_origins.extend([
+        f"https://{codespace_name}-3000.app.github.dev",
+        f"https://{codespace_name}-8001.app.github.dev",
+    ])
+
+# Remove duplicates and None values
+allowed_origins = list(set(filter(None, allowed_origins)))
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "https://fictional-happiness-jjgp7p5p4gp4hq9rw-3000.app.github.dev",
-        "https://fictional-happiness-jjgp7p5p4gp4hq9rw-8001.app.github.dev",
-        "https://*.app.github.dev",  # Allow all GitHub codespace URLs
-        "https://*.preview.emergentagent.com",  # Allow emergent URLs
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
