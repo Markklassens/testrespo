@@ -1,0 +1,70 @@
+{
+  "summary": {
+    "total_tests": 2,
+    "passed": 0,
+    "failed": 2,
+    "skipped": 0,
+    "success_rate": 0.0,
+    "total_duration": 16.785145,
+    "start_time": "2025-07-09T06:41:39.702797",
+    "end_time": "2025-07-09T06:41:56.487942"
+  },
+  "results": [
+    {
+      "name": "Unit Tests",
+      "status": "failed",
+      "duration": 12.367855787277222,
+      "details": {
+        "tests_run": 17,
+        "failures": 2,
+        "errors": 1,
+        "failure_details": [
+          "(<test_unit_tools.TestToolsSearchAPI testMethod=test_search_pagination>, 'Traceback (most recent call last):\\n  File \"/app/tests/test_unit_tools.py\", line 370, in test_search_pagination\\n    self.assertEqual(len(set(tools1_ids) & set(tools2_ids)), 0)  # No overlap\\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\\nAssertionError: 1 != 0\\n')",
+          "(<test_unit_tools.TestDataValidationUnits testMethod=test_tool_name_validation>, 'Traceback (most recent call last):\\n  File \"/app/tests/test_unit_tools.py\", line 572, in test_tool_name_validation\\n    self.assertEqual(response.status_code, 422)\\nAssertionError: 200 != 422\\n')"
+        ],
+        "error_details": [
+          "(<ErrorHolder description='setUpClass (test_unit_tools.TestToolCRUDOperations)'>, 'Traceback (most recent call last):\\n  File \"/app/tests/test_unit_tools.py\", line 37, in setUpClass\\n    cls.super_admin_token = cls.auth.get_super_admin_token()\\n                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\\n  File \"/app/tests/test_super_admin_tools.py\", line 97, in get_super_admin_token\\n    self.tokens[\"super_admin\"] = self.login(\\n                                 ^^^^^^^^^^^\\n  File \"/app/tests/test_super_admin_tools.py\", line 90, in login\\n    raise Exception(f\"Login failed for {email}: {response.text}\")\\nException: Login failed for superadmin@marketmindai.com: Internal Server Error\\n')"
+        ]
+      },
+      "timestamp": "2025-07-09T06:41:52.070710"
+    },
+    {
+      "name": "Functional Tests",
+      "status": "failed",
+      "duration": 4.416999340057373,
+      "details": {
+        "comprehensive_test": false
+      },
+      "timestamp": "2025-07-09T06:41:56.487801"
+    }
+  ],
+  "failed_tests": [
+    {
+      "name": "Unit Tests",
+      "status": "failed",
+      "duration": 12.367855787277222,
+      "details": {
+        "tests_run": 17,
+        "failures": 2,
+        "errors": 1,
+        "failure_details": [
+          "(<test_unit_tools.TestToolsSearchAPI testMethod=test_search_pagination>, 'Traceback (most recent call last):\\n  File \"/app/tests/test_unit_tools.py\", line 370, in test_search_pagination\\n    self.assertEqual(len(set(tools1_ids) & set(tools2_ids)), 0)  # No overlap\\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\\nAssertionError: 1 != 0\\n')",
+          "(<test_unit_tools.TestDataValidationUnits testMethod=test_tool_name_validation>, 'Traceback (most recent call last):\\n  File \"/app/tests/test_unit_tools.py\", line 572, in test_tool_name_validation\\n    self.assertEqual(response.status_code, 422)\\nAssertionError: 200 != 422\\n')"
+        ],
+        "error_details": [
+          "(<ErrorHolder description='setUpClass (test_unit_tools.TestToolCRUDOperations)'>, 'Traceback (most recent call last):\\n  File \"/app/tests/test_unit_tools.py\", line 37, in setUpClass\\n    cls.super_admin_token = cls.auth.get_super_admin_token()\\n                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\\n  File \"/app/tests/test_super_admin_tools.py\", line 97, in get_super_admin_token\\n    self.tokens[\"super_admin\"] = self.login(\\n                                 ^^^^^^^^^^^\\n  File \"/app/tests/test_super_admin_tools.py\", line 90, in login\\n    raise Exception(f\"Login failed for {email}: {response.text}\")\\nException: Login failed for superadmin@marketmindai.com: Internal Server Error\\n')"
+        ]
+      },
+      "timestamp": "2025-07-09T06:41:52.070710"
+    },
+    {
+      "name": "Functional Tests",
+      "status": "failed",
+      "duration": 4.416999340057373,
+      "details": {
+        "comprehensive_test": false
+      },
+      "timestamp": "2025-07-09T06:41:56.487801"
+    }
+  ]
+}
