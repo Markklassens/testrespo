@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Form, Query
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Form, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
@@ -9,6 +9,7 @@ from schemas import *
 from auth import *
 from ai_services import ai_manager
 from email_service import send_verification_email, send_password_reset_email, send_welcome_email
+from search_service import search_service
 import uuid
 import os
 from dotenv import load_dotenv
