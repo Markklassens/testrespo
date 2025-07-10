@@ -1,7 +1,7 @@
 import requests
 import os
 from typing import List, Dict, Optional
-from schemas import SearchResult, SearchResponse
+from backend.schemas import SearchResult, SearchResponse
 from dotenv import load_dotenv
 import asyncio
 import aiohttp
