@@ -1317,6 +1317,339 @@ async def get_tools_seo_status(
     
     return seo_data
 
+# Free Tools Routes (Public)
+@app.get("/api/free-tools", response_model=List[FreeToolResponse])
+async def get_free_tools(
+    skip: int = 0,
+    limit: int = 20,
+    category: Optional[str] = None,
+    search: Optional[str] = None,
+    is_active: bool = True,
+    db: Session = Depends(get_db)
+):
+    """Get all free tools (public endpoint)"""
+    query = db.query(FreeTool).filter(FreeTool.is_active == is_active)
+    
+    if category:
+        query = query.filter(FreeTool.category == category)
+    
+    if search:
+        query = query.filter(
+            FreeTool.name.ilike(f"%{search}%") | 
+            FreeTool.description.ilike(f"%{search}%")
+        )
+    
+    tools = query.offset(skip).limit(limit).all()
+    return tools
+
+@app.get("/api/free-tools/{tool_id}", response_model=FreeToolResponse)
+async def get_free_tool(tool_id: str, db: Session = Depends(get_db)):
+    """Get a specific free tool (public endpoint)"""
+    tool = db.query(FreeTool).filter(FreeTool.id == tool_id).first()
+    if not tool:
+        raise HTTPException(status_code=404, detail="Free tool not found")
+    
+    # Increment view count
+    tool.views += 1
+    db.commit()
+    
+    return tool
+
+@app.get("/api/free-tools/slug/{slug}", response_model=FreeToolResponse)
+async def get_free_tool_by_slug(slug: str, db: Session = Depends(get_db)):
+    """Get a free tool by slug (public endpoint)"""
+    tool = db.query(FreeTool).filter(FreeTool.slug == slug).first()
+    if not tool:
+        raise HTTPException(status_code=404, detail="Free tool not found")
+    
+    # Increment view count
+    tool.views += 1
+    db.commit()
+    
+    return tool
+
+# Search Routes (Public)
+@app.post("/api/free-tools/{tool_id}/search", response_model=SearchResponse)
+async def search_with_tool(
+    tool_id: str,
+    search_request: SearchRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    """Perform search using a free tool"""
+    tool = db.query(FreeTool).filter(FreeTool.id == tool_id).first()
+    if not tool:
+        raise HTTPException(status_code=404, detail="Free tool not found")
+    
+    # Perform search
+    if search_request.engine == "google":
+        search_result = await search_service.search_google(search_request.query, search_request.num_results)
+    elif search_request.engine == "bing":
+        search_result = await search_service.search_bing(search_request.query, search_request.num_results)
+    else:
+        raise HTTPException(status_code=400, detail="Invalid search engine")
+    
+    # Save search history
+    search_history = SearchHistory(
+        id=str(uuid.uuid4()),
+        tool_id=tool_id,
+        user_id=current_user.id if current_user else None,
+        search_engine=search_request.engine,
+        query=search_request.query,
+        results_count=len(search_result.results),
+        results=json.dumps([result.dict() for result in search_result.results]),
+        ip_address=request.client.host,
+        user_agent=request.headers.get("user-agent", "")
+    )
+    
+    db.add(search_history)
+    
+    # Update tool search count
+    tool.searches_count += 1
+    db.commit()
+    
+    # Add tool_id to response
+    search_result.tool_id = tool_id
+    
+    return search_result
+
+@app.post("/api/free-tools/{tool_id}/search/combined")
+async def combined_search_with_tool(
+    tool_id: str,
+    search_request: SearchRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    """Perform combined search (Google + Bing) using a free tool"""
+    tool = db.query(FreeTool).filter(FreeTool.id == tool_id).first()
+    if not tool:
+        raise HTTPException(status_code=404, detail="Free tool not found")
+    
+    # Perform combined search
+    combined_results = await search_service.combined_search(
+        search_request.query, 
+        ["google", "bing"], 
+        search_request.num_results
+    )
+    
+    # Save search history for both engines
+    for engine in ["google", "bing"]:
+        if engine in combined_results:
+            search_result = combined_results[engine]
+            search_history = SearchHistory(
+                id=str(uuid.uuid4()),
+                tool_id=tool_id,
+                user_id=current_user.id if current_user else None,
+                search_engine=engine,
+                query=search_request.query,
+                results_count=len(search_result.results),
+                results=json.dumps([result.dict() for result in search_result.results]),
+                ip_address=request.client.host,
+                user_agent=request.headers.get("user-agent", "")
+            )
+            db.add(search_history)
+    
+    # Update tool search count
+    tool.searches_count += 2  # Both Google and Bing
+    db.commit()
+    
+    return combined_results
+
+@app.get("/api/free-tools/{tool_id}/search-history", response_model=List[SearchHistoryResponse])
+async def get_tool_search_history(
+    tool_id: str,
+    skip: int = 0,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """Get search history for a specific tool (Admin only)"""
+    history = db.query(SearchHistory).filter(
+        SearchHistory.tool_id == tool_id
+    ).order_by(desc(SearchHistory.created_at)).offset(skip).limit(limit).all()
+    
+    return history
+
+# Free Tools Admin Routes
+@app.post("/api/admin/free-tools", response_model=FreeToolResponse)
+async def create_free_tool(
+    tool: FreeToolCreate,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Create a new free tool (Admin only)"""
+    # Check if slug already exists
+    existing_tool = db.query(FreeTool).filter(FreeTool.slug == tool.slug).first()
+    if existing_tool:
+        raise HTTPException(status_code=400, detail="Slug already exists")
+    
+    db_tool = FreeTool(
+        id=str(uuid.uuid4()),
+        **tool.dict()
+    )
+    db.add(db_tool)
+    db.commit()
+    db.refresh(db_tool)
+    return db_tool
+
+@app.put("/api/admin/free-tools/{tool_id}", response_model=FreeToolResponse)
+async def update_free_tool(
+    tool_id: str,
+    tool_update: FreeToolUpdate,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Update a free tool (Admin only)"""
+    db_tool = db.query(FreeTool).filter(FreeTool.id == tool_id).first()
+    if not db_tool:
+        raise HTTPException(status_code=404, detail="Free tool not found")
+    
+    update_data = tool_update.dict(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_tool, field, value)
+    
+    db.commit()
+    db.refresh(db_tool)
+    return db_tool
+
+@app.delete("/api/admin/free-tools/{tool_id}")
+async def delete_free_tool(
+    tool_id: str,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Delete a free tool (Admin only)"""
+    db_tool = db.query(FreeTool).filter(FreeTool.id == tool_id).first()
+    if not db_tool:
+        raise HTTPException(status_code=404, detail="Free tool not found")
+    
+    db.delete(db_tool)
+    db.commit()
+    return {"message": "Free tool deleted successfully"}
+
+@app.get("/api/admin/free-tools", response_model=List[FreeToolResponse])
+async def get_all_free_tools_admin(
+    skip: int = 0,
+    limit: int = 100,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Get all free tools including inactive ones (Admin only)"""
+    tools = db.query(FreeTool).offset(skip).limit(limit).all()
+    return tools
+
+# Bulk Upload for Free Tools
+@app.post("/api/admin/free-tools/bulk-upload")
+async def bulk_upload_free_tools(
+    file: UploadFile = File(...),
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Bulk upload free tools via CSV (Admin only)"""
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(status_code=400, detail="File must be a CSV")
+    
+    content = await file.read()
+    csv_data = content.decode('utf-8')
+    
+    # Parse CSV and create free tools
+    reader = csv.DictReader(io.StringIO(csv_data))
+    created_tools = []
+    errors = []
+    
+    for row_num, row in enumerate(reader, start=2):
+        try:
+            tool_data = {
+                'id': str(uuid.uuid4()),
+                'name': row['name'],
+                'description': row['description'],
+                'short_description': row.get('short_description', ''),
+                'slug': row['slug'],
+                'category': row.get('category', ''),
+                'icon': row.get('icon', ''),
+                'color': row.get('color', ''),
+                'website_url': row.get('website_url', ''),
+                'features': row.get('features', ''),
+                'is_active': row.get('is_active', 'true').lower() == 'true',
+                'meta_title': row.get('meta_title', ''),
+                'meta_description': row.get('meta_description', '')
+            }
+            
+            db_tool = FreeTool(**tool_data)
+            db.add(db_tool)
+            created_tools.append(tool_data['name'])
+            
+        except Exception as e:
+            errors.append(f"Row {row_num}: {str(e)}")
+    
+    if created_tools:
+        db.commit()
+    
+    return {
+        "created_count": len(created_tools),
+        "created_tools": created_tools,
+        "errors": errors
+    }
+
+# Free Tools Analytics
+@app.get("/api/admin/free-tools/analytics")
+async def get_free_tools_analytics(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Get analytics for free tools (Admin only)"""
+    total_tools = db.query(FreeTool).count()
+    active_tools = db.query(FreeTool).filter(FreeTool.is_active == True).count()
+    total_searches = db.query(SearchHistory).count()
+    total_views = db.query(func.sum(FreeTool.views)).scalar() or 0
+    
+    # Most popular tools
+    popular_tools = db.query(FreeTool).order_by(desc(FreeTool.searches_count)).limit(10).all()
+    
+    # Recent search activity
+    recent_searches = db.query(SearchHistory).order_by(desc(SearchHistory.created_at)).limit(20).all()
+    
+    return {
+        "total_tools": total_tools,
+        "active_tools": active_tools,
+        "total_searches": total_searches,
+        "total_views": total_views,
+        "popular_tools": popular_tools,
+        "recent_searches": recent_searches
+    }
+
+# Helper function to get current user (optional)
+def get_current_user_optional(token: str = Depends(get_token_optional)):
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            return None
+        token_data = TokenData(username=username)
+    except JWTError:
+        return None
+    
+    db = next(get_db())
+    user = get_user(db, username=token_data.username)
+    if user is None:
+        return None
+    return user
+
+def get_token_optional(authorization: str = Header(None)):
+    if not authorization:
+        return None
+    try:
+        scheme, token = authorization.split()
+        if scheme.lower() != "bearer":
+            return None
+        return token
+    except ValueError:
+        return None
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
