@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Form, Query, Request
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Form, Query, Request, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
@@ -19,6 +19,7 @@ import io
 import json
 from typing import List, Optional
 import math
+from jose import JWTError, jwt
 
 load_dotenv()
 
