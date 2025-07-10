@@ -238,3 +238,48 @@ class AdminSettings(Base):
     description = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+class FreeTool(Base):
+    __tablename__ = "free_tools"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    name = Column(String, nullable=False)
+    description = Column(Text, nullable=False)
+    short_description = Column(String, nullable=True)
+    icon = Column(String, nullable=True)
+    color = Column(String, nullable=True)
+    website_url = Column(String, nullable=True)
+    features = Column(Text, nullable=True)  # JSON string
+    category = Column(String, nullable=True)
+    is_active = Column(Boolean, default=True)
+    views = Column(Integer, default=0)
+    searches_count = Column(Integer, default=0)
+    
+    # SEO fields
+    meta_title = Column(String, nullable=True)
+    meta_description = Column(String, nullable=True)
+    slug = Column(String, unique=True, nullable=False)
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Relationships
+    search_history = relationship("SearchHistory", back_populates="tool")
+
+class SearchHistory(Base):
+    __tablename__ = "search_history"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    tool_id = Column(String, ForeignKey("free_tools.id"), nullable=False)
+    user_id = Column(String, ForeignKey("users.id"), nullable=True)  # Optional for anonymous users
+    search_engine = Column(String, nullable=False)  # google, bing
+    query = Column(String, nullable=False)
+    results_count = Column(Integer, default=0)
+    results = Column(Text, nullable=True)  # JSON string
+    ip_address = Column(String, nullable=True)
+    user_agent = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    # Relationships
+    tool = relationship("FreeTool", back_populates="search_history")
+    user = relationship("User", backref="search_history")
