@@ -378,3 +378,81 @@ class RoleUpdateResponse(BaseModel):
     user_id: str
     old_role: str
     new_role: str
+
+# Free Tool Schemas
+class FreeToolBase(BaseModel):
+    name: str
+    description: str
+    short_description: Optional[str] = None
+    icon: Optional[str] = None
+    color: Optional[str] = None
+    website_url: Optional[str] = None
+    features: Optional[str] = None
+    category: Optional[str] = None
+    is_active: bool = True
+    meta_title: Optional[str] = None
+    meta_description: Optional[str] = None
+    slug: str
+
+class FreeToolCreate(FreeToolBase):
+    pass
+
+class FreeToolUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    short_description: Optional[str] = None
+    icon: Optional[str] = None
+    color: Optional[str] = None
+    website_url: Optional[str] = None
+    features: Optional[str] = None
+    category: Optional[str] = None
+    is_active: Optional[bool] = None
+    meta_title: Optional[str] = None
+    meta_description: Optional[str] = None
+
+class FreeToolResponse(FreeToolBase):
+    id: str
+    views: int
+    searches_count: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    
+    class Config:
+        from_attributes = True
+
+# Search Schemas
+class SearchRequest(BaseModel):
+    query: str
+    engine: str  # google, bing
+    num_results: int = 10
+
+class SearchResult(BaseModel):
+    title: str
+    link: str
+    snippet: str
+    displayLink: Optional[str] = None
+
+class SearchResponse(BaseModel):
+    engine: str
+    query: str
+    results: List[SearchResult]
+    total_results: Optional[int] = None
+    tool_id: Optional[str] = None
+
+class SearchHistoryResponse(BaseModel):
+    id: str
+    tool_id: str
+    user_id: Optional[str] = None
+    search_engine: str
+    query: str
+    results_count: int
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+# Combined Search Response
+class CombinedSearchResponse(BaseModel):
+    google: Optional[SearchResponse] = None
+    bing: Optional[SearchResponse] = None
+    errors: Dict[str, str] = {}
