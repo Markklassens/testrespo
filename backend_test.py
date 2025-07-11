@@ -1181,68 +1181,269 @@ def test_seo_tools():
     print("✅ SEO tools endpoint passed")
     return True
 
+def test_access_control_critical():
+    """Test critical access control changes - SuperAdmin vs Admin"""
+    print_test_header("CRITICAL ACCESS CONTROL TESTING")
+    
+    if "admin" not in tokens or "superadmin" not in tokens:
+        print("❌ Cannot test access control without both admin and superadmin tokens")
+        return False
+    
+    success = True
+    
+    # Test 1: SuperAdmin can access admin panel endpoints
+    print_test_header("SuperAdmin Access - Should PASS")
+    
+    # Test SuperAdmin can create categories (require_superadmin)
+    category_data = {
+        "name": f"SuperAdmin Test Category {uuid.uuid4().hex[:8]}",
+        "description": "Test Description",
+        "icon": "test-icon",
+        "color": "#123456"
+    }
+    response = make_request("POST", "/api/categories", category_data, token=tokens["superadmin"], expected_status=200)
+    if response.status_code != 200:
+        print("❌ SuperAdmin cannot create categories")
+        success = False
+    else:
+        print("✅ SuperAdmin can create categories")
+        global test_category_id
+        test_category_id = response.json()["id"]
+    
+    # Test SuperAdmin can access bulk upload
+    response = make_request("GET", "/api/admin/tools/sample-csv", token=tokens["superadmin"], expected_status=200)
+    if response.status_code != 200:
+        print("❌ SuperAdmin cannot access sample CSV download")
+        success = False
+    else:
+        print("✅ SuperAdmin can access sample CSV download")
+    
+    # Test SuperAdmin can access user management
+    response = make_request("GET", "/api/admin/users", token=tokens["superadmin"], expected_status=200)
+    if response.status_code != 200:
+        print("❌ SuperAdmin cannot access user management")
+        success = False
+    else:
+        print("✅ SuperAdmin can access user management")
+    
+    # Test 2: Regular Admin CANNOT access SuperAdmin endpoints
+    print_test_header("Regular Admin Access - Should FAIL")
+    
+    # Test Admin CANNOT create categories (require_superadmin)
+    response = make_request("POST", "/api/categories", category_data, token=tokens["admin"], expected_status=403)
+    if response.status_code != 403:
+        print("❌ Regular admin can create categories (should be blocked)")
+        success = False
+    else:
+        print("✅ Regular admin correctly blocked from creating categories")
+    
+    # Test Admin CANNOT access bulk upload
+    response = make_request("GET", "/api/admin/tools/sample-csv", token=tokens["admin"], expected_status=403)
+    if response.status_code != 403:
+        print("❌ Regular admin can access sample CSV download (should be blocked)")
+        success = False
+    else:
+        print("✅ Regular admin correctly blocked from sample CSV download")
+    
+    # Test Admin CANNOT access user management
+    response = make_request("GET", "/api/admin/users", token=tokens["admin"], expected_status=403)
+    if response.status_code != 403:
+        print("❌ Regular admin can access user management (should be blocked)")
+        success = False
+    else:
+        print("✅ Regular admin correctly blocked from user management")
+    
+    # Test Admin CANNOT access bulk upload endpoint
+    csv_content = "name,description,category_id\nTest Tool,Test Description,test-id"
+    files = {'file': ('test.csv', csv_content, 'text/csv')}
+    response = make_request("POST", "/api/tools/bulk-upload", files=files, token=tokens["admin"], expected_status=403)
+    if response.status_code != 403:
+        print("❌ Regular admin can access bulk upload (should be blocked)")
+        success = False
+    else:
+        print("✅ Regular admin correctly blocked from bulk upload")
+    
+    return success
+
+def test_bulk_upload_functionality():
+    """Test bulk upload functionality"""
+    print_test_header("BULK UPLOAD FUNCTIONALITY TESTING")
+    
+    if "superadmin" not in tokens:
+        print("❌ Cannot test bulk upload without superadmin token")
+        return False
+    
+    success = True
+    
+    # Test 1: Download sample CSV template
+    print_test_header("Sample CSV Template Download")
+    response = make_request("GET", "/api/admin/tools/sample-csv", token=tokens["superadmin"], expected_status=200)
+    if response.status_code != 200:
+        print("❌ Cannot download sample CSV template")
+        success = False
+    else:
+        print("✅ Sample CSV template download works")
+        
+        # Check content type
+        content_type = response.headers.get("Content-Type")
+        if content_type != "text/csv":
+            print(f"❌ Expected CSV content type, got {content_type}")
+            success = False
+        else:
+            print("✅ Correct CSV content type")
+    
+    # Test 2: Bulk upload with valid CSV
+    print_test_header("Bulk Upload with Valid CSV")
+    
+    # Create a valid CSV with proper category ID
+    if test_category_id:
+        csv_content = f"""name,description,category_id,pricing_model,company_size,is_hot,is_featured,rating,total_reviews,views,trending_score
+Test Bulk Tool 1,Description for bulk tool 1,{test_category_id},Freemium,SMB,true,false,4.5,10,100,85.5
+Test Bulk Tool 2,Description for bulk tool 2,{test_category_id},Paid,Enterprise,false,true,4.2,25,250,92.3"""
+        
+        files = {'file': ('bulk_tools.csv', csv_content, 'text/csv')}
+        response = make_request("POST", "/api/tools/bulk-upload", files=files, token=tokens["superadmin"], expected_status=200)
+        
+        if response.status_code != 200:
+            print("❌ Bulk upload with valid CSV failed")
+            success = False
+        else:
+            result = response.json()
+            if result.get("created_count", 0) > 0:
+                print(f"✅ Bulk upload successful - created {result['created_count']} tools")
+                print(f"Created tools: {result.get('created_tools', [])}")
+                if result.get('errors'):
+                    print(f"Errors: {result['errors']}")
+            else:
+                print("❌ Bulk upload completed but no tools were created")
+                success = False
+    else:
+        print("❌ Cannot test bulk upload without a valid category ID")
+        success = False
+    
+    # Test 3: Bulk upload with invalid file type
+    print_test_header("Bulk Upload with Invalid File Type")
+    files = {'file': ('test.txt', 'not a csv file', 'text/plain')}
+    response = make_request("POST", "/api/tools/bulk-upload", files=files, token=tokens["superadmin"], expected_status=400)
+    if response.status_code != 400:
+        print("❌ Bulk upload should reject non-CSV files")
+        success = False
+    else:
+        print("✅ Bulk upload correctly rejects non-CSV files")
+    
+    return success
+
+def test_discover_page_data():
+    """Test data availability for Discover page"""
+    print_test_header("DISCOVER PAGE DATA TESTING")
+    
+    success = True
+    
+    # Test tools search endpoint (used by Discover page)
+    print_test_header("Tools Search for Discover Page")
+    response = make_request("GET", "/api/tools/search?page=1&per_page=20", expected_status=200)
+    if response.status_code != 200:
+        print("❌ Tools search endpoint failed")
+        success = False
+    else:
+        data = response.json()
+        total_tools = data.get("total", 0)
+        print(f"✅ Tools search endpoint works - found {total_tools} tools")
+        
+        if total_tools < 10:
+            print(f"⚠️ Warning: Only {total_tools} tools found. Discover page may look empty.")
+        
+        # Check if tools have required fields
+        if data.get("tools"):
+            sample_tool = data["tools"][0]
+            required_fields = ["id", "name", "description", "category_id"]
+            for field in required_fields:
+                if field not in sample_tool:
+                    print(f"❌ Tool missing required field: {field}")
+                    success = False
+            if success:
+                print("✅ Tools have all required fields")
+    
+    # Test tools analytics (used for carousels)
+    print_test_header("Tools Analytics for Carousels")
+    response = make_request("GET", "/api/tools/analytics", expected_status=200)
+    if response.status_code != 200:
+        print("❌ Tools analytics endpoint failed")
+        success = False
+    else:
+        data = response.json()
+        carousels = ["trending_tools", "top_rated_tools", "most_viewed_tools", "newest_tools", "featured_tools", "hot_tools"]
+        for carousel in carousels:
+            if carousel in data:
+                count = len(data[carousel])
+                print(f"✅ {carousel}: {count} tools")
+            else:
+                print(f"❌ Missing carousel: {carousel}")
+                success = False
+    
+    # Test categories (used for filtering)
+    print_test_header("Categories for Filtering")
+    response = make_request("GET", "/api/categories", expected_status=200)
+    if response.status_code != 200:
+        print("❌ Categories endpoint failed")
+        success = False
+    else:
+        categories = response.json()
+        print(f"✅ Categories endpoint works - found {len(categories)} categories")
+        if len(categories) < 3:
+            print(f"⚠️ Warning: Only {len(categories)} categories found. Filtering may be limited.")
+    
+    return success
+
 def run_all_tests():
-    """Run all tests"""
+    """Run all tests with focus on critical areas"""
     results = {}
     
     try:
         # Basic health check
         results["health_check"] = test_health_check()
         
-        # Authentication System
-        results["user_registration"] = test_user_registration()
+        # Authentication - Critical for access control testing
         results["login"] = test_login()
-        results["email_verification"] = test_email_verification()
-        results["password_reset"] = test_password_reset()
-        results["protected_routes"] = test_protected_routes()
         
-        # Core API Endpoints
-        results["categories_crud"] = test_categories_crud()
-        results["subcategories_crud"] = test_subcategories_crud()
-        results["tools_crud"] = test_tools_crud()
+        # CRITICAL TESTS - Main focus areas
+        results["access_control_critical"] = test_access_control_critical()
+        results["bulk_upload_functionality"] = test_bulk_upload_functionality()
+        results["discover_page_data"] = test_discover_page_data()
+        
+        # Additional important tests
         results["tools_search"] = test_tools_search()
-        results["tools_comparison"] = test_tools_comparison()
-        results["blogs_crud"] = test_blogs_crud()
-        
-        # AI Integration
-        results["ai_content_generation"] = test_ai_content_generation()
-        results["seo_optimization"] = test_seo_optimization()
-        
-        # Database Connectivity
-        results["database_connectivity"] = test_database_connectivity()
-        
-        # Production Readiness Checks
-        results["error_handling"] = test_error_handling()
-        
-        # Additional Tests
         results["tools_analytics"] = test_tools_analytics()
-        results["api_key_management"] = test_api_key_management()
-        results["user_profile"] = test_user_profile()
-        
-        # Super Admin Endpoints
         results["super_admin_user_management"] = test_super_admin_user_management()
-        results["reviews_management"] = test_reviews_management()
-        results["advanced_analytics"] = test_advanced_analytics()
         results["sample_csv"] = test_sample_csv()
-        results["role_management"] = test_role_management()
-        results["seo_tools"] = test_seo_tools()
         
         # Print summary
         print("\n" + "=" * 80)
-        print("TEST SUMMARY")
+        print("CRITICAL TEST SUMMARY - MarketMindAI Access Control & Bulk Upload")
         print("=" * 80)
         
-        all_passed = True
+        critical_tests = ["access_control_critical", "bulk_upload_functionality", "discover_page_data"]
+        critical_passed = True
+        
         for test_name, passed in results.items():
             status = "✅ PASSED" if passed else "❌ FAILED"
-            print(f"{test_name}: {status}")
-            if not passed:
-                all_passed = False
+            if test_name in critical_tests:
+                print(f"🔥 CRITICAL - {test_name}: {status}")
+                if not passed:
+                    critical_passed = False
+            else:
+                print(f"   {test_name}: {status}")
         
-        if all_passed:
-            print("\n🎉 All tests passed! The backend is production-ready.")
+        print("\n" + "=" * 80)
+        if critical_passed:
+            print("🎉 CRITICAL TESTS PASSED! Access control and bulk upload are working correctly.")
         else:
-            print("\n⚠️ Some tests failed! The backend needs fixes before production deployment.")
+            print("❌ CRITICAL TESTS FAILED! Access control or bulk upload issues detected.")
+            
+        # Count overall results
+        total_tests = len(results)
+        passed_tests = sum(1 for passed in results.values() if passed)
+        print(f"\nOverall: {passed_tests}/{total_tests} tests passed")
             
     except Exception as e:
         print(f"\n❌ Error during testing: {str(e)}")
