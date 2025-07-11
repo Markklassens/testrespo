@@ -693,13 +693,43 @@ async def bulk_upload_tools(
     
     for row_num, row in enumerate(reader, start=2):
         try:
+            # Convert boolean strings to actual booleans
+            is_hot = row.get('is_hot', 'false').lower() in ('true', '1', 'yes')
+            is_featured = row.get('is_featured', 'false').lower() in ('true', '1', 'yes')
+            
+            # Convert numeric strings to numbers
+            rating = float(row.get('rating', '0')) if row.get('rating') else 0.0
+            total_reviews = int(row.get('total_reviews', '0')) if row.get('total_reviews') else 0
+            views = int(row.get('views', '0')) if row.get('views') else 0
+            trending_score = float(row.get('trending_score', '0')) if row.get('trending_score') else 0.0
+            
             tool_data = {
                 'id': str(uuid.uuid4()),
                 'name': row['name'],
                 'description': row['description'],
                 'category_id': row['category_id'],
                 'slug': row['name'].lower().replace(' ', '-'),
-                **{k: v for k, v in row.items() if k not in ['name', 'description', 'category_id'] and v}
+                'short_description': row.get('short_description', ''),
+                'website_url': row.get('website_url', ''),
+                'pricing_model': row.get('pricing_model', ''),
+                'pricing_details': row.get('pricing_details', ''),
+                'features': row.get('features', ''),
+                'target_audience': row.get('target_audience', ''),
+                'company_size': row.get('company_size', ''),
+                'integrations': row.get('integrations', ''),
+                'logo_url': row.get('logo_url', ''),
+                'industry': row.get('industry', ''),
+                'employee_size': row.get('employee_size', ''),
+                'revenue_range': row.get('revenue_range', ''),
+                'location': row.get('location', ''),
+                'is_hot': is_hot,
+                'is_featured': is_featured,
+                'meta_title': row.get('meta_title', ''),
+                'meta_description': row.get('meta_description', ''),
+                'rating': rating,
+                'total_reviews': total_reviews,
+                'views': views,
+                'trending_score': trending_score
             }
             
             db_tool = Tool(**tool_data)
