@@ -29,12 +29,15 @@ const AdminPanel = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [showCreateCategory, setShowCreateCategory] = useState(false);
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
   const [newCategory, setNewCategory] = useState({ name: '', description: '' });
 
   const { dashboard, loading: analyticsLoading } = useSelector(state => state.analytics);
   const { tools, loading: toolsLoading } = useSelector(state => state.tools);
   const { blogs, loading: blogsLoading } = useSelector(state => state.blogs);
   const { categories, loading: categoriesLoading } = useSelector(state => state.categories);
+  const { users, loading: usersLoading } = useSelector(state => state.users);
 
   useEffect(() => {
     if (user?.user_type === 'admin' || user?.user_type === 'superadmin') {
