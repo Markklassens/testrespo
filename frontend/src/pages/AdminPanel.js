@@ -700,6 +700,14 @@ const AdminPanel = () => {
         </div>
       </div>
 
+      {/* User Modal */}
+      <UserModal
+        isOpen={showUserModal}
+        onClose={handleUserModalClose}
+        user={selectedUser}
+        onSuccess={handleUserModalSuccess}
+      />
+
       {/* Bulk Upload Modal */}
       <BulkUpload
         isOpen={showBulkUpload}
