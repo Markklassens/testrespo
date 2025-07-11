@@ -570,7 +570,7 @@ async def get_tool(tool_id: str, db: Session = Depends(get_db)):
 @app.post("/api/tools", response_model=ToolResponse)
 async def create_tool(
     tool: ToolCreate,
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_superadmin),
     db: Session = Depends(get_db)
 ):
     db_tool = Tool(
