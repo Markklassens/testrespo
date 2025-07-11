@@ -893,7 +893,7 @@ async def update_category(
 @app.delete("/api/categories/{category_id}")
 async def delete_category(
     category_id: str,
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_superadmin),
     db: Session = Depends(get_db)
 ):
     db_category = db.query(Category).filter(Category.id == category_id).first()
