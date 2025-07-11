@@ -17,6 +17,8 @@ import { toast } from 'react-hot-toast';
 import LoadingSpinner from '../components/LoadingSpinner';
 import BulkUpload from '../components/BulkUpload';
 import UserModal from '../components/UserModal';
+import ToolModal from '../components/ToolModal';
+import BlogModal from '../components/BlogModal';
 import { fetchDashboardAnalytics } from '../store/slices/analyticsSlice';
 import { fetchTools, deleteTool } from '../store/slices/toolsSlice';
 import { fetchBlogs, deleteBlog } from '../store/slices/blogsSlice';
