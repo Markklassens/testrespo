@@ -586,7 +586,7 @@ async def create_tool(
 async def update_tool(
     tool_id: str,
     tool_update: ToolUpdate,
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_superadmin),
     db: Session = Depends(get_db)
 ):
     db_tool = db.query(Tool).filter(Tool.id == tool_id).first()
