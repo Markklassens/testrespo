@@ -111,9 +111,9 @@ function AppContent() {
             </ProtectedRoute>
           } />
           
-          {/* Admin Routes */}
+          {/* Super Admin Routes */}
           <Route path="/admin" element={
-            <ProtectedRoute requiredRole="admin">
+            <ProtectedRoute requiredRole="superadmin">
               <AdminPanel />
             </ProtectedRoute>
           } />
