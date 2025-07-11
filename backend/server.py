@@ -1651,36 +1651,6 @@ async def get_free_tools_analytics(
         "recent_searches": recent_searches
     }
 
-# Helper function to get current user (optional)
-def get_current_user_optional(token: str = Depends(get_token_optional)):
-    if not token:
-        return None
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
-            return None
-        token_data = TokenData(username=username)
-    except JWTError:
-        return None
-    
-    db = next(get_db())
-    user = get_user(db, username=token_data.username)
-    if user is None:
-        return None
-    return user
-
-def get_token_optional(authorization: str = Header(None)):
-    if not authorization:
-        return None
-    try:
-        scheme, token = authorization.split()
-        if scheme.lower() != "bearer":
-            return None
-        return token
-    except ValueError:
-        return None
-
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
