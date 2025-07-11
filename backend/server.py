@@ -1370,6 +1370,17 @@ async def get_free_tool_by_slug(slug: str, db: Session = Depends(get_db)):
     return tool
 
 # Helper function to get current user (optional)
+def get_token_optional(authorization: str = Header(None)):
+    if not authorization:
+        return None
+    try:
+        scheme, token = authorization.split()
+        if scheme.lower() != "bearer":
+            return None
+        return token
+    except ValueError:
+        return None
+
 def get_current_user_optional(token: str = Depends(get_token_optional)):
     if not token:
         return None
@@ -1387,17 +1398,6 @@ def get_current_user_optional(token: str = Depends(get_token_optional)):
     if user is None:
         return None
     return user
-
-def get_token_optional(authorization: str = Header(None)):
-    if not authorization:
-        return None
-    try:
-        scheme, token = authorization.split()
-        if scheme.lower() != "bearer":
-            return None
-        return token
-    except ValueError:
-        return None
 
 # Search Routes (Public)
 @app.post("/api/free-tools/{tool_id}/search", response_model=SearchResponse)
