@@ -18,3 +18,4 @@ pymongo
 aiohttp
 requests
 multidict
+attrs
