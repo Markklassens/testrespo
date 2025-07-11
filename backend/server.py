@@ -517,7 +517,7 @@ async def get_categories(db: Session = Depends(get_db)):
 @app.post("/api/categories", response_model=CategoryResponse)
 async def create_category(
     category: CategoryCreate,
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_superadmin),
     db: Session = Depends(get_db)
 ):
     db_category = Category(
