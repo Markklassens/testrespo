@@ -10,8 +10,19 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Get backend URL from environment
-BACKEND_URL = os.getenv("REACT_APP_BACKEND_URL", "http://localhost:8001")
+# Get backend URL from frontend environment file
+try:
+    with open('/app/frontend/.env', 'r') as f:
+        for line in f:
+            if line.startswith('REACT_APP_BACKEND_URL='):
+                BACKEND_URL = line.split('=', 1)[1].strip()
+                break
+        else:
+            BACKEND_URL = "http://localhost:8001"
+except:
+    BACKEND_URL = "http://localhost:8001"
+
+print(f"Using backend URL: {BACKEND_URL}")
 
 # Test data
 TEST_USER = {
