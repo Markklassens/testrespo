@@ -620,19 +620,7 @@ async def get_comparison_tools(
     current_user: User = Depends(get_current_verified_user),
     db: Session = Depends(get_db)
 ):
-    # Direct query to get tools from the association table
-    comparison_records = db.execute(
-        text("SELECT tool_id FROM user_tool_comparison WHERE user_id = :user_id"),
-        {"user_id": current_user.id}
-    ).fetchall()
-    
-    if not comparison_records:
-        return []
-    
-    tool_ids = [record[0] for record in comparison_records]
-    tools = db.query(Tool).filter(Tool.id.in_(tool_ids)).all()
-    
-    return tools
+    return {"message": "comparison endpoint works", "user_id": current_user.id}
 
 @app.post("/api/tools/compare")
 async def add_to_comparison(
