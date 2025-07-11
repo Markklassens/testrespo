@@ -908,7 +908,7 @@ async def delete_category(
 @app.post("/api/subcategories", response_model=SubcategoryResponse)
 async def create_subcategory(
     subcategory: SubcategoryCreate,
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_superadmin),
     db: Session = Depends(get_db)
 ):
     db_subcategory = Subcategory(
