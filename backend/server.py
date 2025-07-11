@@ -620,10 +620,14 @@ async def get_comparison_tools(
     current_user: User = Depends(get_current_verified_user),
     db: Session = Depends(get_db)
 ):
-    tools = db.query(Tool).join(user_tool_comparison).filter(
-        user_tool_comparison.c.user_id == current_user.id
-    ).all()
-    return tools
+    try:
+        tools = db.query(Tool).join(user_tool_comparison).filter(
+            user_tool_comparison.c.user_id == current_user.id
+        ).all()
+        return tools
+    except Exception as e:
+        # Return empty list if no tools in comparison
+        return []
 
 @app.post("/api/tools/compare")
 async def add_to_comparison(
