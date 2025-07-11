@@ -112,6 +112,9 @@ def require_superadmin(current_user: User = Depends(get_current_verified_user)):
         )
     return current_user
 
+def get_user(db: Session, username: str):
+    return db.query(User).filter(User.username == username).first()
+
 def authenticate_user(db: Session, email: str, password: str):
     user = db.query(User).filter(User.email == email).first()
     if not user:
