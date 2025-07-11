@@ -57,7 +57,36 @@ const AdminPanel = () => {
     { id: 'categories', label: 'Categories', icon: FolderIcon },
   ];
 
-  const handleDeleteTool = async (toolId) => {
+  const handleDeleteUser = async (userId) => {
+    if (window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+      try {
+        await dispatch(deleteUser(userId)).unwrap();
+        toast.success('User deleted successfully');
+      } catch (error) {
+        toast.error('Failed to delete user');
+      }
+    }
+  };
+
+  const handleEditUser = (userToEdit) => {
+    setSelectedUser(userToEdit);
+    setShowUserModal(true);
+  };
+
+  const handleCreateUser = () => {
+    setSelectedUser(null);
+    setShowUserModal(true);
+  };
+
+  const handleUserModalClose = () => {
+    setShowUserModal(false);
+    setSelectedUser(null);
+  };
+
+  const handleUserModalSuccess = () => {
+    dispatch(fetchUsers());
+    dispatch(fetchDashboardAnalytics());
+  };
     if (window.confirm('Are you sure you want to delete this tool?')) {
       try {
         await dispatch(deleteTool(toolId)).unwrap();
