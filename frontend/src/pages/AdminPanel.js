@@ -45,6 +45,7 @@ const AdminPanel = () => {
       dispatch(fetchTools());
       dispatch(fetchBlogs({ status: '' })); // Fetch all blogs including drafts
       dispatch(fetchCategories());
+      dispatch(fetchUsers());
     }
   }, [dispatch, user]);
 
