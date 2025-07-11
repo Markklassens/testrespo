@@ -677,7 +677,7 @@ async def remove_from_comparison(
 @app.post("/api/tools/bulk-upload")
 async def bulk_upload_tools(
     file: UploadFile = File(...),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_superadmin),
     db: Session = Depends(get_db)
 ):
     if not file.filename.endswith('.csv'):
