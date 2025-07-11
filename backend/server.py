@@ -1153,7 +1153,7 @@ async def get_advanced_analytics(
 # CSV Sample File Generation
 @app.get("/api/admin/tools/sample-csv")
 async def download_sample_csv(
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_superadmin),
     db: Session = Depends(get_db)
 ):
     """Download sample CSV file for bulk tool upload"""
