@@ -621,12 +621,15 @@ async def get_comparison_tools(
     db: Session = Depends(get_db)
 ):
     try:
-        tools = db.query(Tool).join(user_tool_comparison).filter(
-            user_tool_comparison.c.user_id == current_user.id
-        ).all()
-        return tools
+        # Get user's compared tools using the relationship
+        user_with_tools = db.query(User).filter(User.id == current_user.id).first()
+        if not user_with_tools:
+            return []
+        
+        # Return the compared tools
+        return user_with_tools.compared_tools
     except Exception as e:
-        # Return empty list if no tools in comparison
+        print(f"Error in get_comparison_tools: {e}")
         return []
 
 @app.post("/api/tools/compare")
