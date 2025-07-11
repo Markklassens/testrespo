@@ -875,7 +875,7 @@ async def like_blog(
 async def update_category(
     category_id: str,
     category_update: CategoryUpdate,
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_superadmin),
     db: Session = Depends(get_db)
 ):
     db_category = db.query(Category).filter(Category.id == category_id).first()
