@@ -603,7 +603,7 @@ async def update_tool(
 @app.delete("/api/tools/{tool_id}")
 async def delete_tool(
     tool_id: str,
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_superadmin),
     db: Session = Depends(get_db)
 ):
     db_tool = db.query(Tool).filter(Tool.id == tool_id).first()
