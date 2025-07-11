@@ -12,6 +12,7 @@ openai
 anthropic
 aiofiles
 jinja2
+markupsafe
 distro
 pymongo
 aiohttp
