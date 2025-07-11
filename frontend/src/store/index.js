@@ -6,6 +6,7 @@ import comparisonReducer from './slices/comparisonSlice';
 import reviewsReducer from './slices/reviewsSlice';
 import commentsReducer from './slices/commentsSlice';
 import analyticsReducer from './slices/analyticsSlice';
+import usersReducer from './slices/usersSlice';
 
 export const store = configureStore({
   reducer: {
@@ -15,7 +16,8 @@ export const store = configureStore({
     comparison: comparisonReducer,
     reviews: reviewsReducer,
     comments: commentsReducer,
-    analytics: analyticsReducer
+    analytics: analyticsReducer,
+    users: usersReducer
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
