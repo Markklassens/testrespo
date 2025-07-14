@@ -1687,7 +1687,7 @@ async def bulk_upload_free_tools(
         db.commit()
     
     return {
-        "created_count": len(created_tools),
+        "tools_created": len(created_tools),
         "created_tools": created_tools,
         "errors": errors
     }
