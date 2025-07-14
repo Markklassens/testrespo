@@ -102,6 +102,7 @@ function AppContent() {
               <Tools />
             </ProtectedRoute>
           } />
+          <Route path="/tool/:slug" element={<ToolDetail />} />
           <Route path="/blogs" element={
             <ProtectedRoute>
               <Blogs />
