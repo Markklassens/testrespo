@@ -1434,7 +1434,8 @@ Tool 2,Description 2,another-invalid-id"""
     response = make_request("POST", "/api/tools/bulk-upload", files=files, token=tokens["superadmin"], expected_status=200)
     if response.status_code == 200:
         result = response.json()
-        if result.get("created_count", 0) == 0:
+        tools_created = result.get("tools_created", result.get("created_count", 0))
+        if tools_created == 0:
             print("✅ Bulk upload correctly handled empty CSV")
         else:
             print("❌ Bulk upload should not create tools from empty CSV")
@@ -1443,13 +1444,15 @@ Tool 2,Description 2,another-invalid-id"""
         print("❌ Bulk upload with empty CSV failed unexpectedly")
         success = False
     
-    # Test 9: Test complete flow - download template, modify, upload
-    print_test_header("Complete Flow - Download Template, Modify, Upload")
+    # Test 9: Test complete end-to-end flow - download template → upload CSV → verify successful upload
+    print_test_header("Complete End-to-End Flow - Download Template → Upload CSV → Verify")
     
-    # Download template
+    # Step 1: Download template
     template_response = make_request("GET", "/api/admin/tools/sample-csv", token=tokens["superadmin"])
     if template_response.status_code == 200:
-        # Modify the template content
+        print("✅ Step 1: Template downloaded successfully")
+        
+        # Step 2: Modify the template content
         template_content = template_response.text
         
         # Replace placeholder with actual category ID if available
@@ -1457,33 +1460,70 @@ Tool 2,Description 2,another-invalid-id"""
             modified_content = template_content.replace("CREATE_CATEGORIES_FIRST", test_category_id)
             modified_content = modified_content.replace("REPLACE_WITH_ACTUAL_CATEGORY_ID", test_category_id)
             
-            # Add a new row to the template
+            # Add a unique tool name to avoid conflicts
+            unique_tool_name = f"E2E Test Tool {uuid.uuid4().hex[:8]}"
             lines = modified_content.strip().split('\n')
             if len(lines) >= 2:  # Header + at least one data row
                 header = lines[0]
-                new_row = lines[1].replace("Example Tool 1", f"Flow Test Tool {uuid.uuid4().hex[:8]}")
+                new_row = lines[1].replace("Example Tool", unique_tool_name)
+                new_row = new_row.replace("Example Tool 1", unique_tool_name)
                 modified_content = f"{header}\n{new_row}"
                 
-                files = {'file': ('flow_test.csv', modified_content, 'text/csv')}
+                print("✅ Step 2: Template modified with valid data")
+                
+                # Step 3: Upload the modified CSV
+                files = {'file': ('e2e_test.csv', modified_content, 'text/csv')}
                 upload_response = make_request("POST", "/api/tools/bulk-upload", files=files, token=tokens["superadmin"])
                 
                 if upload_response.status_code == 200:
                     result = upload_response.json()
-                    if result.get("created_count", 0) > 0:
-                        print("✅ Complete flow test successful")
+                    tools_created = result.get("tools_created", result.get("created_count", 0))
+                    if tools_created > 0:
+                        print("✅ Step 3: CSV uploaded successfully")
+                        created_tools = result.get("created_tools", [])
+                        
+                        # Step 4: Verify the tool was created by searching for it
+                        if created_tools and unique_tool_name in created_tools:
+                            search_response = make_request("GET", f"/api/tools/search?q={unique_tool_name.replace(' ', '%20')}")
+                            if search_response.status_code == 200:
+                                search_data = search_response.json()
+                                if search_data.get("total", 0) > 0:
+                                    found_tool = None
+                                    for tool in search_data.get("tools", []):
+                                        if tool.get("name") == unique_tool_name:
+                                            found_tool = tool
+                                            break
+                                    
+                                    if found_tool:
+                                        print("✅ Step 4: Tool verified in database - End-to-End flow successful!")
+                                        print(f"   Tool ID: {found_tool.get('id')}")
+                                        print(f"   Tool Name: {found_tool.get('name')}")
+                                        print(f"   Category ID: {found_tool.get('category_id')}")
+                                    else:
+                                        print("❌ Step 4: Tool not found in search results")
+                                        success = False
+                                else:
+                                    print("❌ Step 4: No tools found in search")
+                                    success = False
+                            else:
+                                print("❌ Step 4: Search request failed")
+                                success = False
+                        else:
+                            print("❌ Step 4: Tool name not in created tools list")
+                            success = False
                     else:
-                        print("❌ Complete flow test failed - no tools created")
+                        print("❌ Step 3: Upload completed but no tools created")
                         success = False
                 else:
-                    print("❌ Complete flow test failed - upload failed")
+                    print("❌ Step 3: Upload failed")
                     success = False
             else:
-                print("❌ Template content is malformed")
+                print("❌ Step 2: Template content is malformed")
                 success = False
         else:
             print("⚠️ Cannot test complete flow without valid category ID")
     else:
-        print("❌ Cannot download template for complete flow test")
+        print("❌ Step 1: Cannot download template for complete flow test")
         success = False
     
     return success
