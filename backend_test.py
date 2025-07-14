@@ -1590,16 +1590,402 @@ def test_discover_page_data():
     
     return success
 
-def run_all_tests():
-    """Run all tests with focus on critical areas"""
-    results = {}
+def test_blog_creation_comprehensive():
+    """Comprehensive test for blog creation functionality as requested"""
+    print_test_header("COMPREHENSIVE BLOG CREATION TESTING")
     
+    if "user" not in tokens or "admin" not in tokens:
+        print("❌ Cannot test blog creation without user and admin tokens")
+        return False
+    
+    success = True
+    
+    # Test 1: Blog creation with text content
+    print_test_header("Blog Creation with Text Content")
+    blog_data = {
+        "title": f"Test Blog Post {uuid.uuid4().hex[:8]}",
+        "content": """
+        <h1>This is a comprehensive blog post</h1>
+        <p>This blog post contains <strong>rich text formatting</strong> including:</p>
+        <ul>
+            <li>Bold and italic text</li>
+            <li>Lists and headings</li>
+            <li>Links and images</li>
+        </ul>
+        <p>The content is long enough to calculate proper reading time. """ + "Lorem ipsum dolor sit amet, consectetur adipiscing elit. " * 50,
+        "excerpt": "This is a test blog excerpt with rich formatting",
+        "status": "published",
+        "category_id": test_category_id if test_category_id else None,
+        "slug": f"test-blog-{uuid.uuid4().hex[:8]}",
+        "meta_title": "Test Blog Meta Title",
+        "meta_description": "Test blog meta description for SEO"
+    }
+    
+    response = make_request("POST", "/api/blogs", blog_data, token=tokens["user"], expected_status=200)
+    if response.status_code != 200:
+        print("❌ Blog creation with text content failed")
+        success = False
+    else:
+        blog_result = response.json()
+        global test_blog_id
+        test_blog_id = blog_result["id"]
+        
+        # Verify blog properties
+        if blog_result.get("reading_time", 0) > 0:
+            print(f"✅ Blog created with reading time: {blog_result['reading_time']} minutes")
+        else:
+            print("❌ Blog reading time not calculated properly")
+            success = False
+            
+        if blog_result.get("status") == "published":
+            print("✅ Blog status set to published")
+        else:
+            print("❌ Blog status not set correctly")
+            success = False
+            
+        if blog_result.get("published_at"):
+            print("✅ Blog published_at timestamp set")
+        else:
+            print("❌ Blog published_at timestamp not set")
+            success = False
+    
+    # Test 2: Blog creation with different content formats
+    print_test_header("Blog Creation with Various Content Formats")
+    
+    # Test with draft status
+    draft_blog = {
+        "title": f"Draft Blog {uuid.uuid4().hex[:8]}",
+        "content": "This is a draft blog post",
+        "excerpt": "Draft excerpt",
+        "status": "draft",
+        "slug": f"draft-blog-{uuid.uuid4().hex[:8]}"
+    }
+    
+    response = make_request("POST", "/api/blogs", draft_blog, token=tokens["user"], expected_status=200)
+    if response.status_code != 200:
+        print("❌ Draft blog creation failed")
+        success = False
+    else:
+        draft_result = response.json()
+        if draft_result.get("status") == "draft" and not draft_result.get("published_at"):
+            print("✅ Draft blog created correctly (no published_at)")
+        else:
+            print("❌ Draft blog status handling incorrect")
+            success = False
+    
+    # Test with rich text formatting
+    rich_text_blog = {
+        "title": f"Rich Text Blog {uuid.uuid4().hex[:8]}",
+        "content": """
+        <h2>Rich Text Content</h2>
+        <p>This blog contains <em>italic</em>, <strong>bold</strong>, and <u>underlined</u> text.</p>
+        <blockquote>This is a blockquote with important information.</blockquote>
+        <pre><code>console.log('This is code formatting');</code></pre>
+        <p>Here's a list:</p>
+        <ol>
+            <li>First item</li>
+            <li>Second item with <a href="https://example.com">a link</a></li>
+            <li>Third item</li>
+        </ol>
+        """,
+        "excerpt": "Rich text formatting test",
+        "status": "published",
+        "slug": f"rich-text-blog-{uuid.uuid4().hex[:8]}"
+    }
+    
+    response = make_request("POST", "/api/blogs", rich_text_blog, token=tokens["user"], expected_status=200)
+    if response.status_code != 200:
+        print("❌ Rich text blog creation failed")
+        success = False
+    else:
+        print("✅ Rich text blog created successfully")
+    
+    # Test 3: Blog search and filtering functionality
+    print_test_header("Blog Search and Filtering")
+    
+    # Test basic blog retrieval
+    response = make_request("GET", "/api/blogs", expected_status=200)
+    if response.status_code != 200:
+        print("❌ Basic blog retrieval failed")
+        success = False
+    else:
+        blogs = response.json()
+        if isinstance(blogs, list) and len(blogs) > 0:
+            print(f"✅ Retrieved {len(blogs)} blogs")
+        else:
+            print("❌ No blogs retrieved or invalid format")
+            success = False
+    
+    # Test search functionality
+    response = make_request("GET", "/api/blogs?search=Test", expected_status=200)
+    if response.status_code != 200:
+        print("❌ Blog search failed")
+        success = False
+    else:
+        search_results = response.json()
+        print(f"✅ Blog search returned {len(search_results)} results")
+    
+    # Test category filtering
+    if test_category_id:
+        response = make_request("GET", f"/api/blogs?category_id={test_category_id}", expected_status=200)
+        if response.status_code != 200:
+            print("❌ Blog category filtering failed")
+            success = False
+        else:
+            print("✅ Blog category filtering works")
+    
+    # Test status filtering
+    response = make_request("GET", "/api/blogs?status=published", expected_status=200)
+    if response.status_code != 200:
+        print("❌ Blog status filtering failed")
+        success = False
+    else:
+        print("✅ Blog status filtering works")
+    
+    # Test sorting options
+    sort_options = ["created_at", "views", "likes", "oldest"]
+    for sort_by in sort_options:
+        response = make_request("GET", f"/api/blogs?sort_by={sort_by}", expected_status=200)
+        if response.status_code != 200:
+            print(f"❌ Blog sorting by {sort_by} failed")
+            success = False
+        else:
+            print(f"✅ Blog sorting by {sort_by} works")
+    
+    # Test 4: Blog likes functionality
+    print_test_header("Blog Likes Functionality")
+    
+    if test_blog_id:
+        # Get initial likes count
+        response = make_request("GET", f"/api/blogs/{test_blog_id}", expected_status=200)
+        if response.status_code != 200:
+            print("❌ Cannot retrieve blog for likes test")
+            success = False
+        else:
+            initial_blog = response.json()
+            initial_likes = initial_blog.get("likes", 0)
+            
+            # Like the blog
+            response = make_request("POST", f"/api/blogs/{test_blog_id}/like", token=tokens["user"], expected_status=200)
+            if response.status_code != 200:
+                print("❌ Blog like functionality failed")
+                success = False
+            else:
+                like_result = response.json()
+                new_likes = like_result.get("likes", 0)
+                
+                if new_likes > initial_likes:
+                    print(f"✅ Blog likes increased from {initial_likes} to {new_likes}")
+                else:
+                    print("❌ Blog likes count did not increase")
+                    success = False
+                
+                # Verify likes count persisted
+                response = make_request("GET", f"/api/blogs/{test_blog_id}", expected_status=200)
+                if response.status_code == 200:
+                    updated_blog = response.json()
+                    if updated_blog.get("likes", 0) == new_likes:
+                        print("✅ Blog likes count persisted in database")
+                    else:
+                        print("❌ Blog likes count not persisted properly")
+                        success = False
+    
+    # Test 5: Blog permissions (user vs admin)
+    print_test_header("Blog Permissions Testing")
+    
+    if test_blog_id:
+        # Test user can update their own blog
+        update_data = {
+            "title": f"Updated Blog Title {uuid.uuid4().hex[:8]}",
+            "content": "Updated content for the blog post"
+        }
+        response = make_request("PUT", f"/api/blogs/{test_blog_id}", update_data, token=tokens["user"], expected_status=200)
+        if response.status_code != 200:
+            print("❌ User cannot update their own blog")
+            success = False
+        else:
+            print("✅ User can update their own blog")
+        
+        # Test admin can update any blog
+        admin_update = {
+            "title": f"Admin Updated Title {uuid.uuid4().hex[:8]}",
+            "status": "published"
+        }
+        response = make_request("PUT", f"/api/blogs/{test_blog_id}", admin_update, token=tokens["admin"], expected_status=200)
+        if response.status_code != 200:
+            print("❌ Admin cannot update user's blog")
+            success = False
+        else:
+            print("✅ Admin can update any blog")
+        
+        # Test admin can delete any blog
+        response = make_request("DELETE", f"/api/blogs/{test_blog_id}", token=tokens["admin"], expected_status=200)
+        if response.status_code != 200:
+            print("❌ Admin cannot delete blog")
+            success = False
+        else:
+            print("✅ Admin can delete any blog")
+    
+    # Test 6: Blog view count increment
+    print_test_header("Blog View Count Testing")
+    
+    # Create a new blog for view testing
+    view_test_blog = {
+        "title": f"View Test Blog {uuid.uuid4().hex[:8]}",
+        "content": "This blog is for testing view counts",
+        "excerpt": "View test excerpt",
+        "status": "published",
+        "slug": f"view-test-blog-{uuid.uuid4().hex[:8]}"
+    }
+    
+    response = make_request("POST", "/api/blogs", view_test_blog, token=tokens["user"], expected_status=200)
+    if response.status_code == 200:
+        view_blog_id = response.json()["id"]
+        initial_views = response.json().get("views", 0)
+        
+        # Access the blog to increment views
+        response = make_request("GET", f"/api/blogs/{view_blog_id}", expected_status=200)
+        if response.status_code == 200:
+            updated_views = response.json().get("views", 0)
+            if updated_views > initial_views:
+                print(f"✅ Blog view count incremented from {initial_views} to {updated_views}")
+            else:
+                print("❌ Blog view count not incremented")
+                success = False
+    
+    return success
+
+def test_file_upload_functionality():
+    """Test file upload functionality"""
+    print_test_header("FILE UPLOAD FUNCTIONALITY TESTING")
+    
+    if "user" not in tokens:
+        print("❌ Cannot test file upload without user token")
+        return False
+    
+    success = True
+    
+    # Test 1: Valid image file upload
+    print_test_header("Valid Image File Upload")
+    
+    # Create a small test image (1x1 pixel PNG)
+    import base64
+    # This is a 1x1 transparent PNG image in base64
+    small_png_data = base64.b64decode(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChAI9jU8IQAAAAABJRU5ErkJggg=='
+    )
+    
+    files = {'file': ('test_image.png', small_png_data, 'image/png')}
+    response = make_request("POST", "/api/upload", files=files, token=tokens["user"], expected_status=200)
+    
+    if response.status_code != 200:
+        print("❌ Valid image upload failed")
+        success = False
+    else:
+        upload_result = response.json()
+        required_keys = ["file_url", "filename", "content_type", "size"]
+        
+        for key in required_keys:
+            if key not in upload_result:
+                print(f"❌ Upload response missing key: {key}")
+                success = False
+        
+        if upload_result.get("content_type") == "image/png":
+            print("✅ Image upload successful with correct content type")
+        else:
+            print(f"❌ Expected image/png, got {upload_result.get('content_type')}")
+            success = False
+        
+        if upload_result.get("file_url", "").startswith("data:image/png;base64,"):
+            print("✅ File returned as base64 data URL")
+        else:
+            print("❌ File not returned as expected base64 data URL")
+            success = False
+    
+    # Test 2: Invalid file type upload
+    print_test_header("Invalid File Type Upload")
+    
+    files = {'file': ('test.txt', b'This is a text file', 'text/plain')}
+    response = make_request("POST", "/api/upload", files=files, token=tokens["user"], expected_status=400)
+    
+    if response.status_code != 400:
+        print("❌ Invalid file type should be rejected")
+        success = False
+    else:
+        print("✅ Invalid file type correctly rejected")
+    
+    # Test 3: Large file upload (should fail)
+    print_test_header("Large File Upload (Should Fail)")
+    
+    # Create a file larger than 10MB (simulated)
+    large_file_data = b'x' * (11 * 1024 * 1024)  # 11MB
+    files = {'file': ('large_image.jpg', large_file_data, 'image/jpeg')}
+    response = make_request("POST", "/api/upload", files=files, token=tokens["user"], expected_status=400)
+    
+    if response.status_code != 400:
+        print("❌ Large file should be rejected")
+        success = False
+    else:
+        print("✅ Large file correctly rejected")
+    
+    # Test 4: Upload without authentication
+    print_test_header("Upload Without Authentication")
+    
+    files = {'file': ('test_image.png', small_png_data, 'image/png')}
+    response = make_request("POST", "/api/upload", files=files, expected_status=401)
+    
+    if response.status_code != 401:
+        print("❌ Upload without authentication should fail")
+        success = False
+    else:
+        print("✅ Upload without authentication correctly rejected")
+    
+    # Test 5: Different valid file types
+    print_test_header("Different Valid File Types")
+    
+    # Test JPEG
+    files = {'file': ('test.jpg', small_png_data, 'image/jpeg')}
+    response = make_request("POST", "/api/upload", files=files, token=tokens["user"], expected_status=200)
+    if response.status_code == 200:
+        print("✅ JPEG upload successful")
+    else:
+        print("❌ JPEG upload failed")
+        success = False
+    
+    # Test GIF
+    files = {'file': ('test.gif', small_png_data, 'image/gif')}
+    response = make_request("POST", "/api/upload", files=files, token=tokens["user"], expected_status=200)
+    if response.status_code == 200:
+        print("✅ GIF upload successful")
+    else:
+        print("❌ GIF upload failed")
+        success = False
+    
+    # Test WebP
+    files = {'file': ('test.webp', small_png_data, 'image/webp')}
+    response = make_request("POST", "/api/upload", files=files, token=tokens["user"], expected_status=200)
+    if response.status_code == 200:
+        print("✅ WebP upload successful")
+    else:
+        print("❌ WebP upload failed")
+        success = False
+    
+    return success
+
+def run_all_tests():
+    """Run comprehensive tests focusing on blog creation and file upload functionality"""
     try:
-        # Basic health check
+        results = {}
+        
+        # Health check first
         results["health_check"] = test_health_check()
         
         # Authentication - Critical for access control testing
         results["login"] = test_login()
+        
+        # REQUESTED TESTS - Blog creation functionality
+        results["blog_creation_comprehensive"] = test_blog_creation_comprehensive()
+        results["file_upload_functionality"] = test_file_upload_functionality()
         
         # CRITICAL TESTS - Main focus areas
         results["access_control_critical"] = test_access_control_critical()
@@ -1614,15 +2000,21 @@ def run_all_tests():
         
         # Print summary
         print("\n" + "=" * 80)
-        print("CRITICAL TEST SUMMARY - MarketMindAI Access Control & Bulk Upload")
+        print("BLOG CREATION & FILE UPLOAD TEST SUMMARY - MarketMindAI")
         print("=" * 80)
         
+        requested_tests = ["blog_creation_comprehensive", "file_upload_functionality"]
         critical_tests = ["access_control_critical", "bulk_upload_functionality", "discover_page_data"]
+        requested_passed = True
         critical_passed = True
         
         for test_name, passed in results.items():
             status = "✅ PASSED" if passed else "❌ FAILED"
-            if test_name in critical_tests:
+            if test_name in requested_tests:
+                print(f"🎯 REQUESTED - {test_name}: {status}")
+                if not passed:
+                    requested_passed = False
+            elif test_name in critical_tests:
                 print(f"🔥 CRITICAL - {test_name}: {status}")
                 if not passed:
                     critical_passed = False
@@ -1630,6 +2022,11 @@ def run_all_tests():
                 print(f"   {test_name}: {status}")
         
         print("\n" + "=" * 80)
+        if requested_passed:
+            print("🎉 REQUESTED TESTS PASSED! Blog creation and file upload are working correctly.")
+        else:
+            print("❌ REQUESTED TESTS FAILED! Blog creation or file upload issues detected.")
+            
         if critical_passed:
             print("🎉 CRITICAL TESTS PASSED! Access control and bulk upload are working correctly.")
         else:
