@@ -337,6 +337,8 @@ class AdminSettingResponse(AdminSettingBase):
 class FileUploadResponse(BaseModel):
     file_url: str
     filename: str
+    content_type: str
+    size: int
 
 # Tool Comparison Schema
 class ToolComparisonRequest(BaseModel):
