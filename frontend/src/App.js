@@ -144,13 +144,15 @@ function App() {
   return (
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
-        <ThemeProvider>
-          <AuthProvider>
-            <Router>
-              <AppContent />
-            </Router>
-          </AuthProvider>
-        </ThemeProvider>
+        <HelmetProvider>
+          <ThemeProvider>
+            <AuthProvider>
+              <Router>
+                <AppContent />
+              </Router>
+            </AuthProvider>
+          </ThemeProvider>
+        </HelmetProvider>
       </QueryClientProvider>
     </Provider>
   );
