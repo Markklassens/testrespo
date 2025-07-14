@@ -1332,6 +1332,14 @@ def test_bulk_upload_functionality():
             success = False
         else:
             print("✅ Correct Content-Disposition header")
+        
+        # Check CSV content structure
+        csv_content = response.text
+        if "name,description" in csv_content and ("Example Tool" in csv_content or "Test Tool" in csv_content):
+            print("✅ CSV sample contains expected structure")
+        else:
+            print("❌ CSV sample structure is incorrect")
+            success = False
     
     # Test 3: Test admin user cannot access sample CSV download
     print_test_header("Admin User Access to Sample CSV (Should Fail)")
@@ -1361,11 +1369,16 @@ Test Bulk Tool 2,Description for bulk tool 2,{test_category_id},Paid,Enterprise,
             success = False
         else:
             result = response.json()
-            if result.get("created_count", 0) > 0:
-                print(f"✅ Bulk upload successful - created {result['created_count']} tools")
+            # Check for the updated response format (tools_created instead of created_count)
+            if "tools_created" in result and result.get("tools_created", 0) > 0:
+                print(f"✅ Bulk upload successful - created {result['tools_created']} tools")
                 print(f"Created tools: {result.get('created_tools', [])}")
                 if result.get('errors'):
                     print(f"Errors encountered: {result['errors']}")
+            elif "created_count" in result and result.get("created_count", 0) > 0:
+                print(f"⚠️ Bulk upload successful but using old response format - created {result['created_count']} tools")
+                print("❌ Response format should use 'tools_created' instead of 'created_count'")
+                success = False
             else:
                 print("❌ Bulk upload completed but no tools were created")
                 print(f"Response: {result}")
