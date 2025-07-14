@@ -1283,11 +1283,29 @@ def test_bulk_upload_functionality():
         success = False
     else:
         print("✅ Simple CSV template endpoint works")
-        template_data = response.json()
-        if "template" in template_data and isinstance(template_data["template"], list):
-            print("✅ Template data structure is correct")
+        
+        # Check content type
+        content_type = response.headers.get("Content-Type")
+        if content_type != "text/csv":
+            print(f"❌ Expected CSV content type, got {content_type}")
+            success = False
         else:
-            print("❌ Template data structure is incorrect")
+            print("✅ Correct CSV content type")
+        
+        # Check Content-Disposition header
+        content_disposition = response.headers.get("Content-Disposition")
+        if not content_disposition or "attachment" not in content_disposition:
+            print(f"❌ Expected Content-Disposition with attachment, got {content_disposition}")
+            success = False
+        else:
+            print("✅ Correct Content-Disposition header")
+        
+        # Check CSV content structure
+        csv_content = response.text
+        if "name,description" in csv_content and "Example Tool" in csv_content:
+            print("✅ CSV template contains expected structure")
+        else:
+            print("❌ CSV template structure is incorrect")
             success = False
     
     # Test 2: Test /api/admin/tools/sample-csv endpoint (requires superadmin)
