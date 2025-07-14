@@ -1266,8 +1266,8 @@ def test_access_control_critical():
     return success
 
 def test_bulk_upload_functionality():
-    """Test bulk upload functionality"""
-    print_test_header("BULK UPLOAD FUNCTIONALITY TESTING")
+    """Test comprehensive bulk upload functionality for Super Admin"""
+    print_test_header("COMPREHENSIVE BULK UPLOAD FUNCTIONALITY TESTING")
     
     if "superadmin" not in tokens:
         print("❌ Cannot test bulk upload without superadmin token")
@@ -1275,14 +1275,29 @@ def test_bulk_upload_functionality():
     
     success = True
     
-    # Test 1: Download sample CSV template
-    print_test_header("Sample CSV Template Download")
-    response = make_request("GET", "/api/admin/tools/sample-csv", token=tokens["superadmin"], expected_status=200)
+    # Test 1: Test /api/tools/csv-template endpoint (simple template)
+    print_test_header("Simple CSV Template Endpoint")
+    response = make_request("GET", "/api/tools/csv-template", expected_status=200)
     if response.status_code != 200:
-        print("❌ Cannot download sample CSV template")
+        print("❌ Cannot access simple CSV template endpoint")
         success = False
     else:
-        print("✅ Sample CSV template download works")
+        print("✅ Simple CSV template endpoint works")
+        template_data = response.json()
+        if "template" in template_data and isinstance(template_data["template"], list):
+            print("✅ Template data structure is correct")
+        else:
+            print("❌ Template data structure is incorrect")
+            success = False
+    
+    # Test 2: Test /api/admin/tools/sample-csv endpoint (requires superadmin)
+    print_test_header("Super Admin Sample CSV Download")
+    response = make_request("GET", "/api/admin/tools/sample-csv", token=tokens["superadmin"], expected_status=200)
+    if response.status_code != 200:
+        print("❌ Cannot download sample CSV template as superadmin")
+        success = False
+    else:
+        print("✅ Sample CSV template download works for superadmin")
         
         # Check content type
         content_type = response.headers.get("Content-Type")
@@ -1291,21 +1306,40 @@ def test_bulk_upload_functionality():
             success = False
         else:
             print("✅ Correct CSV content type")
+        
+        # Check Content-Disposition header
+        content_disposition = response.headers.get("Content-Disposition")
+        if not content_disposition or "attachment" not in content_disposition:
+            print(f"❌ Expected Content-Disposition with attachment, got {content_disposition}")
+            success = False
+        else:
+            print("✅ Correct Content-Disposition header")
     
-    # Test 2: Bulk upload with valid CSV
+    # Test 3: Test admin user cannot access sample CSV download
+    print_test_header("Admin User Access to Sample CSV (Should Fail)")
+    if "admin" in tokens:
+        response = make_request("GET", "/api/admin/tools/sample-csv", token=tokens["admin"], expected_status=403)
+        if response.status_code != 403:
+            print("❌ Admin user should not be able to access sample CSV download")
+            success = False
+        else:
+            print("✅ Admin user correctly blocked from sample CSV download")
+    
+    # Test 4: Test bulk upload with valid CSV
     print_test_header("Bulk Upload with Valid CSV")
     
     # Create a valid CSV with proper category ID
     if test_category_id:
-        csv_content = f"""name,description,category_id,pricing_model,company_size,is_hot,is_featured,rating,total_reviews,views,trending_score
-Test Bulk Tool 1,Description for bulk tool 1,{test_category_id},Freemium,SMB,true,false,4.5,10,100,85.5
-Test Bulk Tool 2,Description for bulk tool 2,{test_category_id},Paid,Enterprise,false,true,4.2,25,250,92.3"""
+        csv_content = f"""name,description,category_id,pricing_model,company_size,is_hot,is_featured,rating,total_reviews,views,trending_score,short_description,website_url,features,target_audience,integrations,logo_url,industry,employee_size,revenue_range,location,meta_title,meta_description
+Test Bulk Tool 1,Description for bulk tool 1,{test_category_id},Freemium,SMB,true,false,4.5,10,100,85.5,Short desc 1,https://example1.com,Feature 1 Feature 2,Small businesses,Slack GitHub,https://logo1.com,Technology,11-50,1M-10M,San Francisco,Meta Title 1,Meta Description 1
+Test Bulk Tool 2,Description for bulk tool 2,{test_category_id},Paid,Enterprise,false,true,4.2,25,250,92.3,Short desc 2,https://example2.com,Feature A Feature B,Large enterprises,Salesforce Hubspot,https://logo2.com,Marketing,51-200,10M-100M,New York,Meta Title 2,Meta Description 2"""
         
         files = {'file': ('bulk_tools.csv', csv_content, 'text/csv')}
         response = make_request("POST", "/api/tools/bulk-upload", files=files, token=tokens["superadmin"], expected_status=200)
         
         if response.status_code != 200:
             print("❌ Bulk upload with valid CSV failed")
+            print(f"Response: {response.text}")
             success = False
         else:
             result = response.json()
@@ -1313,15 +1347,28 @@ Test Bulk Tool 2,Description for bulk tool 2,{test_category_id},Paid,Enterprise,
                 print(f"✅ Bulk upload successful - created {result['created_count']} tools")
                 print(f"Created tools: {result.get('created_tools', [])}")
                 if result.get('errors'):
-                    print(f"Errors: {result['errors']}")
+                    print(f"Errors encountered: {result['errors']}")
             else:
                 print("❌ Bulk upload completed but no tools were created")
+                print(f"Response: {result}")
                 success = False
     else:
         print("❌ Cannot test bulk upload without a valid category ID")
         success = False
     
-    # Test 3: Bulk upload with invalid file type
+    # Test 5: Test admin user cannot access bulk upload
+    print_test_header("Admin User Access to Bulk Upload (Should Fail)")
+    if "admin" in tokens:
+        csv_content = "name,description,category_id\nTest Tool,Test Description,test-id"
+        files = {'file': ('test.csv', csv_content, 'text/csv')}
+        response = make_request("POST", "/api/tools/bulk-upload", files=files, token=tokens["admin"], expected_status=403)
+        if response.status_code != 403:
+            print("❌ Admin user should not be able to access bulk upload")
+            success = False
+        else:
+            print("✅ Admin user correctly blocked from bulk upload")
+    
+    # Test 6: Test bulk upload with invalid file type
     print_test_header("Bulk Upload with Invalid File Type")
     files = {'file': ('test.txt', 'not a csv file', 'text/plain')}
     response = make_request("POST", "/api/tools/bulk-upload", files=files, token=tokens["superadmin"], expected_status=400)
@@ -1330,6 +1377,83 @@ Test Bulk Tool 2,Description for bulk tool 2,{test_category_id},Paid,Enterprise,
         success = False
     else:
         print("✅ Bulk upload correctly rejects non-CSV files")
+    
+    # Test 7: Test bulk upload with malformed CSV
+    print_test_header("Bulk Upload with Malformed CSV")
+    malformed_csv = """name,description,category_id
+Tool 1,Description 1,invalid-category-id
+Tool 2,Description 2,another-invalid-id"""
+    
+    files = {'file': ('malformed.csv', malformed_csv, 'text/csv')}
+    response = make_request("POST", "/api/tools/bulk-upload", files=files, token=tokens["superadmin"], expected_status=200)
+    if response.status_code == 200:
+        result = response.json()
+        if result.get("errors"):
+            print(f"✅ Bulk upload correctly handled malformed CSV with errors: {len(result['errors'])} errors")
+        else:
+            print("⚠️ Bulk upload processed malformed CSV without errors (unexpected)")
+    else:
+        print("❌ Bulk upload with malformed CSV failed unexpectedly")
+        success = False
+    
+    # Test 8: Test bulk upload with empty CSV
+    print_test_header("Bulk Upload with Empty CSV")
+    empty_csv = "name,description,category_id\n"
+    files = {'file': ('empty.csv', empty_csv, 'text/csv')}
+    response = make_request("POST", "/api/tools/bulk-upload", files=files, token=tokens["superadmin"], expected_status=200)
+    if response.status_code == 200:
+        result = response.json()
+        if result.get("created_count", 0) == 0:
+            print("✅ Bulk upload correctly handled empty CSV")
+        else:
+            print("❌ Bulk upload should not create tools from empty CSV")
+            success = False
+    else:
+        print("❌ Bulk upload with empty CSV failed unexpectedly")
+        success = False
+    
+    # Test 9: Test complete flow - download template, modify, upload
+    print_test_header("Complete Flow - Download Template, Modify, Upload")
+    
+    # Download template
+    template_response = make_request("GET", "/api/admin/tools/sample-csv", token=tokens["superadmin"])
+    if template_response.status_code == 200:
+        # Modify the template content
+        template_content = template_response.text
+        
+        # Replace placeholder with actual category ID if available
+        if test_category_id:
+            modified_content = template_content.replace("CREATE_CATEGORIES_FIRST", test_category_id)
+            modified_content = modified_content.replace("REPLACE_WITH_ACTUAL_CATEGORY_ID", test_category_id)
+            
+            # Add a new row to the template
+            lines = modified_content.strip().split('\n')
+            if len(lines) >= 2:  # Header + at least one data row
+                header = lines[0]
+                new_row = lines[1].replace("Example Tool 1", f"Flow Test Tool {uuid.uuid4().hex[:8]}")
+                modified_content = f"{header}\n{new_row}"
+                
+                files = {'file': ('flow_test.csv', modified_content, 'text/csv')}
+                upload_response = make_request("POST", "/api/tools/bulk-upload", files=files, token=tokens["superadmin"])
+                
+                if upload_response.status_code == 200:
+                    result = upload_response.json()
+                    if result.get("created_count", 0) > 0:
+                        print("✅ Complete flow test successful")
+                    else:
+                        print("❌ Complete flow test failed - no tools created")
+                        success = False
+                else:
+                    print("❌ Complete flow test failed - upload failed")
+                    success = False
+            else:
+                print("❌ Template content is malformed")
+                success = False
+        else:
+            print("⚠️ Cannot test complete flow without valid category ID")
+    else:
+        print("❌ Cannot download template for complete flow test")
+        success = False
     
     return success
 
