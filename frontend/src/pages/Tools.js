@@ -464,9 +464,12 @@ const Tools = () => {
         
         <td className="py-4 px-6">
           <div className="flex gap-2">
-            <button className="bg-purple-600 hover:bg-purple-700 text-white py-1 px-3 rounded text-xs">
+            <Link 
+              to={`/tool/${tool.slug}`}
+              className="bg-purple-600 hover:bg-purple-700 text-white py-1 px-3 rounded text-xs"
+            >
               View
-            </button>
+            </Link>
             <button 
               onClick={() => handleAddToComparison(tool.id)}
               disabled={isInComparison || comparisonTools.length >= 5}
