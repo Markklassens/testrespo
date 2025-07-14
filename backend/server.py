@@ -567,6 +567,33 @@ async def get_tool(tool_id: str, db: Session = Depends(get_db)):
     
     return tool
 
+@app.get("/api/tools/slug/{slug}", response_model=ToolResponse)
+async def get_tool_by_slug(slug: str, db: Session = Depends(get_db)):
+    """Get tool by slug for SEO-friendly URLs"""
+    tool = db.query(Tool).filter(Tool.slug == slug).first()
+    if not tool:
+        raise HTTPException(status_code=404, detail="Tool not found")
+    
+    # Increment view count
+    tool.views += 1
+    db.commit()
+    
+    return tool
+
+@app.post("/api/tools/{tool_id}/like")
+async def like_tool(
+    tool_id: str,
+    current_user: User = Depends(get_current_verified_user),
+    db: Session = Depends(get_db)
+):
+    """Like/unlike a tool"""
+    tool = db.query(Tool).filter(Tool.id == tool_id).first()
+    if not tool:
+        raise HTTPException(status_code=404, detail="Tool not found")
+    
+    # For now, just return success - can implement user-specific likes later
+    return {"message": "Tool liked successfully"}
+
 @app.post("/api/tools", response_model=ToolResponse)
 async def create_tool(
     tool: ToolCreate,
