@@ -750,18 +750,59 @@ async def bulk_upload_tools(
 
 @app.get("/api/tools/csv-template")
 async def get_csv_template():
+    """Get CSV template data for bulk tool upload"""
+    
+    # Generate sample CSV content
+    import io
+    import csv
+    
     template_data = [
         {
             'name': 'Example Tool',
-            'description': 'Example description',
-            'category_id': 'category-uuid',
+            'description': 'Example description for a sample tool',
+            'short_description': 'Short description',
+            'website_url': 'https://example.com',
             'pricing_model': 'Freemium',
+            'pricing_details': 'Free tier available, Pro starts at $10/month',
+            'features': 'Feature 1, Feature 2, Feature 3',
+            'target_audience': 'Small to medium businesses',
             'company_size': 'SMB',
-            'website_url': 'https://example.com'
+            'integrations': 'Slack, Google Drive, Dropbox',
+            'logo_url': 'https://example.com/logo.png',
+            'category_id': 'REPLACE_WITH_ACTUAL_CATEGORY_ID',
+            'industry': 'Technology',
+            'employee_size': '11-50',
+            'revenue_range': '1M-10M',
+            'location': 'San Francisco, CA',
+            'is_hot': 'false',
+            'is_featured': 'false',
+            'meta_title': 'Example Tool - Sample Title',
+            'meta_description': 'Sample meta description',
+            'slug': 'example-tool',
+            'rating': '4.5',
+            'total_reviews': '100',
+            'views': '1000',
+            'trending_score': '85.5'
         }
     ]
     
-    return {"template": template_data}
+    # Generate CSV content
+    output = io.StringIO()
+    writer = csv.DictWriter(output, fieldnames=template_data[0].keys())
+    writer.writeheader()
+    writer.writerows(template_data)
+    csv_content = output.getvalue()
+    
+    from fastapi.responses import Response
+    
+    return Response(
+        content=csv_content,
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": "attachment; filename=tools_template.csv",
+            "Content-Type": "text/csv"
+        }
+    )
 
 # Blog Routes
 @app.get("/api/blogs", response_model=List[BlogResponse])
