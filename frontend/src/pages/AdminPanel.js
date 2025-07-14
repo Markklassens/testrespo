@@ -89,6 +89,8 @@ const AdminPanel = () => {
     dispatch(fetchUsers());
     dispatch(fetchDashboardAnalytics());
   };
+
+  const handleDeleteTool = async (toolId) => {
     if (window.confirm('Are you sure you want to delete this tool?')) {
       try {
         await dispatch(deleteTool(toolId)).unwrap();
