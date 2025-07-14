@@ -356,9 +356,12 @@ const Tools = () => {
 
           {/* Actions */}
           <div className="flex gap-2">
-            <button className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-md text-sm font-medium transition-colors duration-200">
+            <Link 
+              to={`/tool/${tool.slug}`}
+              className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-md text-sm font-medium transition-colors duration-200 text-center"
+            >
               View Details
-            </button>
+            </Link>
             
             <button 
               onClick={() => handleAddToComparison(tool.id)}
