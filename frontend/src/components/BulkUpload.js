@@ -49,8 +49,8 @@ const BulkUpload = ({ isOpen, onClose, onSuccess }) => {
     try {
       const result = await dispatch(downloadCsvTemplate()).unwrap();
       
-      // Create and download CSV file
-      const blob = new Blob([result.csv_content], { type: 'text/csv' });
+      // Create and download CSV file directly from blob
+      const blob = new Blob([result], { type: 'text/csv' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
