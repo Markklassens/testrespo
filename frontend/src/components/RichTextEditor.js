@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { useDropzone } from 'react-dropzone';
@@ -21,14 +21,14 @@ const RichTextEditor = ({
   const [codeContent, setCodeContent] = useState('');
   const quillRef = useRef(null);
 
-  // Define handlers outside of modules to prevent recreation
-  const handleImageInsert = () => {
+  // Memoize handlers to prevent recreation on every render
+  const handleImageInsert = useCallback(() => {
     setShowImageUpload(true);
-  };
+  }, []);
 
-  const handleVideoInsert = () => {
+  const handleVideoInsert = useCallback(() => {
     setShowVideoUpload(true);
-  };
+  }, []);
 
   // Memoize modules to prevent recreation on every render
   const modules = React.useMemo(() => ({
@@ -52,7 +52,7 @@ const RichTextEditor = ({
     clipboard: {
       matchVisual: false,
     }
-  }), []);
+  }), [handleImageInsert, handleVideoInsert]);
 
   // Memoize formats to prevent recreation on every render
   const formats = React.useMemo(() => [
@@ -61,14 +61,6 @@ const RichTextEditor = ({
     'link', 'image', 'video', 'color', 'background',
     'blockquote', 'code-block'
   ], []);
-
-  async function handleImageInsert() {
-    setShowImageUpload(true);
-  }
-
-  function handleVideoInsert() {
-    setShowVideoUpload(true);
-  }
 
   const onDrop = async (acceptedFiles) => {
     if (acceptedFiles.length === 0) return;
