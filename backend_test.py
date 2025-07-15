@@ -626,6 +626,295 @@ def test_blogs_crud():
     print("✅ Blogs CRUD operations passed")
     return True
 
+def test_blog_creation_validation():
+    """Test blog creation validation - specific focus on category_id requirement"""
+    print_test_header("Blog Creation Validation Testing")
+    
+    if "user" not in tokens:
+        print("❌ Cannot test blog creation without user token")
+        return False
+    
+    success = True
+    
+    # Test 1: Blog creation with valid category_id (should work)
+    print_test_header("Blog Creation with Valid Category ID")
+    if test_category_id:
+        valid_blog_data = {
+            "title": f"Valid Blog {uuid.uuid4().hex[:8]}",
+            "content": "This is a valid blog content with proper category ID. " * 20,
+            "excerpt": "Valid excerpt",
+            "status": "published",
+            "category_id": test_category_id,
+            "slug": f"valid-blog-{uuid.uuid4().hex[:8]}"
+        }
+        response = make_request("POST", "/api/blogs", valid_blog_data, token=tokens["user"], expected_status=200)
+        if response.status_code != 200:
+            print("❌ Blog creation with valid category_id failed")
+            success = False
+        else:
+            print("✅ Blog creation with valid category_id passed")
+            # Store for cleanup if needed
+            valid_blog_id = response.json()["id"]
+    else:
+        print("⚠️ Cannot test with valid category_id - no test category available")
+        success = False
+    
+    # Test 2: Blog creation with missing category_id (should fail with 422)
+    print_test_header("Blog Creation with Missing Category ID")
+    invalid_blog_data = {
+        "title": f"Invalid Blog {uuid.uuid4().hex[:8]}",
+        "content": "This is a blog without category ID. " * 20,
+        "excerpt": "Invalid excerpt",
+        "status": "published",
+        "slug": f"invalid-blog-{uuid.uuid4().hex[:8]}"
+        # Note: category_id is intentionally missing
+    }
+    response = make_request("POST", "/api/blogs", invalid_blog_data, token=tokens["user"], expected_status=422)
+    if response.status_code != 422:
+        print("❌ Blog creation should fail with missing category_id")
+        success = False
+    else:
+        print("✅ Blog creation correctly failed with missing category_id")
+        # Check if the error message mentions category_id
+        try:
+            error_detail = response.json().get("detail", [])
+            category_error_found = False
+            if isinstance(error_detail, list):
+                for error in error_detail:
+                    if isinstance(error, dict) and "category_id" in str(error.get("loc", [])):
+                        category_error_found = True
+                        print(f"✅ Validation error correctly identifies category_id: {error}")
+                        break
+            if not category_error_found:
+                print(f"⚠️ Validation error doesn't specifically mention category_id: {error_detail}")
+        except:
+            print("⚠️ Could not parse validation error details")
+    
+    # Test 3: Blog creation with null category_id (should fail with 422)
+    print_test_header("Blog Creation with Null Category ID")
+    null_category_blog_data = {
+        "title": f"Null Category Blog {uuid.uuid4().hex[:8]}",
+        "content": "This is a blog with null category ID. " * 20,
+        "excerpt": "Null category excerpt",
+        "status": "published",
+        "category_id": None,  # Explicitly null
+        "slug": f"null-category-blog-{uuid.uuid4().hex[:8]}"
+    }
+    response = make_request("POST", "/api/blogs", null_category_blog_data, token=tokens["user"], expected_status=422)
+    if response.status_code != 422:
+        print("❌ Blog creation should fail with null category_id")
+        success = False
+    else:
+        print("✅ Blog creation correctly failed with null category_id")
+    
+    # Test 4: Blog creation with invalid category_id (should fail with 422 or 400)
+    print_test_header("Blog Creation with Invalid Category ID")
+    invalid_category_blog_data = {
+        "title": f"Invalid Category Blog {uuid.uuid4().hex[:8]}",
+        "content": "This is a blog with invalid category ID. " * 20,
+        "excerpt": "Invalid category excerpt",
+        "status": "published",
+        "category_id": "non-existent-category-id",
+        "slug": f"invalid-category-blog-{uuid.uuid4().hex[:8]}"
+    }
+    response = make_request("POST", "/api/blogs", invalid_category_blog_data, token=tokens["user"], expected_status=[400, 422, 500])
+    if response.status_code not in [400, 422, 500]:
+        print("❌ Blog creation should fail with invalid category_id")
+        success = False
+    else:
+        print(f"✅ Blog creation correctly failed with invalid category_id (status: {response.status_code})")
+    
+    # Test 5: Blog creation with empty string category_id (should fail)
+    print_test_header("Blog Creation with Empty String Category ID")
+    empty_category_blog_data = {
+        "title": f"Empty Category Blog {uuid.uuid4().hex[:8]}",
+        "content": "This is a blog with empty category ID. " * 20,
+        "excerpt": "Empty category excerpt",
+        "status": "published",
+        "category_id": "",  # Empty string
+        "slug": f"empty-category-blog-{uuid.uuid4().hex[:8]}"
+    }
+    response = make_request("POST", "/api/blogs", empty_category_blog_data, token=tokens["user"], expected_status=422)
+    if response.status_code != 422:
+        print("❌ Blog creation should fail with empty string category_id")
+        success = False
+    else:
+        print("✅ Blog creation correctly failed with empty string category_id")
+    
+    return success
+
+def test_file_upload():
+    """Test file upload functionality"""
+    print_test_header("File Upload Testing")
+    
+    if "user" not in tokens:
+        print("❌ Cannot test file upload without user token")
+        return False
+    
+    success = True
+    
+    # Test 1: Upload a valid image file (simulated)
+    print_test_header("Valid Image File Upload")
+    # Create a small test image data (1x1 PNG)
+    import base64
+    # This is a 1x1 transparent PNG image in base64
+    png_data = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChAI9jU8j8wAAAABJRU5ErkJggg==")
+    
+    files = {'file': ('test.png', png_data, 'image/png')}
+    response = make_request("POST", "/api/upload", files=files, token=tokens["user"], expected_status=200)
+    if response.status_code != 200:
+        print("❌ Valid image file upload failed")
+        success = False
+    else:
+        print("✅ Valid image file upload passed")
+        result = response.json()
+        expected_keys = ["file_url", "filename", "content_type", "size"]
+        for key in expected_keys:
+            if key not in result:
+                print(f"❌ Missing key in upload response: {key}")
+                success = False
+        
+        # Check if file_url is a data URL
+        if result.get("file_url", "").startswith("data:image/png;base64,"):
+            print("✅ File upload returns proper data URL")
+        else:
+            print("❌ File upload should return data URL")
+            success = False
+    
+    # Test 2: Upload file without authentication (should fail)
+    print_test_header("File Upload Without Authentication")
+    files = {'file': ('test.png', png_data, 'image/png')}
+    response = make_request("POST", "/api/upload", files=files, expected_status=401)
+    if response.status_code != 401:
+        print("❌ File upload should require authentication")
+        success = False
+    else:
+        print("✅ File upload correctly requires authentication")
+    
+    # Test 3: Upload invalid file type (should fail)
+    print_test_header("Invalid File Type Upload")
+    invalid_file_content = b"This is not an image file"
+    files = {'file': ('test.txt', invalid_file_content, 'text/plain')}
+    response = make_request("POST", "/api/upload", files=files, token=tokens["user"], expected_status=400)
+    if response.status_code != 400:
+        print("❌ Invalid file type should be rejected")
+        success = False
+    else:
+        print("✅ Invalid file type correctly rejected")
+    
+    # Test 4: Upload file that's too large (simulate)
+    print_test_header("Large File Upload")
+    # Create a file that's larger than 10MB (simulated by checking the logic)
+    large_file_content = b"x" * (11 * 1024 * 1024)  # 11MB
+    files = {'file': ('large.png', large_file_content, 'image/png')}
+    response = make_request("POST", "/api/upload", files=files, token=tokens["user"], expected_status=400)
+    if response.status_code != 400:
+        print("❌ Large file should be rejected")
+        success = False
+    else:
+        print("✅ Large file correctly rejected")
+    
+    # Test 5: Upload valid JPEG file
+    print_test_header("Valid JPEG File Upload")
+    # Minimal JPEG header
+    jpeg_data = b'\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x01\x00H\x00H\x00\x00\xff\xdb\x00C\x00\x08\x06\x06\x07\x06\x05\x08\x07\x07\x07\t\t\x08\n\x0c\x14\r\x0c\x0b\x0b\x0c\x19\x12\x13\x0f\x14\x1d\x1a\x1f\x1e\x1d\x1a\x1c\x1c $.\' ",#\x1c\x1c(7),01444\x1f\'9=82<.342\xff\xc0\x00\x11\x08\x00\x01\x00\x01\x01\x01\x11\x00\x02\x11\x01\x03\x11\x01\xff\xc4\x00\x14\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x08\xff\xc4\x00\x14\x10\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xda\x00\x08\x01\x01\x00\x00?\x00\xaa\xff\xd9'
+    
+    files = {'file': ('test.jpg', jpeg_data, 'image/jpeg')}
+    response = make_request("POST", "/api/upload", files=files, token=tokens["user"], expected_status=200)
+    if response.status_code != 200:
+        print("❌ Valid JPEG file upload failed")
+        success = False
+    else:
+        print("✅ Valid JPEG file upload passed")
+    
+    return success
+
+def test_csv_endpoint_access():
+    """Test CSV endpoint access with different user roles"""
+    print_test_header("CSV Endpoint Access Testing")
+    
+    success = True
+    
+    # Test 1: Super Admin access (should work)
+    print_test_header("Super Admin Access to CSV Endpoint")
+    if "superadmin" in tokens:
+        response = make_request("GET", "/api/admin/tools/sample-csv", token=tokens["superadmin"], expected_status=200)
+        if response.status_code != 200:
+            print("❌ Super Admin should be able to access CSV endpoint")
+            success = False
+        else:
+            print("✅ Super Admin can access CSV endpoint")
+            
+            # Check response headers
+            content_type = response.headers.get("Content-Type")
+            if content_type != "text/csv":
+                print(f"❌ Expected CSV content type, got {content_type}")
+                success = False
+            else:
+                print("✅ CSV endpoint returns correct content type")
+            
+            content_disposition = response.headers.get("Content-Disposition")
+            if not content_disposition or "attachment" not in content_disposition:
+                print(f"❌ Expected attachment disposition, got {content_disposition}")
+                success = False
+            else:
+                print("✅ CSV endpoint returns correct content disposition")
+    else:
+        print("⚠️ Cannot test Super Admin access - no superadmin token")
+        success = False
+    
+    # Test 2: Regular Admin access (should fail with 403)
+    print_test_header("Regular Admin Access to CSV Endpoint")
+    if "admin" in tokens:
+        response = make_request("GET", "/api/admin/tools/sample-csv", token=tokens["admin"], expected_status=403)
+        if response.status_code != 403:
+            print("❌ Regular Admin should NOT be able to access CSV endpoint")
+            success = False
+        else:
+            print("✅ Regular Admin correctly denied access to CSV endpoint")
+    else:
+        print("⚠️ Cannot test Admin access - no admin token")
+    
+    # Test 3: Regular User access (should fail with 403)
+    print_test_header("Regular User Access to CSV Endpoint")
+    if "user" in tokens:
+        response = make_request("GET", "/api/admin/tools/sample-csv", token=tokens["user"], expected_status=403)
+        if response.status_code != 403:
+            print("❌ Regular User should NOT be able to access CSV endpoint")
+            success = False
+        else:
+            print("✅ Regular User correctly denied access to CSV endpoint")
+    else:
+        print("⚠️ Cannot test User access - no user token")
+    
+    # Test 4: Unauthenticated access (should fail with 401)
+    print_test_header("Unauthenticated Access to CSV Endpoint")
+    response = make_request("GET", "/api/admin/tools/sample-csv", expected_status=401)
+    if response.status_code != 401:
+        print("❌ Unauthenticated access should be denied")
+        success = False
+    else:
+        print("✅ Unauthenticated access correctly denied")
+    
+    # Test 5: Test the public CSV template endpoint (should work without auth)
+    print_test_header("Public CSV Template Endpoint")
+    response = make_request("GET", "/api/tools/csv-template", expected_status=200)
+    if response.status_code != 200:
+        print("❌ Public CSV template endpoint should work without auth")
+        success = False
+    else:
+        print("✅ Public CSV template endpoint works without auth")
+        
+        # Check response headers
+        content_type = response.headers.get("Content-Type")
+        if content_type != "text/csv":
+            print(f"❌ Expected CSV content type, got {content_type}")
+            success = False
+        else:
+            print("✅ Public CSV template returns correct content type")
+    
+    return success
+
 def test_ai_content_generation():
     """Test AI content generation endpoints"""
     print_test_header("AI Content Generation")
