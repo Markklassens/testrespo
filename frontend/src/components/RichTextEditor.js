@@ -21,8 +21,17 @@ const RichTextEditor = ({
   const [codeContent, setCodeContent] = useState('');
   const quillRef = useRef(null);
 
-  // Custom toolbar configuration
-  const modules = {
+  // Define handlers outside of modules to prevent recreation
+  const handleImageInsert = () => {
+    setShowImageUpload(true);
+  };
+
+  const handleVideoInsert = () => {
+    setShowVideoUpload(true);
+  };
+
+  // Memoize modules to prevent recreation on every render
+  const modules = React.useMemo(() => ({
     toolbar: {
       container: [
         [{ 'header': [1, 2, 3, false] }],
@@ -43,14 +52,15 @@ const RichTextEditor = ({
     clipboard: {
       matchVisual: false,
     }
-  };
+  }), []);
 
-  const formats = [
+  // Memoize formats to prevent recreation on every render
+  const formats = React.useMemo(() => [
     'header', 'bold', 'italic', 'underline', 'strike',
     'list', 'bullet', 'indent', 'align',
     'link', 'image', 'video', 'color', 'background',
     'blockquote', 'code-block'
-  ];
+  ], []);
 
   async function handleImageInsert() {
     setShowImageUpload(true);
