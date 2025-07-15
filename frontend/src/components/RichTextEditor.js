@@ -140,6 +140,11 @@ const RichTextEditor = ({
     setShowVideoUpload(false);
   };
 
+  // Memoize the onChange handler to prevent unnecessary re-renders
+  const handleChange = useCallback((content) => {
+    onChange(content);
+  }, [onChange]);
+
   return (
     <div className="space-y-4">
       {/* Rich Text Editor */}
@@ -147,8 +152,8 @@ const RichTextEditor = ({
         <ReactQuill
           ref={quillRef}
           theme="snow"
-          value={value}
-          onChange={onChange}
+          value={value || ''}
+          onChange={handleChange}
           modules={modules}
           formats={formats}
           placeholder={placeholder}
