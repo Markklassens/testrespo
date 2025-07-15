@@ -348,4 +348,4 @@ const RichTextEditor = ({
   );
 };
 
-export default RichTextEditor;
+export default React.memo(RichTextEditor);
