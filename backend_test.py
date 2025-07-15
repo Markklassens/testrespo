@@ -2262,7 +2262,7 @@ def test_file_upload_functionality():
     return success
 
 def run_all_tests():
-    """Run comprehensive tests focusing on blog creation and file upload functionality"""
+    """Run focused tests for blog creation, file upload, and CSV access functionality"""
     try:
         results = {}
         
@@ -2272,59 +2272,71 @@ def run_all_tests():
         # Authentication - Critical for access control testing
         results["login"] = test_login()
         
-        # REQUESTED TESTS - Blog creation functionality
-        results["blog_creation_comprehensive"] = test_blog_creation_comprehensive()
-        results["file_upload_functionality"] = test_file_upload_functionality()
+        # Set up basic data needed for tests
+        results["protected_routes"] = test_protected_routes()
+        results["categories_crud"] = test_categories_crud()
         
-        # CRITICAL TESTS - Main focus areas
-        results["access_control_critical"] = test_access_control_critical()
-        results["bulk_upload_functionality"] = test_bulk_upload_functionality()
-        results["discover_page_data"] = test_discover_page_data()
+        # MAIN REQUESTED TESTS - Focus on blog creation issue
+        print("\n" + "🎯" * 40)
+        print("MAIN REQUESTED TESTS - BLOG CREATION FOCUS")
+        print("🎯" * 40)
         
-        # Additional important tests
-        results["tools_search"] = test_tools_search()
-        results["tools_analytics"] = test_tools_analytics()
-        results["super_admin_user_management"] = test_super_admin_user_management()
+        results["blog_creation_validation"] = test_blog_creation_validation()
+        results["blogs_crud"] = test_blogs_crud()
+        results["file_upload"] = test_file_upload()
+        results["csv_endpoint_access"] = test_csv_endpoint_access()
+        
+        # Additional supporting tests
+        results["tools_crud"] = test_tools_crud()
         results["sample_csv"] = test_sample_csv()
         
         # Print summary
         print("\n" + "=" * 80)
-        print("BLOG CREATION & FILE UPLOAD TEST SUMMARY - MarketMindAI")
+        print("BLOG CREATION ISSUE INVESTIGATION SUMMARY - MarketMindAI")
         print("=" * 80)
         
-        requested_tests = ["blog_creation_comprehensive", "file_upload_functionality"]
-        critical_tests = ["access_control_critical", "bulk_upload_functionality", "discover_page_data"]
-        requested_passed = True
-        critical_passed = True
+        main_tests = ["blog_creation_validation", "blogs_crud", "file_upload", "csv_endpoint_access"]
+        main_passed = True
         
         for test_name, passed in results.items():
             status = "✅ PASSED" if passed else "❌ FAILED"
-            if test_name in requested_tests:
-                print(f"🎯 REQUESTED - {test_name}: {status}")
+            if test_name in main_tests:
+                print(f"🎯 MAIN TEST - {test_name}: {status}")
                 if not passed:
-                    requested_passed = False
-            elif test_name in critical_tests:
-                print(f"🔥 CRITICAL - {test_name}: {status}")
-                if not passed:
-                    critical_passed = False
+                    main_passed = False
             else:
-                print(f"   {test_name}: {status}")
+                print(f"   Supporting - {test_name}: {status}")
         
         print("\n" + "=" * 80)
-        if requested_passed:
-            print("🎉 REQUESTED TESTS PASSED! Blog creation and file upload are working correctly.")
+        if main_passed:
+            print("🎉 MAIN TESTS PASSED! Blog creation validation and related functionality working correctly.")
         else:
-            print("❌ REQUESTED TESTS FAILED! Blog creation or file upload issues detected.")
-            
-        if critical_passed:
-            print("🎉 CRITICAL TESTS PASSED! Access control and bulk upload are working correctly.")
-        else:
-            print("❌ CRITICAL TESTS FAILED! Access control or bulk upload issues detected.")
+            print("❌ MAIN TESTS FAILED! Blog creation validation or related functionality issues detected.")
             
         # Count overall results
         total_tests = len(results)
         passed_tests = sum(1 for passed in results.values() if passed)
         print(f"\nOverall: {passed_tests}/{total_tests} tests passed")
+        
+        # Specific findings summary
+        print("\n" + "🔍" * 40)
+        print("SPECIFIC FINDINGS SUMMARY")
+        print("🔍" * 40)
+        
+        if results.get("blog_creation_validation"):
+            print("✅ Blog creation validation: category_id requirement working correctly")
+        else:
+            print("❌ Blog creation validation: Issues with category_id requirement")
+            
+        if results.get("file_upload"):
+            print("✅ File upload functionality: Working correctly")
+        else:
+            print("❌ File upload functionality: Issues detected")
+            
+        if results.get("csv_endpoint_access"):
+            print("✅ CSV endpoint access: Role-based permissions working correctly")
+        else:
+            print("❌ CSV endpoint access: Permission issues detected")
             
     except Exception as e:
         print(f"\n❌ Error during testing: {str(e)}")
