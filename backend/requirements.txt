@@ -20,3 +20,4 @@ requests
 multidict
 attrs
 yarl
+propcache
