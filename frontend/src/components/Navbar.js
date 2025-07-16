@@ -27,6 +27,7 @@ const Navbar = () => {
     { href: '/discover', label: 'Discover' },
     { href: '/tools', label: 'Tools', requireAuth: true },
     { href: '/blogs', label: 'Blogs', requireAuth: true },
+    { href: '/compare', label: 'Compare', isComparison: true },
   ];
 
   const userNavLinks = [
