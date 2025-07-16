@@ -249,7 +249,7 @@ const AdminPanel = () => {
                           Total Tools
                         </p>
                         <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                          {dashboard.total_tools}
+                          {dashboard.content_stats?.total_tools || 0}
                         </p>
                       </div>
                     </div>
