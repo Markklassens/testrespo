@@ -556,6 +556,84 @@ async def get_tools(
     tools = query.offset(skip).limit(limit).all()
     return tools
 
+# Tool Comparison Routes (must be before /api/tools/{tool_id} to avoid route conflicts)
+@app.get("/api/tools/compare")
+async def get_comparison_tools(
+    current_user: User = Depends(get_current_verified_user),
+    db: Session = Depends(get_db)
+):
+    """Get tools that the current user has added to comparison"""
+    
+    # Query the comparison table to get tool IDs for the current user
+    comparison_tool_ids = db.execute(
+        user_tool_comparison.select().where(
+            user_tool_comparison.c.user_id == current_user.id
+        )
+    ).fetchall()
+    
+    # Extract tool IDs
+    tool_ids = [row.tool_id for row in comparison_tool_ids]
+    
+    # If no tools in comparison, return empty list
+    if not tool_ids:
+        return []
+    
+    # Query the actual tools data
+    tools = db.query(Tool).filter(Tool.id.in_(tool_ids)).all()
+    
+    return tools
+
+@app.post("/api/tools/compare")
+async def add_to_comparison(
+    request: ToolComparisonRequest,
+    current_user: User = Depends(get_current_verified_user),
+    db: Session = Depends(get_db)
+):
+    tool_id = request.tool_id
+    
+    # Check if tool exists
+    tool = db.query(Tool).filter(Tool.id == tool_id).first()
+    if not tool:
+        raise HTTPException(status_code=404, detail="Tool not found")
+    
+    # Check if already in comparison
+    existing = db.execute(
+        user_tool_comparison.select().where(
+            user_tool_comparison.c.user_id == current_user.id,
+            user_tool_comparison.c.tool_id == tool_id
+        )
+    ).first()
+    
+    if existing:
+        raise HTTPException(status_code=400, detail="Tool already in comparison")
+    
+    # Add to comparison
+    db.execute(
+        user_tool_comparison.insert().values(
+            user_id=current_user.id,
+            tool_id=tool_id
+        )
+    )
+    db.commit()
+    
+    return {"message": "Tool added to comparison"}
+
+@app.delete("/api/tools/compare/{tool_id}")
+async def remove_from_comparison(
+    tool_id: str,
+    current_user: User = Depends(get_current_verified_user),
+    db: Session = Depends(get_db)
+):
+    db.execute(
+        user_tool_comparison.delete().where(
+            user_tool_comparison.c.user_id == current_user.id,
+            user_tool_comparison.c.tool_id == tool_id
+        )
+    )
+    db.commit()
+    
+    return {"message": "Tool removed from comparison"}
+
 @app.get("/api/tools/{tool_id}", response_model=ToolResponse)
 async def get_tool(tool_id: str, db: Session = Depends(get_db)):
     tool = db.query(Tool).filter(Tool.id == tool_id).first()
