@@ -81,6 +81,7 @@ function AppContent() {
           {/* Public Routes */}
           <Route path="/" element={<Home />} />
           <Route path="/discover" element={<DiscoverPage />} />
+          <Route path="/compare" element={<Compare />} />
           <Route path="/login" element={
             <PublicRoute>
               <Login />
