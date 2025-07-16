@@ -65,6 +65,40 @@ export const downloadCsvTemplate = createAsyncThunk(
   }
 );
 
+export const assignToolToAdmin = createAsyncThunk(
+  'tools/assignToolToAdmin',
+  async ({ toolId, adminId }) => {
+    const response = await api.post(`/api/admin/tools/${toolId}/assign`, {
+      admin_id: adminId
+    });
+    return response.data;
+  }
+);
+
+export const unassignToolFromAdmin = createAsyncThunk(
+  'tools/unassignToolFromAdmin',
+  async (toolId) => {
+    const response = await api.delete(`/api/admin/tools/${toolId}/assign`);
+    return response.data;
+  }
+);
+
+export const getToolAssignments = createAsyncThunk(
+  'tools/getToolAssignments',
+  async () => {
+    const response = await api.get('/api/admin/tools/assignments');
+    return response.data;
+  }
+);
+
+export const getAssignedTools = createAsyncThunk(
+  'tools/getAssignedTools',
+  async () => {
+    const response = await api.get('/api/admin/tools/assigned');
+    return response.data;
+  }
+);
+
 const toolsSlice = createSlice({
   name: 'tools',
   initialState: {
