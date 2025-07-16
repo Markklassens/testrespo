@@ -2861,6 +2861,40 @@ def test_review_request_scenarios():
     
     return success
 
+def run_trending_functionality_tests():
+    """Run trending functionality tests as requested in the review"""
+    print("Starting MarketMindAI Trending Functionality Testing")
+    print(f"Backend URL: {BACKEND_URL}")
+    print("=" * 80)
+    
+    success = True
+    
+    try:
+        # First, ensure we have authentication tokens
+        if not test_health_check():
+            print("❌ Health check failed")
+            return False
+        
+        if not test_login():
+            print("❌ Login failed - cannot proceed with trending tests")
+            return False
+        
+        # Run the trending functionality tests
+        if not test_trending_functionality():
+            print("❌ Trending functionality tests failed")
+            success = False
+        
+        if success:
+            print("\n✅ ALL TRENDING FUNCTIONALITY TESTS PASSED")
+            return True
+        else:
+            print("\n❌ SOME TRENDING FUNCTIONALITY TESTS FAILED")
+            return False
+            
+    except Exception as e:
+        print(f"\n❌ TRENDING FUNCTIONALITY TESTING FAILED with exception: {str(e)}")
+        return False
+
 def run_review_request_tests():
     """Run only the tests requested in the review request"""
     print("Starting MarketMindAI Review Request Testing")
