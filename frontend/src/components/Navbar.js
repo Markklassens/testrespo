@@ -200,7 +200,19 @@ const Navbar = () => {
                       : 'text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-700'
                   }`}
                 >
-                  {link.label}
+                  {link.isComparison ? (
+                    <div className="flex items-center space-x-2">
+                      <ScaleIcon className="h-4 w-4" />
+                      <span>{link.label}</span>
+                      {comparisonCount > 0 && (
+                        <span className="bg-primary-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                          {comparisonCount}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    link.label
+                  )}
                 </Link>
               );
             })}
