@@ -319,16 +319,19 @@ const AdminPanel = () => {
                       Recent Reviews
                     </h3>
                     <div className="space-y-3">
-                      {dashboard.recent_reviews?.slice(0, 5).map((review) => (
+                      {dashboard.recent_activity?.reviews?.slice(0, 5).map((review) => (
                         <div key={review.id} className="flex items-center justify-between">
                           <div>
                             <div className="text-sm font-medium text-gray-900 dark:text-white">
-                              {review.title}
+                              {review.title || 'Review'}
                             </div>
                             <div className="text-xs text-gray-500 dark:text-gray-400">
                               Rating: {review.rating}/5 • {formatDate(review.created_at)}
                             </div>
                           </div>
+                          <span className={`px-2 py-1 text-xs rounded-full ${getStatusBadge(review.is_verified ? 'verified' : 'pending')}`}>
+                            {review.is_verified ? 'Verified' : 'Pending'}
+                          </span>
                         </div>
                       ))}
                     </div>
