@@ -655,11 +655,10 @@ async def get_tool_by_slug(slug: str, db: Session = Depends(get_db)):
     if not tool:
         raise HTTPException(status_code=404, detail="Tool not found")
     
-    # Increment view count
-    tool.views += 1
-    db.commit()
+    # Use the new trending calculator to increment view and update trending
+    updated_tool = increment_view_and_update_trending(db, tool.id)
     
-    return tool
+    return updated_tool
 
 @app.post("/api/tools/{tool_id}/like")
 async def like_tool(
