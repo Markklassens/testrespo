@@ -107,7 +107,7 @@ export const removeFromComparison = createAsyncThunk(
 const comparisonSlice = createSlice({
   name: 'comparison',
   initialState: {
-    tools: [],
+    tools: getStoredComparison(),
     loading: false,
     error: null,
     maxTools: 5
@@ -115,6 +115,10 @@ const comparisonSlice = createSlice({
   reducers: {
     clearComparison: (state) => {
       state.tools = [];
+      setStoredComparison([]);
+    },
+    initializeFromStorage: (state) => {
+      state.tools = getStoredComparison();
     }
   },
   extraReducers: (builder) => {
@@ -126,13 +130,24 @@ const comparisonSlice = createSlice({
       .addCase(fetchComparisonTools.fulfilled, (state, action) => {
         state.loading = false;
         state.tools = action.payload;
+        // Also update localStorage with fetched data
+        setStoredComparison(action.payload);
       })
       .addCase(fetchComparisonTools.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message;
+        // Fallback to localStorage data
+        state.tools = getStoredComparison();
       })
       .addCase(addToComparison.fulfilled, (state, action) => {
-        // Tool will be added when we refetch
+        // If localStorage approach was used, tool is already in payload
+        if (action.payload.tool) {
+          state.tools.push(action.payload.tool);
+        }
+        // If backend approach was used, tool will be added when we refetch
+      })
+      .addCase(addToComparison.rejected, (state, action) => {
+        state.error = action.payload;
       })
       .addCase(removeFromComparison.fulfilled, (state, action) => {
         state.tools = state.tools.filter(tool => tool.id !== action.payload);
