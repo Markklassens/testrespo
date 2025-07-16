@@ -203,7 +203,7 @@ def increment_view_and_update_trending(db: Session, tool_id: str) -> Tool:
         # Update trending score
         tool.trending_score = calculate_trending_score(tool, avg_views, avg_rating, avg_reviews)
     
-    tool.last_updated = datetime.utcnow()
+    tool.last_updated = datetime.utcnow().replace(tzinfo=None)
     db.commit()
     
     return tool
