@@ -33,6 +33,8 @@ const AdminPanel = () => {
   const [showCreateCategory, setShowCreateCategory] = useState(false);
   const [showUserModal, setShowUserModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [showToolModal, setShowToolModal] = useState(false);
+  const [selectedTool, setSelectedTool] = useState(null);
   const [newCategory, setNewCategory] = useState({ name: '', description: '' });
 
   const { dashboard, loading: analyticsLoading } = useSelector(state => state.analytics);
