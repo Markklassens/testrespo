@@ -228,6 +228,54 @@ const toolsSlice = createSlice({
       .addCase(bulkUploadTools.rejected, (state, action) => {
         state.csvUpload.loading = false;
         state.csvUpload.error = action.error.message;
+      })
+      // Tool assignments
+      .addCase(assignToolToAdmin.pending, (state) => {
+        state.assignments.loading = true;
+      })
+      .addCase(assignToolToAdmin.fulfilled, (state, action) => {
+        state.assignments.loading = false;
+        // Update the tool in the list with the new assignment
+        const toolIndex = state.tools.findIndex(tool => tool.id === action.payload.tool_id);
+        if (toolIndex !== -1) {
+          state.tools[toolIndex].assigned_admin_id = action.payload.admin_id;
+        }
+      })
+      .addCase(assignToolToAdmin.rejected, (state, action) => {
+        state.assignments.loading = false;
+        state.assignments.error = action.error.message;
+      })
+      // Unassign tool
+      .addCase(unassignToolFromAdmin.fulfilled, (state, action) => {
+        // Find the tool and remove assignment
+        const toolIndex = state.tools.findIndex(tool => tool.id === action.meta.arg);
+        if (toolIndex !== -1) {
+          state.tools[toolIndex].assigned_admin_id = null;
+        }
+      })
+      // Get tool assignments
+      .addCase(getToolAssignments.pending, (state) => {
+        state.assignments.loading = true;
+      })
+      .addCase(getToolAssignments.fulfilled, (state, action) => {
+        state.assignments.loading = false;
+        state.assignments.list = action.payload;
+      })
+      .addCase(getToolAssignments.rejected, (state, action) => {
+        state.assignments.loading = false;
+        state.assignments.error = action.error.message;
+      })
+      // Get assigned tools
+      .addCase(getAssignedTools.pending, (state) => {
+        state.assignedTools.loading = true;
+      })
+      .addCase(getAssignedTools.fulfilled, (state, action) => {
+        state.assignedTools.loading = false;
+        state.assignedTools.list = action.payload;
+      })
+      .addCase(getAssignedTools.rejected, (state, action) => {
+        state.assignedTools.loading = false;
+        state.assignedTools.error = action.error.message;
       });
   }
 });
