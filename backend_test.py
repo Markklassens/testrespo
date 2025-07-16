@@ -2343,5 +2343,179 @@ def run_all_tests():
         import traceback
         traceback.print_exc()
 
+def test_review_request_scenarios():
+    """Test the specific scenarios mentioned in the review request"""
+    print_test_header("REVIEW REQUEST SPECIFIC TESTING")
+    
+    success = True
+    
+    # Scenario 1: Login as superadmin
+    print_test_header("Scenario 1: Login as superadmin")
+    login_data = {
+        "email": "superadmin@marketmindai.com",
+        "password": "superadmin123"
+    }
+    response = make_request("POST", "/api/auth/login", login_data, expected_status=200)
+    if response.status_code != 200:
+        print("❌ Superadmin login failed")
+        success = False
+        return False
+    else:
+        superadmin_token = response.json()["access_token"]
+        tokens["superadmin"] = superadmin_token
+        print("✅ Superadmin login successful")
+    
+    # Scenario 2: Test the advanced analytics endpoint
+    print_test_header("Scenario 2: Test advanced analytics endpoint")
+    response = make_request("GET", "/api/admin/analytics/advanced", token=tokens["superadmin"], expected_status=200)
+    if response.status_code != 200:
+        print("❌ Advanced analytics endpoint failed")
+        success = False
+    else:
+        print("✅ Advanced analytics endpoint working correctly")
+        data = response.json()
+        # Verify the structure contains overview data
+        expected_keys = ["user_stats", "content_stats", "review_stats", "recent_activity"]
+        for key in expected_keys:
+            if key not in data:
+                print(f"❌ Missing key in analytics response: {key}")
+                success = False
+            else:
+                print(f"✅ Analytics contains {key}")
+    
+    # Scenario 3: Test creating a tool
+    print_test_header("Scenario 3: Test creating a tool")
+    
+    # First, get or create a category for the tool
+    categories_response = make_request("GET", "/api/categories", expected_status=200)
+    if categories_response.status_code != 200 or not categories_response.json():
+        # Create a category first
+        category_data = {
+            "name": f"Test Category {uuid.uuid4().hex[:8]}",
+            "description": "Test Category for Tool Creation",
+            "icon": "test-icon",
+            "color": "#123456"
+        }
+        cat_response = make_request("POST", "/api/categories", category_data, token=tokens["superadmin"], expected_status=200)
+        if cat_response.status_code != 200:
+            print("❌ Failed to create category for tool testing")
+            success = False
+            return False
+        category_id = cat_response.json()["id"]
+    else:
+        category_id = categories_response.json()[0]["id"]
+    
+    # Now create a tool
+    tool_data = {
+        "name": f"Test Tool {uuid.uuid4().hex[:8]}",
+        "description": "Test Tool Description for Review Request",
+        "short_description": "Short description for testing",
+        "category_id": category_id,
+        "pricing_model": "Freemium",
+        "company_size": "SMB",
+        "slug": f"test-tool-{uuid.uuid4().hex[:8]}",
+        "is_hot": True,
+        "is_featured": True,
+        "website_url": "https://example.com",
+        "features": "Feature 1, Feature 2, Feature 3"
+    }
+    response = make_request("POST", "/api/tools", tool_data, token=tokens["superadmin"], expected_status=200)
+    if response.status_code != 200:
+        print("❌ Tool creation failed")
+        success = False
+    else:
+        print("✅ Tool creation successful")
+        created_tool_id = response.json()["id"]
+        print(f"Created tool ID: {created_tool_id}")
+    
+    # Scenario 4: Test getting all blogs
+    print_test_header("Scenario 4: Test getting all blogs")
+    response = make_request("GET", "/api/blogs", expected_status=200)
+    if response.status_code != 200:
+        print("❌ Getting all blogs failed")
+        success = False
+    else:
+        print("✅ Getting all blogs successful")
+        blogs = response.json()
+        print(f"Found {len(blogs)} blogs")
+        
+        # If we have blogs, test getting a specific blog
+        if blogs:
+            # Scenario 5: Test getting a specific blog by ID
+            print_test_header("Scenario 5: Test getting specific blog by ID")
+            blog_id = blogs[0]["id"]
+            response = make_request("GET", f"/api/blogs/{blog_id}", expected_status=200)
+            if response.status_code != 200:
+                print("❌ Getting specific blog failed")
+                success = False
+            else:
+                print("✅ Getting specific blog successful")
+                blog_data = response.json()
+                print(f"Retrieved blog: {blog_data.get('title', 'No title')}")
+        else:
+            print("⚠️ No blogs found to test individual blog retrieval")
+            # Create a blog for testing
+            print_test_header("Creating a blog for testing individual retrieval")
+            blog_data = {
+                "title": f"Test Blog {uuid.uuid4().hex[:8]}",
+                "content": "This is a test blog content for the review request testing. " * 20,
+                "excerpt": "Test excerpt for review request",
+                "status": "published",
+                "category_id": category_id,
+                "slug": f"test-blog-{uuid.uuid4().hex[:8]}"
+            }
+            
+            # Login as admin to create blog
+            admin_login_data = {
+                "email": "admin@marketmindai.com",
+                "password": "admin123"
+            }
+            admin_response = make_request("POST", "/api/auth/login", admin_login_data, expected_status=200)
+            if admin_response.status_code == 200:
+                admin_token = admin_response.json()["access_token"]
+                tokens["admin"] = admin_token
+                
+                blog_response = make_request("POST", "/api/blogs", blog_data, token=admin_token, expected_status=200)
+                if blog_response.status_code == 200:
+                    created_blog_id = blog_response.json()["id"]
+                    print(f"✅ Created blog for testing: {created_blog_id}")
+                    
+                    # Now test getting the specific blog
+                    print_test_header("Scenario 5: Test getting specific blog by ID")
+                    response = make_request("GET", f"/api/blogs/{created_blog_id}", expected_status=200)
+                    if response.status_code != 200:
+                        print("❌ Getting specific blog failed")
+                        success = False
+                    else:
+                        print("✅ Getting specific blog successful")
+                        blog_data = response.json()
+                        print(f"Retrieved blog: {blog_data.get('title', 'No title')}")
+                else:
+                    print("❌ Failed to create blog for testing")
+                    success = False
+            else:
+                print("❌ Failed to login as admin for blog creation")
+                success = False
+    
+    return success
+
+def run_review_request_tests():
+    """Run only the tests requested in the review request"""
+    print("Starting MarketMindAI Review Request Testing")
+    print(f"Backend URL: {BACKEND_URL}")
+    print("=" * 80)
+    
+    try:
+        if test_review_request_scenarios():
+            print("\n✅ ALL REVIEW REQUEST SCENARIOS PASSED")
+            return True
+        else:
+            print("\n❌ SOME REVIEW REQUEST SCENARIOS FAILED")
+            return False
+    except Exception as e:
+        print(f"\n❌ REVIEW REQUEST TESTING FAILED with exception: {str(e)}")
+        return False
+
 if __name__ == "__main__":
-    run_all_tests()
+    # Run the specific review request tests
+    run_review_request_tests()
