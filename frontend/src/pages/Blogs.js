@@ -323,7 +323,7 @@ const Blogs = () => {
                     </button>
                   </div>
                   <Link
-                    to={`/blogs/${blog.id}`}
+                    to={`/blog/${blog.id}`}
                     className="text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 font-medium text-sm"
                   >
                     Read More
