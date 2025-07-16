@@ -281,7 +281,7 @@ const AdminPanel = () => {
                           Total Reviews
                         </p>
                         <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                          {dashboard.total_reviews}
+                          {dashboard.review_stats?.total || 0}
                         </p>
                       </div>
                     </div>
