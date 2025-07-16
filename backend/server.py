@@ -224,36 +224,38 @@ async def update_api_keys(
 
 # Enhanced Tools Routes with Advanced Filtering
 @app.get("/api/tools/analytics")
-async def get_tools_analytics(db: Session = Depends(get_db)):
-    """Get tools analytics for landing page"""
+async def get_tools_analytics(
+    recalculate: bool = False,
+    db: Session = Depends(get_db)
+):
+    """Get tools analytics for landing page with optional recalculation"""
     
-    # Top trending tools
-    trending_tools = db.query(Tool).order_by(desc(Tool.trending_score)).limit(10).all()
+    # Use the new trending calculator
+    analytics = get_trending_analytics(db, recalculate=recalculate)
     
-    # Top rated tools
-    top_rated_tools = db.query(Tool).filter(Tool.total_reviews > 0).order_by(desc(Tool.rating)).limit(10).all()
-    
-    # Most viewed tools
-    most_viewed_tools = db.query(Tool).order_by(desc(Tool.views)).limit(10).all()
-    
-    # Newest tools (last 30 days)
-    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
-    newest_tools = db.query(Tool).filter(Tool.created_at >= thirty_days_ago).order_by(desc(Tool.created_at)).limit(10).all()
-    
-    # Featured tools
-    featured_tools = db.query(Tool).filter(Tool.is_featured == True).limit(10).all()
-    
-    # Hot tools
-    hot_tools = db.query(Tool).filter(Tool.is_hot == True).limit(10).all()
-    
+    # Convert to the expected response format
+    from schemas import ToolAnalytics
     return ToolAnalytics(
-        trending_tools=trending_tools,
-        top_rated_tools=top_rated_tools,
-        most_viewed_tools=most_viewed_tools,
-        newest_tools=newest_tools,
-        featured_tools=featured_tools,
-        hot_tools=hot_tools
+        trending_tools=analytics["trending_tools"],
+        top_rated_tools=analytics["top_rated_tools"],
+        most_viewed_tools=analytics["most_viewed_tools"],
+        newest_tools=analytics["newest_tools"],
+        featured_tools=analytics["featured_tools"],
+        hot_tools=analytics["hot_tools"]
     )
+
+@app.post("/api/admin/tools/update-trending")
+async def update_tools_trending_scores(
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db)
+):
+    """Update trending scores for all tools (Super Admin only)"""
+    
+    result = update_trending_scores(db)
+    return {
+        "message": "Trending scores updated successfully",
+        "details": result
+    }
 
 @app.get("/api/tools/search")
 async def advanced_search_tools(
