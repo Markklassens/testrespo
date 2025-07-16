@@ -4,9 +4,13 @@ import api from '../../utils/api';
 // Async thunks
 export const fetchDashboardAnalytics = createAsyncThunk(
   'analytics/fetchDashboardAnalytics',
-  async () => {
-    const response = await api.get('/api/analytics/dashboard');
-    return response.data;
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.get('/api/admin/analytics/advanced');
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.detail || 'Failed to fetch analytics');
+    }
   }
 );
 
