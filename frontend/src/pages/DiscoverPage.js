@@ -27,6 +27,9 @@ import { addToComparison, fetchComparisonTools } from '../store/slices/compariso
 import api from '../utils/api';
 
 const DiscoverPage = () => {
+  const dispatch = useDispatch();
+  const { tools: comparisonTools, loading: comparisonLoading } = useSelector(state => state.comparison);
+  
   const [tools, setTools] = useState([]);
   const [analytics, setAnalytics] = useState(null);
   const [categories, setCategories] = useState([]);
@@ -35,6 +38,7 @@ const DiscoverPage = () => {
   const [viewMode, setViewMode] = useState('grid');
   const [showFilters, setShowFilters] = useState(false);
   const [activeCarousel, setActiveCarousel] = useState('trending');
+  const [showComparison, setShowComparison] = useState(false);
   
   const [filters, setFilters] = useState({
     q: '',
