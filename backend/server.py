@@ -1461,27 +1461,26 @@ async def demote_admin_to_user(
 
 # SEO Management Routes
 @app.get("/api/admin/seo/tools")
-async def get_tools_seo_status(
+async def get_seo_tools(
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
-    """Get SEO status for all tools"""
-    tools = db.query(Tool).all()
-    seo_data = []
+    """Get SEO status for tools (Admin only)"""
     
+    tools = db.query(Tool).all()
+    seo_tools = []
     for tool in tools:
-        optimizations = db.query(SEOOptimization).filter(SEOOptimization.tool_id == tool.id).count()
-        seo_data.append({
+        seo_tools.append({
             "tool_id": tool.id,
             "tool_name": tool.name,
-            "has_meta_title": bool(tool.meta_title),
-            "has_meta_description": bool(tool.meta_description),
+            "has_meta_title": bool(tool.ai_meta_title or tool.meta_title),
+            "has_meta_description": bool(tool.ai_meta_description or tool.meta_description),
             "has_ai_content": bool(tool.ai_content),
-            "optimizations_count": optimizations,
+            "optimizations_count": len(tool.seo_optimizations),
             "last_updated": tool.last_updated
         })
     
-    return seo_data
+    return seo_tools
 
 # Free Tools Routes (Public)
 @app.get("/api/free-tools", response_model=List[FreeToolResponse])
