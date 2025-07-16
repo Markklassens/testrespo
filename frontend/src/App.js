@@ -69,6 +69,12 @@ const PublicRoute = ({ children }) => {
 
 function AppContent() {
   const { user, loading } = useAuth();
+  const dispatch = useDispatch();
+  
+  // Initialize comparison from localStorage on app load
+  useEffect(() => {
+    dispatch(initializeFromStorage());
+  }, [dispatch]);
   
   if (loading) {
     return <LoadingSpinner />;
