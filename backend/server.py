@@ -257,6 +257,38 @@ async def update_tools_trending_scores(
         "details": result
     }
 
+@app.get("/api/admin/tools/trending-stats")
+async def get_trending_stats(
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db)
+):
+    """Get trending statistics for admin dashboard"""
+    
+    tools = db.query(Tool).all()
+    
+    # Calculate statistics
+    total_tools = len(tools)
+    total_views = sum(tool.views for tool in tools)
+    avg_trending_score = sum(tool.trending_score for tool in tools) / total_tools if total_tools > 0 else 0
+    
+    # Get top trending tools
+    top_trending = db.query(Tool).order_by(desc(Tool.trending_score)).limit(5).all()
+    
+    return {
+        "total_tools": total_tools,
+        "total_views": total_views,
+        "avg_trending_score": avg_trending_score,
+        "top_trending": [
+            {
+                "name": tool.name,
+                "trending_score": tool.trending_score,
+                "views": tool.views,
+                "rating": tool.rating
+            }
+            for tool in top_trending
+        ]
+    }
+
 @app.get("/api/tools/search")
 async def advanced_search_tools(
     q: Optional[str] = Query(None, description="Search query"),
