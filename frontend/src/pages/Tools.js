@@ -133,7 +133,7 @@ const Tools = () => {
     try {
       await api.post('/api/tools/compare', { tool_id: toolId });
       await fetchComparisonTools();
-      toast.success('Tool added to comparison');
+      toast.success('Tool added to comparison! Click "Compare" to view the comparison table.');
     } catch (error) {
       toast.error('Failed to add tool to comparison');
     }
