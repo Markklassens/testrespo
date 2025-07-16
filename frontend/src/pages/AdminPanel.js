@@ -832,6 +832,14 @@ const AdminPanel = () => {
         }}
       />
 
+      {/* Tool Assignment Modal */}
+      <ToolAssignmentModal
+        isOpen={showAssignmentModal}
+        onClose={handleAssignmentModalClose}
+        tool={selectedToolForAssignment}
+        onSuccess={handleAssignmentModalSuccess}
+      />
+
       {/* Create Category Modal */}
       {showCreateCategory && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
