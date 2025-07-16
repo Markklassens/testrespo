@@ -187,10 +187,10 @@ const DiscoverPage = () => {
 
     try {
       await dispatch(addToComparison(toolId)).unwrap();
-      toast.success('Tool added to comparison');
+      toast.success('Tool added to comparison! Click "Compare" to view the comparison table.');
       dispatch(fetchComparisonTools());
     } catch (error) {
-      toast.error('Failed to add tool to comparison');
+      toast.error(error || 'Failed to add tool to comparison');
     }
   };
 
