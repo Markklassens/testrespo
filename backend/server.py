@@ -55,7 +55,7 @@ if CODESPACE_NAME:
 additional_origins = [
     "https://fictional-happiness-jjgp7p5p4gp4hq9rw-3000.app.github.dev",
     "https://fictional-happiness-jjgp7p5p4gp4hq9rw-8001.app.github.dev",
-    "https://c7b5b936-d014-4a79-b2f0-9c4843930f86.preview.emergentagent.com",
+    "https://9e517f47-f219-4751-953a-9b2b788d4ad7.preview.emergentagent.com",
 ]
 allowed_origins.extend(additional_origins)
 
