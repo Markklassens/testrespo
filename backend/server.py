@@ -11,6 +11,7 @@ from ai_services import ai_manager
 from email_service import send_verification_email, send_password_reset_email, send_welcome_email
 from search_service import search_service
 from trending_calculator import update_trending_scores, get_trending_analytics, increment_view_and_update_trending
+from scheduler import start_trending_updater, manual_update
 import uuid
 import os
 from dotenv import load_dotenv
