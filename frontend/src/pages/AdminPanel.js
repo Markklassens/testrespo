@@ -58,6 +58,8 @@ const AdminPanel = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [showToolModal, setShowToolModal] = useState(false);
   const [selectedTool, setSelectedTool] = useState(null);
+  const [showAssignmentModal, setShowAssignmentModal] = useState(false);
+  const [selectedToolForAssignment, setSelectedToolForAssignment] = useState(null);
   const [newCategory, setNewCategory] = useState({ name: '', description: '' });
 
   const { dashboard, loading: analyticsLoading } = useSelector(state => state.analytics);
