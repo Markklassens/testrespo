@@ -20,12 +20,12 @@ import UserModal from '../components/UserModal';
 import BulkUpload from '../components/BulkUpload';
 import ToolAssignmentModal from '../components/ToolAssignmentModal';
 import { 
-  fetchDashboardAnalytics, 
   fetchUsers, 
   createUser, 
   updateUser, 
   deleteUser 
 } from '../store/slices/usersSlice';
+import { fetchDashboardAnalytics } from '../store/slices/analyticsSlice';
 import { 
   fetchTools, 
   createTool, 
