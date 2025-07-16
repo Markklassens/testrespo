@@ -256,7 +256,7 @@ const Blogs = () => {
                       <span>{blogs[0].likes}</span>
                     </button>
                     <Link
-                      to={`/blogs/${blogs[0].id}`}
+                      to={`/blog/${blogs[0].id}`}
                       className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
                     >
                       Read More
