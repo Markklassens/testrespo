@@ -1767,6 +1767,208 @@ async def get_free_tools_analytics(
         "recent_searches": recent_searches
     }
 
+# Review Routes
+@app.post("/api/tools/{tool_id}/reviews", response_model=ReviewResponse)
+async def create_review(
+    tool_id: str,
+    review: ReviewCreate,
+    current_user: User = Depends(get_current_verified_user),
+    db: Session = Depends(get_db)
+):
+    """Create a review for a tool"""
+    # Check if tool exists
+    tool = db.query(Tool).filter(Tool.id == tool_id).first()
+    if not tool:
+        raise HTTPException(status_code=404, detail="Tool not found")
+    
+    # Check if user already reviewed this tool
+    existing_review = db.query(Review).filter(
+        Review.tool_id == tool_id,
+        Review.user_id == current_user.id
+    ).first()
+    
+    if existing_review:
+        raise HTTPException(status_code=400, detail="You have already reviewed this tool")
+    
+    # Create review
+    db_review = Review(
+        id=str(uuid.uuid4()),
+        user_id=current_user.id,
+        tool_id=tool_id,
+        rating=review.rating,
+        title=review.title,
+        content=review.content,
+        pros=review.pros,
+        cons=review.cons
+    )
+    
+    db.add(db_review)
+    
+    # Update tool rating statistics
+    reviews = db.query(Review).filter(Review.tool_id == tool_id).all()
+    total_reviews = len(reviews) + 1  # Include the new review
+    avg_rating = (sum(r.rating for r in reviews) + review.rating) / total_reviews
+    
+    tool.rating = avg_rating
+    tool.total_reviews = total_reviews
+    
+    db.commit()
+    db.refresh(db_review)
+    
+    return db_review
+
+@app.get("/api/tools/{tool_id}/reviews", response_model=List[ReviewResponse])
+async def get_tool_reviews(
+    tool_id: str,
+    skip: int = 0,
+    limit: int = 20,
+    db: Session = Depends(get_db)
+):
+    """Get reviews for a tool"""
+    reviews = db.query(Review).filter(Review.tool_id == tool_id).offset(skip).limit(limit).all()
+    return reviews
+
+@app.put("/api/reviews/{review_id}", response_model=ReviewResponse)
+async def update_review(
+    review_id: str,
+    review_update: ReviewCreate,
+    current_user: User = Depends(get_current_verified_user),
+    db: Session = Depends(get_db)
+):
+    """Update a review"""
+    db_review = db.query(Review).filter(Review.id == review_id).first()
+    if not db_review:
+        raise HTTPException(status_code=404, detail="Review not found")
+    
+    # Check if user owns the review
+    if db_review.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to edit this review")
+    
+    # Update review
+    db_review.rating = review_update.rating
+    db_review.title = review_update.title
+    db_review.content = review_update.content
+    db_review.pros = review_update.pros
+    db_review.cons = review_update.cons
+    
+    db.commit()
+    db.refresh(db_review)
+    
+    return db_review
+
+@app.delete("/api/reviews/{review_id}")
+async def delete_review(
+    review_id: str,
+    current_user: User = Depends(get_current_verified_user),
+    db: Session = Depends(get_db)
+):
+    """Delete a review"""
+    db_review = db.query(Review).filter(Review.id == review_id).first()
+    if not db_review:
+        raise HTTPException(status_code=404, detail="Review not found")
+    
+    # Check if user owns the review or is admin
+    if db_review.user_id != current_user.id and current_user.user_type not in ["admin", "superadmin"]:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this review")
+    
+    db.delete(db_review)
+    db.commit()
+    
+    return {"message": "Review deleted successfully"}
+
+# Comment Routes
+@app.post("/api/blogs/{blog_id}/comments", response_model=CommentResponse)
+async def create_comment(
+    blog_id: str,
+    comment: CommentCreate,
+    current_user: User = Depends(get_current_verified_user),
+    db: Session = Depends(get_db)
+):
+    """Create a comment on a blog"""
+    # Check if blog exists
+    blog = db.query(Blog).filter(Blog.id == blog_id).first()
+    if not blog:
+        raise HTTPException(status_code=404, detail="Blog not found")
+    
+    # Check if parent comment exists (for nested comments)
+    if comment.parent_id:
+        parent_comment = db.query(Comment).filter(Comment.id == comment.parent_id).first()
+        if not parent_comment:
+            raise HTTPException(status_code=404, detail="Parent comment not found")
+    
+    # Create comment
+    db_comment = Comment(
+        id=str(uuid.uuid4()),
+        user_id=current_user.id,
+        blog_id=blog_id,
+        content=comment.content,
+        parent_id=comment.parent_id
+    )
+    
+    db.add(db_comment)
+    db.commit()
+    db.refresh(db_comment)
+    
+    return db_comment
+
+@app.get("/api/blogs/{blog_id}/comments", response_model=List[CommentResponse])
+async def get_blog_comments(
+    blog_id: str,
+    skip: int = 0,
+    limit: int = 50,
+    db: Session = Depends(get_db)
+):
+    """Get comments for a blog"""
+    comments = db.query(Comment).filter(
+        Comment.blog_id == blog_id,
+        Comment.is_approved == True
+    ).offset(skip).limit(limit).all()
+    return comments
+
+@app.put("/api/comments/{comment_id}", response_model=CommentResponse)
+async def update_comment(
+    comment_id: str,
+    comment_update: CommentCreate,
+    current_user: User = Depends(get_current_verified_user),
+    db: Session = Depends(get_db)
+):
+    """Update a comment"""
+    db_comment = db.query(Comment).filter(Comment.id == comment_id).first()
+    if not db_comment:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    
+    # Check if user owns the comment
+    if db_comment.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to edit this comment")
+    
+    # Update comment
+    db_comment.content = comment_update.content
+    
+    db.commit()
+    db.refresh(db_comment)
+    
+    return db_comment
+
+@app.delete("/api/comments/{comment_id}")
+async def delete_comment(
+    comment_id: str,
+    current_user: User = Depends(get_current_verified_user),
+    db: Session = Depends(get_db)
+):
+    """Delete a comment"""
+    db_comment = db.query(Comment).filter(Comment.id == comment_id).first()
+    if not db_comment:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    
+    # Check if user owns the comment or is admin
+    if db_comment.user_id != current_user.id and current_user.user_type not in ["admin", "superadmin"]:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this comment")
+    
+    db.delete(db_comment)
+    db.commit()
+    
+    return {"message": "Comment deleted successfully"}
+
 # File Upload Route
 @app.post("/api/upload")
 async def upload_file(
