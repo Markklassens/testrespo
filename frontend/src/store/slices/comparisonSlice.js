@@ -155,5 +155,5 @@ const comparisonSlice = createSlice({
   }
 });
 
-export const { clearComparison } = comparisonSlice.actions;
+export const { clearComparison, initializeFromStorage } = comparisonSlice.actions;
 export default comparisonSlice.reducer;
