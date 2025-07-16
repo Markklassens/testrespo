@@ -170,6 +170,21 @@ const AdminPanel = () => {
     dispatch(fetchDashboardAnalytics());
   };
 
+  const handleAssignTool = (tool) => {
+    setSelectedToolForAssignment(tool);
+    setShowAssignmentModal(true);
+  };
+
+  const handleAssignmentModalClose = () => {
+    setShowAssignmentModal(false);
+    setSelectedToolForAssignment(null);
+  };
+
+  const handleAssignmentModalSuccess = () => {
+    dispatch(fetchTools());
+    dispatch(fetchDashboardAnalytics());
+  };
+
   const handleCreateCategory = async () => {
     if (!newCategory.name.trim()) {
       toast.error('Category name is required');
