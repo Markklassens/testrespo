@@ -117,12 +117,16 @@ class Tool(Base):
     ai_meta_description = Column(String, nullable=True)
     ai_content = Column(Text, nullable=True)
     
+    # Tool assignment to admin
+    assigned_admin_id = Column(String, ForeignKey("users.id"), nullable=True)
+    
     # Relationships
     category = relationship("Category", back_populates="tools")
     subcategory = relationship("Subcategory", back_populates="tools")
     reviews = relationship("Review", back_populates="tool")
     compared_by_users = relationship("User", secondary=user_tool_comparison, back_populates="compared_tools")
     seo_optimizations = relationship("SEOOptimization", back_populates="tool")
+    assigned_admin = relationship("User", foreign_keys=[assigned_admin_id], backref="assigned_tools")
 
 class Blog(Base):
     __tablename__ = "blogs"
