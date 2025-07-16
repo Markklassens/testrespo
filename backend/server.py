@@ -261,6 +261,18 @@ async def update_tools_trending_scores(
         "details": result
     }
 
+@app.post("/api/admin/tools/update-trending-manual")
+async def manual_update_trending(
+    current_user: User = Depends(require_superadmin)
+):
+    """Manually trigger trending score update (Super Admin only)"""
+    
+    result = manual_update()
+    return {
+        "message": "Manual trending update completed",
+        "details": result
+    }
+
 @app.get("/api/admin/tools/trending-stats")
 async def get_trending_stats(
     current_user: User = Depends(require_superadmin),
