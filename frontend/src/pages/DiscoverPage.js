@@ -325,6 +325,7 @@ const DiscoverPage = () => {
 
   const ToolCard = ({ tool }) => {
     const features = parseFeatures(tool.features);
+    const isInComparison = comparisonTools.some(compTool => compTool.id === tool.id);
     
     return (
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-1 border border-gray-100 dark:border-gray-700 group overflow-hidden">
@@ -409,8 +410,21 @@ const DiscoverPage = () => {
             <button className="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white py-2.5 px-4 rounded-xl text-sm font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg">
               View Details
             </button>
-            <button className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 py-2.5 px-3 rounded-xl transition-all duration-200">
-              <PlusIcon className="h-4 w-4" />
+            <button 
+              onClick={() => handleAddToComparison(tool.id)}
+              disabled={isInComparison || comparisonTools.length >= 5}
+              className={`py-2.5 px-3 rounded-xl transition-all duration-200 ${
+                isInComparison 
+                  ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
+                  : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300'
+              }`}
+              title={isInComparison ? 'In comparison' : 'Add to comparison'}
+            >
+              {isInComparison ? (
+                <ScaleIcon className="h-4 w-4" />
+              ) : (
+                <PlusIcon className="h-4 w-4" />
+              )}
             </button>
             <button className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 py-2.5 px-3 rounded-xl transition-all duration-200">
               <HeartIcon className="h-4 w-4" />
