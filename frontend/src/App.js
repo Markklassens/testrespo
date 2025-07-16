@@ -20,6 +20,7 @@ import Blogs from './pages/Blogs';
 import BlogDetail from './pages/BlogDetail';
 import AdminPanel from './pages/AdminPanel';
 import Profile from './pages/Profile';
+import Compare from './pages/Compare';
 import LoadingSpinner from './components/LoadingSpinner';
 import './codespaceCompat';
 import './App.css';
