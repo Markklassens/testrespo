@@ -109,6 +109,7 @@ function AppContent() {
               <Blogs />
             </ProtectedRoute>
           } />
+          <Route path="/blog/:id" element={<BlogDetail />} />
           <Route path="/profile" element={
             <ProtectedRoute>
               <Profile />
