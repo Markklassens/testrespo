@@ -735,6 +735,14 @@ const AdminPanel = () => {
         </div>
       </div>
 
+      {/* Tool Modal */}
+      <ToolModal
+        isOpen={showToolModal}
+        onClose={handleToolModalClose}
+        tool={selectedTool}
+        onSuccess={handleToolModalSuccess}
+      />
+
       {/* User Modal */}
       <UserModal
         isOpen={showUserModal}
