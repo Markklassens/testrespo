@@ -62,13 +62,25 @@ const Navbar = () => {
                   <Link
                     key={link.href}
                     to={link.href}
-                    className={`px-3 py-2 text-sm font-medium transition-colors duration-200 ${
+                    className={`px-3 py-2 text-sm font-medium transition-colors duration-200 relative ${
                       isActive(link.href)
                         ? 'text-primary-600 dark:text-primary-400 border-b-2 border-primary-600'
                         : 'text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400'
                     }`}
                   >
-                    {link.label}
+                    {link.isComparison ? (
+                      <div className="flex items-center space-x-1">
+                        <ScaleIcon className="h-4 w-4" />
+                        <span>{link.label}</span>
+                        {comparisonCount > 0 && (
+                          <span className="bg-primary-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center ml-1">
+                            {comparisonCount}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      link.label
+                    )}
                   </Link>
                 );
               })}
