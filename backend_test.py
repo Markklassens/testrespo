@@ -2913,5 +2913,5 @@ def run_review_request_tests():
         return False
 
 if __name__ == "__main__":
-    # Run the specific review request tests
-    run_review_request_tests()
+    # Run the trending functionality tests as requested in the review
+    run_trending_functionality_tests()
