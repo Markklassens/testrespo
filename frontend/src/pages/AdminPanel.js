@@ -295,18 +295,18 @@ const AdminPanel = () => {
                       Recent Blogs
                     </h3>
                     <div className="space-y-3">
-                      {dashboard.recent_blogs?.slice(0, 5).map((blog) => (
-                        <div key={blog.id} className="flex items-center justify-between">
+                      {dashboard.recent_activity?.users?.slice(0, 5).map((user) => (
+                        <div key={user.id} className="flex items-center justify-between">
                           <div>
                             <div className="text-sm font-medium text-gray-900 dark:text-white">
-                              {blog.title}
+                              {user.full_name}
                             </div>
                             <div className="text-xs text-gray-500 dark:text-gray-400">
-                              {blog.views} views • {formatDate(blog.created_at)}
+                              {user.email} • {formatDate(user.created_at)}
                             </div>
                           </div>
-                          <span className={`px-2 py-1 text-xs rounded-full ${getStatusBadge(blog.status)}`}>
-                            {blog.status}
+                          <span className={`px-2 py-1 text-xs rounded-full ${getStatusBadge(user.is_active ? 'active' : 'inactive')}`}>
+                            {user.is_active ? 'Active' : 'Inactive'}
                           </span>
                         </div>
                       ))}
