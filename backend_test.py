@@ -1225,6 +1225,215 @@ def test_tools_analytics():
     print("✅ Tools analytics endpoint passed - all required carousels present")
     return True
 
+def test_trending_functionality():
+    """Test trending functionality for MarketMindAI discovery page - REVIEW REQUEST"""
+    print_test_header("TRENDING FUNCTIONALITY - REVIEW REQUEST")
+    
+    success = True
+    
+    # Test 1: /api/tools/analytics endpoint - verify it returns trending data
+    print_test_header("Test 1: /api/tools/analytics endpoint")
+    response = make_request("GET", "/api/tools/analytics")
+    if response.status_code != 200:
+        print("❌ /api/tools/analytics endpoint failed")
+        success = False
+    else:
+        data = response.json()
+        expected_keys = [
+            "trending_tools", "top_rated_tools", "most_viewed_tools", 
+            "newest_tools", "featured_tools", "hot_tools"
+        ]
+        
+        for key in expected_keys:
+            if key not in data:
+                print(f"❌ Missing key in analytics response: {key}")
+                success = False
+            elif not isinstance(data[key], list):
+                print(f"❌ Expected list for {key}, got {type(data[key])}")
+                success = False
+            else:
+                print(f"✅ {key} present and is a list with {len(data[key])} items")
+        
+        if success:
+            print("✅ /api/tools/analytics returns all required trending data")
+    
+    # Test 2: /api/tools/{tool_id} endpoint - verify it increments views and updates trending
+    print_test_header("Test 2: /api/tools/{tool_id} endpoint - view increment and trending update")
+    
+    # Get a tool to test with
+    tools_response = make_request("GET", "/api/tools?limit=1")
+    if tools_response.status_code != 200 or not tools_response.json():
+        print("❌ Cannot get tools for trending test")
+        success = False
+    else:
+        test_tool = tools_response.json()[0]
+        tool_id = test_tool["id"]
+        initial_views = test_tool.get("views", 0)
+        initial_trending_score = test_tool.get("trending_score", 0)
+        
+        print(f"ℹ️ Testing with tool: {test_tool['name']} (ID: {tool_id})")
+        print(f"ℹ️ Initial views: {initial_views}, Initial trending score: {initial_trending_score}")
+        
+        # Access the tool to increment views
+        response = make_request("GET", f"/api/tools/{tool_id}")
+        if response.status_code != 200:
+            print("❌ GET tool by ID failed")
+            success = False
+        else:
+            updated_tool = response.json()
+            new_views = updated_tool.get("views", 0)
+            new_trending_score = updated_tool.get("trending_score", 0)
+            
+            print(f"ℹ️ After access - Views: {new_views}, Trending score: {new_trending_score}")
+            
+            # Verify views were incremented
+            if new_views != initial_views + 1:
+                print(f"❌ Views not incremented correctly. Expected {initial_views + 1}, got {new_views}")
+                success = False
+            else:
+                print("✅ Views incremented correctly")
+            
+            # Verify trending score exists (it should be calculated)
+            if "trending_score" not in updated_tool:
+                print("❌ Trending score not present in tool response")
+                success = False
+            else:
+                print(f"✅ Trending score present: {new_trending_score}")
+    
+    # Test 3: /api/admin/tools/update-trending endpoint (Super Admin only)
+    print_test_header("Test 3: /api/admin/tools/update-trending endpoint")
+    
+    if "superadmin" not in tokens:
+        print("❌ Cannot test manual trending update without superadmin token")
+        success = False
+    else:
+        response = make_request("POST", "/api/admin/tools/update-trending", token=tokens["superadmin"])
+        if response.status_code != 200:
+            print("❌ Manual trending update failed")
+            success = False
+        else:
+            result = response.json()
+            if "message" not in result or "details" not in result:
+                print("❌ Manual trending update response missing expected keys")
+                success = False
+            else:
+                print(f"✅ Manual trending update successful: {result['message']}")
+                print(f"ℹ️ Update details: {result['details']}")
+    
+    # Test 4: /api/admin/tools/update-trending-manual endpoint (Super Admin only)
+    print_test_header("Test 4: /api/admin/tools/update-trending-manual endpoint")
+    
+    if "superadmin" not in tokens:
+        print("❌ Cannot test manual trending trigger without superadmin token")
+        success = False
+    else:
+        response = make_request("POST", "/api/admin/tools/update-trending-manual", token=tokens["superadmin"])
+        if response.status_code != 200:
+            print("❌ Manual trending trigger failed")
+            success = False
+        else:
+            result = response.json()
+            if "message" not in result:
+                print("❌ Manual trending trigger response missing message")
+                success = False
+            else:
+                print(f"✅ Manual trending trigger successful: {result['message']}")
+    
+    # Test 5: /api/admin/tools/trending-stats endpoint (Super Admin only)
+    print_test_header("Test 5: /api/admin/tools/trending-stats endpoint")
+    
+    if "superadmin" not in tokens:
+        print("❌ Cannot test trending stats without superadmin token")
+        success = False
+    else:
+        response = make_request("GET", "/api/admin/tools/trending-stats", token=tokens["superadmin"])
+        if response.status_code != 200:
+            print("❌ Trending stats endpoint failed")
+            success = False
+        else:
+            stats = response.json()
+            expected_stats_keys = ["total_tools", "total_views", "avg_trending_score", "top_trending"]
+            
+            for key in expected_stats_keys:
+                if key not in stats:
+                    print(f"❌ Missing key in trending stats: {key}")
+                    success = False
+                else:
+                    print(f"✅ {key}: {stats[key]}")
+            
+            # Verify top_trending is a list of tools with required properties
+            if "top_trending" in stats and isinstance(stats["top_trending"], list):
+                if stats["top_trending"]:
+                    sample_trending_tool = stats["top_trending"][0]
+                    required_props = ["name", "trending_score", "views", "rating"]
+                    for prop in required_props:
+                        if prop not in sample_trending_tool:
+                            print(f"❌ Missing property {prop} in top trending tool")
+                            success = False
+                    if success:
+                        print("✅ Top trending tools have all required properties")
+                else:
+                    print("ℹ️ No top trending tools found")
+            else:
+                print("❌ top_trending should be a list")
+                success = False
+    
+    # Test 6: Verify trending scores are calculated correctly
+    print_test_header("Test 6: Verify trending score calculation")
+    
+    # Get analytics again to see if trending data is fresh
+    response = make_request("GET", "/api/tools/analytics?recalculate=true")
+    if response.status_code != 200:
+        print("❌ Analytics with recalculate failed")
+        success = False
+    else:
+        data = response.json()
+        trending_tools = data.get("trending_tools", [])
+        
+        if trending_tools:
+            # Check if trending tools are sorted by trending score
+            trending_scores = [tool.get("trending_score", 0) for tool in trending_tools]
+            is_sorted = all(trending_scores[i] >= trending_scores[i+1] for i in range(len(trending_scores)-1))
+            
+            if is_sorted:
+                print("✅ Trending tools are correctly sorted by trending score")
+                print(f"ℹ️ Top trending tool: {trending_tools[0]['name']} (score: {trending_tools[0].get('trending_score', 0)})")
+            else:
+                print("❌ Trending tools are not sorted by trending score")
+                success = False
+        else:
+            print("ℹ️ No trending tools found for sorting verification")
+    
+    # Test 7: Test role-based access control for admin endpoints
+    print_test_header("Test 7: Role-based access control for trending admin endpoints")
+    
+    if "admin" in tokens:
+        # Regular admin should NOT be able to access superadmin-only trending endpoints
+        admin_restricted_endpoints = [
+            "/api/admin/tools/update-trending",
+            "/api/admin/tools/update-trending-manual", 
+            "/api/admin/tools/trending-stats"
+        ]
+        
+        for endpoint in admin_restricted_endpoints:
+            if endpoint.endswith("trending-stats"):
+                response = make_request("GET", endpoint, token=tokens["admin"], expected_status=403)
+            else:
+                response = make_request("POST", endpoint, token=tokens["admin"], expected_status=403)
+            
+            if response.status_code != 403:
+                print(f"❌ Regular admin should not access {endpoint}")
+                success = False
+            else:
+                print(f"✅ Regular admin correctly denied access to {endpoint}")
+    
+    if success:
+        print("✅ TRENDING FUNCTIONALITY TESTS PASSED - All trending features working correctly")
+    else:
+        print("❌ TRENDING FUNCTIONALITY TESTS FAILED - Issues found with trending features")
+    
+    return success
+
 def test_api_key_management():
     """Test API key management endpoint"""
     print_test_header("API Key Management")
