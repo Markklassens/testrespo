@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from 'react-query';
-import { Provider } from 'react-redux';
+import { Provider, useDispatch } from 'react-redux';
 import { Toaster } from 'react-hot-toast';
 import { HelmetProvider } from 'react-helmet-async';
 import { store } from './store';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { initializeFromStorage } from './store/slices/comparisonSlice';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import DiscoverPage from './pages/DiscoverPage';
