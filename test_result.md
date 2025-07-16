@@ -401,6 +401,21 @@ backend:
         agent: "testing"
         comment: "Verified that authentication errors now correctly return 401 status codes. Error handling is working as expected."
 
+  - task: "Trending Functionality"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Initial setup for testing trending functionality for MarketMindAI discovery page"
+      - working: true
+        agent: "testing"
+        comment: "TRENDING FUNCTIONALITY TESTS PASSED - All trending features working correctly. Successfully tested: 1) /api/tools/analytics endpoint returns all required trending data (trending_tools, top_rated_tools, most_viewed_tools, newest_tools, featured_tools, hot_tools), 2) /api/tools/{tool_id} endpoint correctly increments views and updates trending scores, 3) /api/admin/tools/update-trending endpoint works for superadmin users with detailed update statistics, 4) /api/admin/tools/update-trending-manual endpoint successfully triggers manual trending updates, 5) /api/admin/tools/trending-stats endpoint returns comprehensive trending statistics with proper data structure, 6) Trending scores are calculated correctly and tools are properly sorted by trending score, 7) Role-based access control works correctly - regular admin users are denied access to superadmin-only trending endpoints. All trending functionality is working as expected for the discovery page."
+
 frontend:
   - task: "Frontend Authentication"
     implemented: true
