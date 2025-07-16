@@ -230,8 +230,8 @@ async def get_tools_analytics(
 ):
     """Get tools analytics for landing page with optional recalculation"""
     
-    # Use the new trending calculator
-    analytics = get_trending_analytics(db, recalculate=recalculate)
+    # Always recalculate trending scores to ensure fresh data
+    analytics = get_trending_analytics(db, recalculate=True)
     
     # Convert to the expected response format
     from schemas import ToolAnalytics
