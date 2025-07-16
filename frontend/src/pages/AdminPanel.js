@@ -125,6 +125,26 @@ const AdminPanel = () => {
     }
   };
 
+  const handleCreateTool = () => {
+    setSelectedTool(null);
+    setShowToolModal(true);
+  };
+
+  const handleEditTool = (tool) => {
+    setSelectedTool(tool);
+    setShowToolModal(true);
+  };
+
+  const handleToolModalClose = () => {
+    setShowToolModal(false);
+    setSelectedTool(null);
+  };
+
+  const handleToolModalSuccess = () => {
+    dispatch(fetchTools());
+    dispatch(fetchDashboardAnalytics());
+  };
+
   const handleCreateCategory = async () => {
     if (!newCategory.name.trim()) {
       toast.error('Category name is required');
