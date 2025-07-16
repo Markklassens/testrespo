@@ -38,6 +38,10 @@ export const addToComparison = createAsyncThunk(
   'comparison/addToComparison',
   async (toolId, { rejectWithValue, getState }) => {
     try {
+      // First, fetch the tool details we'll need for localStorage and state
+      const toolResponse = await api.get(`/api/tools/${toolId}`);
+      const toolData = toolResponse.data;
+      
       // Try to add to backend first
       await api.post('/api/tools/compare', { tool_id: toolId });
       
@@ -46,13 +50,12 @@ export const addToComparison = createAsyncThunk(
       const toolExists = currentTools.find(tool => tool.id === toolId);
       
       if (!toolExists) {
-        // Fetch tool details and add to localStorage
-        const toolResponse = await api.get(`/api/tools/${toolId}`);
-        const newTools = [...currentTools, toolResponse.data];
+        const newTools = [...currentTools, toolData];
         setStoredComparison(newTools);
       }
       
-      return toolId;
+      // Return the full tool object for Redux state
+      return { toolId, tool: toolData };
     } catch (error) {
       // If backend fails, try localStorage approach
       try {
