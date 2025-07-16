@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { SunIcon, MoonIcon, Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
+import { SunIcon, MoonIcon, Bars3Icon, XMarkIcon, ScaleIcon } from '@heroicons/react/24/outline';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
