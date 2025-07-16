@@ -10,6 +10,10 @@ const Navbar = () => {
   const { isDarkMode, toggleTheme } = useTheme();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  
+  // Get comparison tools count from Redux store
+  const comparisonTools = useSelector(state => state.comparison?.tools || []);
+  const comparisonCount = comparisonTools.length;
 
   const isActive = (path) => location.pathname === path;
 
