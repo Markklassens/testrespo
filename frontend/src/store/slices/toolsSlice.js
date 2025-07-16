@@ -124,6 +124,16 @@ const toolsSlice = createSlice({
       loading: false,
       result: null,
       error: null
+    },
+    assignments: {
+      loading: false,
+      list: [],
+      error: null
+    },
+    assignedTools: {
+      loading: false,
+      list: [],
+      error: null
     }
   },
   reducers: {
