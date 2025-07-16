@@ -283,6 +283,12 @@ backend:
       - working: true
         agent: "testing"
         comment: "Fixed the tools comparison test by properly sending JSON data instead of form data. The endpoint is now working correctly."
+      - working: false
+        agent: "testing"
+        comment: "CRITICAL ISSUE FOUND: GET /api/tools/compare endpoint was returning 404 'Tool not found' error instead of the expected 200 status with empty array or tools. Root cause: FastAPI route conflict - the /api/tools/{tool_id} route was defined before /api/tools/compare, causing 'compare' to be interpreted as a tool_id parameter."
+      - working: true
+        agent: "testing"
+        comment: "FIXED: Moved tools comparison routes (/api/tools/compare, POST /api/tools/compare, DELETE /api/tools/compare/{tool_id}) to be defined before the generic /api/tools/{tool_id} route to resolve FastAPI route conflict. All endpoints now working correctly: 1) GET /api/tools/compare returns empty array for users with no tools in comparison, 2) POST /api/tools/compare successfully adds tools to comparison, 3) DELETE /api/tools/compare/{tool_id} successfully removes tools from comparison, 4) Full end-to-end flow works perfectly - users can add tools, view them as actual tool objects (not just messages), and remove them. The specific issue 'users are able to add tools to comparison but not able to view them' has been completely resolved."
 
   - task: "Blogs CRUD Operations"
     implemented: true
