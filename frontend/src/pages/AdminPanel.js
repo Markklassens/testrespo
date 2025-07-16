@@ -265,7 +265,7 @@ const AdminPanel = () => {
                           Total Blogs
                         </p>
                         <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                          {dashboard.total_blogs}
+                          {dashboard.content_stats?.total_blogs || 0}
                         </p>
                       </div>
                     </div>
