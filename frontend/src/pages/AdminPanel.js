@@ -292,7 +292,7 @@ const AdminPanel = () => {
                   {/* Recent Blogs */}
                   <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                      Recent Blogs
+                      Recent Users
                     </h3>
                     <div className="space-y-3">
                       {dashboard.recent_activity?.users?.slice(0, 5).map((user) => (
