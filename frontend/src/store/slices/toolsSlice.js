@@ -285,7 +285,8 @@ export const {
   clearFilters, 
   setPagination, 
   clearCurrentTool,
-  clearCsvUploadResult 
+  clearCsvUploadResult,
+  clearAssignments
 } = toolsSlice.actions;
 
 export default toolsSlice.reducer;
