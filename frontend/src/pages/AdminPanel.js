@@ -233,7 +233,7 @@ const AdminPanel = () => {
                           Total Users
                         </p>
                         <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                          {dashboard.total_users}
+                          {dashboard.user_stats?.total || 0}
                         </p>
                       </div>
                     </div>
