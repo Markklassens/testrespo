@@ -1,27 +1,29 @@
 import React, { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { 
-  StarIcon, 
-  EyeIcon, 
-  HeartIcon, 
-  ShareIcon, 
+  MagnifyingGlassIcon, 
+  AdjustmentsHorizontalIcon, 
+  XMarkIcon, 
   FunnelIcon,
-  ScaleIcon,
+  EyeIcon,
+  StarIcon,
+  HeartIcon,
   PlusIcon,
+  FireIcon,
+  SparklesIcon,
+  ClockIcon,
+  TrendingUpIcon,
   Squares2X2Icon,
   ListBulletIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  MagnifyingGlassIcon,
-  ArrowRightIcon,
-  ClockIcon,
-  FireIcon,
-  SparklesIcon,
-  AdjustmentsHorizontalIcon,
-  XMarkIcon
+  ScaleIcon
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 import { toast } from 'react-hot-toast';
 import LoadingSpinner from '../components/LoadingSpinner';
+import ToolComparison from '../components/ToolComparison';
+import { addToComparison, fetchComparisonTools } from '../store/slices/comparisonSlice';
 import api from '../utils/api';
 
 const DiscoverPage = () => {
