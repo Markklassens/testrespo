@@ -39,7 +39,14 @@ def calculate_trending_score(tool: Tool, avg_views: float, avg_rating: float, av
     reviews_score = min(15.0, (tool.total_reviews / max(avg_reviews, 1)) * 7.5)
     
     # Recency boost (newer tools get up to 10 points)
-    days_old = (datetime.utcnow() - tool.created_at).days
+    # Handle timezone-aware datetime comparison
+    now = datetime.utcnow()
+    if tool.created_at.tzinfo is not None:
+        # If tool.created_at has timezone info, make now aware
+        from datetime import timezone
+        now = now.replace(tzinfo=timezone.utc)
+    
+    days_old = (now - tool.created_at).days
     if days_old < 30:
         recency_score = 10.0 * (1 - (days_old / 30))
     elif days_old < 90:
