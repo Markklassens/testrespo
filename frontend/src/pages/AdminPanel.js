@@ -480,6 +480,28 @@ const AdminPanel = () => {
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                               {tool.views.toLocaleString()}
                             </td>
+                            {user.user_type === 'superadmin' && (
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                <div className="flex items-center">
+                                  {tool.assigned_admin_id ? (
+                                    <span className="px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded-full text-xs">
+                                      Assigned
+                                    </span>
+                                  ) : (
+                                    <span className="px-2 py-1 bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 rounded-full text-xs">
+                                      Unassigned
+                                    </span>
+                                  )}
+                                  <button 
+                                    onClick={() => handleAssignTool(tool)}
+                                    className="ml-2 text-blue-600 hover:text-blue-900 dark:text-blue-400"
+                                    title="Manage assignment"
+                                  >
+                                    <CogIcon className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              </td>
+                            )}
                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                               <button 
                                 onClick={() => handleEditTool(tool)}
