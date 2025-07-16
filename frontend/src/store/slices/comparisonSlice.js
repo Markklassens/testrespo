@@ -143,11 +143,14 @@ const comparisonSlice = createSlice({
         state.tools = getStoredComparison();
       })
       .addCase(addToComparison.fulfilled, (state, action) => {
-        // If localStorage approach was used, tool is already in payload
+        // The payload always contains the full tool object now
         if (action.payload.tool) {
-          state.tools.push(action.payload.tool);
+          // Check if tool already exists in state
+          const existingIndex = state.tools.findIndex(tool => tool.id === action.payload.toolId);
+          if (existingIndex === -1) {
+            state.tools.push(action.payload.tool);
+          }
         }
-        // If backend approach was used, tool will be added when we refetch
       })
       .addCase(addToComparison.rejected, (state, action) => {
         state.error = action.payload;
