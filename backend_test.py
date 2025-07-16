@@ -538,34 +538,187 @@ def test_tools_search():
     return True
 
 def test_tools_comparison():
-    """Test tools comparison functionality"""
-    print_test_header("Tools Comparison")
+    """Test tools comparison functionality - CRITICAL REVIEW REQUEST"""
+    print_test_header("Tools Comparison - CRITICAL REVIEW REQUEST")
     
-    if "user" not in tokens or not test_tool_id:
-        print("❌ Cannot test tools comparison without user token or tool ID")
+    if "admin" not in tokens:
+        print("❌ Cannot test tools comparison without admin token")
         return False
     
-    # Test add to comparison
-    json_data = {"tool_id": test_tool_id}
-    response = make_request("POST", "/api/tools/compare", json_data, token=tokens["user"], expected_status=200)
+    success = True
+    
+    # Step 1: Test GET /api/tools/compare endpoint with a user that has comparison tools - should return actual tool objects, not just a message
+    print_test_header("Step 1: GET /api/tools/compare (initially empty)")
+    response = make_request("GET", "/api/tools/compare", token=tokens["admin"])
+    if response.status_code != 200:
+        print("❌ GET comparison tools failed")
+        success = False
+    else:
+        comparison_tools = response.json()
+        if not isinstance(comparison_tools, list):
+            print("❌ GET comparison tools should return a list")
+            success = False
+        else:
+            print(f"✅ GET comparison tools returned list with {len(comparison_tools)} items")
+            if len(comparison_tools) > 0:
+                print("ℹ️ User already has tools in comparison")
+                for tool in comparison_tools:
+                    if not isinstance(tool, dict) or "id" not in tool or "name" not in tool:
+                        print("❌ Comparison tools should return actual tool objects with id and name")
+                        success = False
+                    else:
+                        print(f"✅ Tool object found: {tool.get('name', 'Unknown')} (ID: {tool.get('id', 'Unknown')})")
+    
+    # Step 2: Test POST /api/tools/compare to add a tool to comparison
+    print_test_header("Step 2: POST /api/tools/compare to add tool")
+    
+    # First, get a tool to add to comparison
+    tools_response = make_request("GET", "/api/tools?limit=1")
+    if tools_response.status_code != 200 or not tools_response.json():
+        print("❌ Cannot get tools for comparison test")
+        return False
+    
+    test_tool = tools_response.json()[0]
+    test_tool_id_for_comparison = test_tool["id"]
+    test_tool_name = test_tool["name"]
+    
+    print(f"ℹ️ Using tool for comparison: {test_tool_name} (ID: {test_tool_id_for_comparison})")
+    
+    json_data = {"tool_id": test_tool_id_for_comparison}
+    response = make_request("POST", "/api/tools/compare", json_data, token=tokens["admin"], expected_status=200)
     if response.status_code != 200:
         print("❌ Add to comparison failed")
-        return False
+        success = False
+        print_response(response)
+    else:
+        print("✅ Add to comparison passed")
+        response_data = response.json()
+        if "message" not in response_data:
+            print("❌ Add to comparison should return a message")
+            success = False
+        else:
+            print(f"✅ Add to comparison message: {response_data['message']}")
     
-    # Test get comparison tools
-    response = make_request("GET", "/api/tools/compare", token=tokens["user"])
-    if response.status_code != 200 or not isinstance(response.json(), list):
-        print("❌ Get comparison tools failed")
-        return False
+    # Step 3: Test GET /api/tools/compare again to verify the tool was added
+    print_test_header("Step 3: GET /api/tools/compare (after adding tool)")
+    response = make_request("GET", "/api/tools/compare", token=tokens["admin"])
+    if response.status_code != 200:
+        print("❌ GET comparison tools after adding failed")
+        success = False
+    else:
+        comparison_tools = response.json()
+        if not isinstance(comparison_tools, list):
+            print("❌ GET comparison tools should return a list")
+            success = False
+        else:
+            print(f"✅ GET comparison tools returned list with {len(comparison_tools)} items")
+            
+            # CRITICAL CHECK: Verify we get actual tool objects, not just a message
+            if len(comparison_tools) == 0:
+                print("❌ CRITICAL: No tools found in comparison after adding one")
+                success = False
+            else:
+                tool_found = False
+                for tool in comparison_tools:
+                    if not isinstance(tool, dict):
+                        print("❌ CRITICAL: Comparison should return actual tool objects, not just messages")
+                        success = False
+                        break
+                    
+                    # Check if this is an actual tool object with expected properties
+                    expected_tool_properties = ["id", "name", "description", "category_id"]
+                    missing_properties = []
+                    for prop in expected_tool_properties:
+                        if prop not in tool:
+                            missing_properties.append(prop)
+                    
+                    if missing_properties:
+                        print(f"❌ CRITICAL: Tool object missing properties: {missing_properties}")
+                        success = False
+                    else:
+                        print(f"✅ CRITICAL: Tool object has all expected properties: {tool.get('name', 'Unknown')}")
+                    
+                    if tool.get("id") == test_tool_id_for_comparison:
+                        tool_found = True
+                        print(f"✅ CRITICAL: Added tool found in comparison: {tool.get('name', 'Unknown')}")
+                
+                if not tool_found:
+                    print("❌ CRITICAL: Added tool not found in comparison list")
+                    success = False
     
-    # Test remove from comparison
-    response = make_request("DELETE", f"/api/tools/compare/{test_tool_id}", token=tokens["user"])
+    # Step 4: Test DELETE /api/tools/compare/{tool_id} to remove a tool from comparison
+    print_test_header("Step 4: DELETE /api/tools/compare/{tool_id}")
+    response = make_request("DELETE", f"/api/tools/compare/{test_tool_id_for_comparison}", token=tokens["admin"])
     if response.status_code != 200:
         print("❌ Remove from comparison failed")
-        return False
+        success = False
+        print_response(response)
+    else:
+        print("✅ Remove from comparison passed")
+        response_data = response.json()
+        if "message" not in response_data:
+            print("❌ Remove from comparison should return a message")
+            success = False
+        else:
+            print(f"✅ Remove from comparison message: {response_data['message']}")
     
-    print("✅ Tools comparison functionality passed")
-    return True
+    # Step 5: Test GET /api/tools/compare again to verify the tool was removed
+    print_test_header("Step 5: GET /api/tools/compare (after removing tool)")
+    response = make_request("GET", "/api/tools/compare", token=tokens["admin"])
+    if response.status_code != 200:
+        print("❌ GET comparison tools after removing failed")
+        success = False
+    else:
+        comparison_tools = response.json()
+        if not isinstance(comparison_tools, list):
+            print("❌ GET comparison tools should return a list")
+            success = False
+        else:
+            print(f"✅ GET comparison tools returned list with {len(comparison_tools)} items")
+            
+            # Verify the tool was removed
+            tool_still_found = False
+            for tool in comparison_tools:
+                if isinstance(tool, dict) and tool.get("id") == test_tool_id_for_comparison:
+                    tool_still_found = True
+                    break
+            
+            if tool_still_found:
+                print("❌ CRITICAL: Tool still found in comparison after removal")
+                success = False
+            else:
+                print("✅ CRITICAL: Tool successfully removed from comparison")
+    
+    # Additional test: Try to add the same tool twice (should fail)
+    print_test_header("Additional Test: Add same tool twice (should fail)")
+    
+    # Add tool first
+    json_data = {"tool_id": test_tool_id_for_comparison}
+    response = make_request("POST", "/api/tools/compare", json_data, token=tokens["admin"], expected_status=200)
+    if response.status_code == 200:
+        # Try to add the same tool again
+        response = make_request("POST", "/api/tools/compare", json_data, token=tokens["admin"], expected_status=400)
+        if response.status_code != 400:
+            print("❌ Adding duplicate tool should fail with 400")
+            success = False
+        else:
+            print("✅ Duplicate tool addition correctly rejected")
+            response_data = response.json()
+            if "already in comparison" not in response_data.get("detail", "").lower():
+                print("❌ Error message should mention tool is already in comparison")
+                success = False
+            else:
+                print("✅ Correct error message for duplicate tool")
+        
+        # Clean up - remove the tool
+        make_request("DELETE", f"/api/tools/compare/{test_tool_id_for_comparison}", token=tokens["admin"])
+    
+    if success:
+        print("✅ CRITICAL REVIEW: Tools comparison functionality PASSED - GET endpoint returns actual tool objects")
+    else:
+        print("❌ CRITICAL REVIEW: Tools comparison functionality FAILED - Issues found with tool object structure")
+    
+    return success
 
 def test_blogs_crud():
     """Test blogs CRUD operations"""
