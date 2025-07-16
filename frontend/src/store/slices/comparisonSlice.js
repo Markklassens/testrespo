@@ -1,28 +1,106 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../../utils/api';
 
+// Helper functions for localStorage
+const getStoredComparison = () => {
+  try {
+    const stored = localStorage.getItem('comparisonTools');
+    return stored ? JSON.parse(stored) : [];
+  } catch (error) {
+    console.error('Error reading from localStorage:', error);
+    return [];
+  }
+};
+
+const setStoredComparison = (tools) => {
+  try {
+    localStorage.setItem('comparisonTools', JSON.stringify(tools));
+  } catch (error) {
+    console.error('Error writing to localStorage:', error);
+  }
+};
+
 // Async thunks
 export const fetchComparisonTools = createAsyncThunk(
   'comparison/fetchComparisonTools',
-  async () => {
-    const response = await api.get('/api/tools/compare');
-    return response.data;
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.get('/api/tools/compare');
+      return response.data;
+    } catch (error) {
+      // If API fails (e.g., user not logged in), return localStorage data
+      return getStoredComparison();
+    }
   }
 );
 
 export const addToComparison = createAsyncThunk(
   'comparison/addToComparison',
-  async (toolId) => {
-    await api.post('/api/tools/compare', { tool_id: toolId });
-    return toolId;
+  async (toolId, { rejectWithValue, getState }) => {
+    try {
+      // Try to add to backend first
+      await api.post('/api/tools/compare', { tool_id: toolId });
+      
+      // If successful, also add to localStorage
+      const currentTools = getStoredComparison();
+      const toolExists = currentTools.find(tool => tool.id === toolId);
+      
+      if (!toolExists) {
+        // Fetch tool details and add to localStorage
+        const toolResponse = await api.get(`/api/tools/${toolId}`);
+        const newTools = [...currentTools, toolResponse.data];
+        setStoredComparison(newTools);
+      }
+      
+      return toolId;
+    } catch (error) {
+      // If backend fails, try localStorage approach
+      try {
+        const currentTools = getStoredComparison();
+        const toolExists = currentTools.find(tool => tool.id === toolId);
+        
+        if (toolExists) {
+          return rejectWithValue('Tool already in comparison');
+        }
+        
+        if (currentTools.length >= 5) {
+          return rejectWithValue('Maximum 5 tools allowed for comparison');
+        }
+        
+        // Fetch tool details and add to localStorage
+        const toolResponse = await api.get(`/api/tools/${toolId}`);
+        const newTools = [...currentTools, toolResponse.data];
+        setStoredComparison(newTools);
+        
+        return { toolId, tool: toolResponse.data };
+      } catch (localError) {
+        return rejectWithValue('Failed to add tool to comparison');
+      }
+    }
   }
 );
 
 export const removeFromComparison = createAsyncThunk(
   'comparison/removeFromComparison',
-  async (toolId) => {
-    await api.delete(`/api/tools/compare/${toolId}`);
-    return toolId;
+  async (toolId, { rejectWithValue }) => {
+    try {
+      // Try to remove from backend first
+      await api.delete(`/api/tools/compare/${toolId}`);
+      
+      // Also remove from localStorage
+      const currentTools = getStoredComparison();
+      const filteredTools = currentTools.filter(tool => tool.id !== toolId);
+      setStoredComparison(filteredTools);
+      
+      return toolId;
+    } catch (error) {
+      // If backend fails, try localStorage approach
+      const currentTools = getStoredComparison();
+      const filteredTools = currentTools.filter(tool => tool.id !== toolId);
+      setStoredComparison(filteredTools);
+      
+      return toolId;
+    }
   }
 );
 
