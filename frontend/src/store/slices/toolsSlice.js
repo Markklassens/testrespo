@@ -160,6 +160,10 @@ const toolsSlice = createSlice({
     clearCsvUploadResult: (state) => {
       state.csvUpload.result = null;
       state.csvUpload.error = null;
+    },
+    clearAssignments: (state) => {
+      state.assignments.list = [];
+      state.assignments.error = null;
     }
   },
   extraReducers: (builder) => {
