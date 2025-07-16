@@ -352,7 +352,10 @@ const AdminPanel = () => {
                       <ArrowUpTrayIcon className="h-4 w-4" />
                       <span>Bulk Upload</span>
                     </button>
-                    <button className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center">
+                    <button 
+                      onClick={handleCreateTool}
+                      className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center"
+                    >
                       <PlusIcon className="h-4 w-4 mr-2" />
                       Add Tool
                     </button>
