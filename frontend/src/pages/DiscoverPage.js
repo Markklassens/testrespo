@@ -78,7 +78,8 @@ const DiscoverPage = () => {
       fetchCategories(),
       fetchAllTools() // Fetch all tools initially
     ]);
-  }, []);
+    dispatch(fetchComparisonTools());
+  }, [dispatch]);
 
   useEffect(() => {
     fetchTools();
