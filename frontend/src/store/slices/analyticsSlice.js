@@ -46,13 +46,29 @@ const analyticsSlice = createSlice({
   reducers: {
     clearAnalytics: (state) => {
       state.dashboard = {
-        total_users: 0,
-        total_tools: 0,
-        total_blogs: 0,
-        total_reviews: 0,
-        recent_blogs: [],
-        recent_reviews: []
+        user_stats: {
+          total: 0,
+          active: 0,
+          verified: 0,
+          admins: 0
+        },
+        content_stats: {
+          total_tools: 0,
+          featured_tools: 0,
+          total_blogs: 0,
+          published_blogs: 0
+        },
+        review_stats: {
+          total: 0,
+          verified: 0,
+          average_rating: 0
+        },
+        recent_activity: {
+          users: [],
+          reviews: []
+        }
       };
+      state.error = null;
     }
   },
   extraReducers: (builder) => {
