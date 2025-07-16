@@ -432,10 +432,16 @@ const AdminPanel = () => {
                               {tool.views.toLocaleString()}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                              <button className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 mr-3">
+                              <button 
+                                onClick={() => handleEditTool(tool)}
+                                className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 mr-3"
+                              >
                                 <EyeIcon className="h-4 w-4" />
                               </button>
-                              <button className="text-green-600 hover:text-green-900 dark:text-green-400 mr-3">
+                              <button 
+                                onClick={() => handleEditTool(tool)}
+                                className="text-green-600 hover:text-green-900 dark:text-green-400 mr-3"
+                              >
                                 <PencilIcon className="h-4 w-4" />
                               </button>
                               <button 
