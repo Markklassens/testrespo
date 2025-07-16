@@ -174,6 +174,26 @@ const DiscoverPage = () => {
     window.scrollTo({ top: 600, behavior: 'smooth' });
   };
 
+  const handleAddToComparison = async (toolId) => {
+    if (comparisonTools.length >= 5) {
+      toast.error('You can compare up to 5 tools maximum');
+      return;
+    }
+
+    if (comparisonTools.some(tool => tool.id === toolId)) {
+      toast.error('Tool is already in comparison');
+      return;
+    }
+
+    try {
+      await dispatch(addToComparison(toolId)).unwrap();
+      toast.success('Tool added to comparison');
+      dispatch(fetchComparisonTools());
+    } catch (error) {
+      toast.error('Failed to add tool to comparison');
+    }
+  };
+
   const clearAllFilters = () => {
     const clearedFilters = {
       q: '',
