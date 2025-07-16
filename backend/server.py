@@ -647,7 +647,26 @@ async def get_comparison_tools(
     current_user: User = Depends(get_current_verified_user),
     db: Session = Depends(get_db)
 ):
-    return {"message": "comparison endpoint works", "user_id": current_user.id}
+    """Get tools that the current user has added to comparison"""
+    
+    # Query the comparison table to get tool IDs for the current user
+    comparison_tool_ids = db.execute(
+        user_tool_comparison.select().where(
+            user_tool_comparison.c.user_id == current_user.id
+        )
+    ).fetchall()
+    
+    # Extract tool IDs
+    tool_ids = [row.tool_id for row in comparison_tool_ids]
+    
+    # If no tools in comparison, return empty list
+    if not tool_ids:
+        return []
+    
+    # Query the actual tools data
+    tools = db.query(Tool).filter(Tool.id.in_(tool_ids)).all()
+    
+    return tools
 
 @app.post("/api/tools/compare")
 async def add_to_comparison(
