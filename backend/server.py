@@ -76,6 +76,9 @@ app.add_middleware(
 # Create database tables
 Base.metadata.create_all(bind=engine)
 
+# Start the trending updater background task
+start_trending_updater()
+
 # Health check endpoint
 @app.get("/api/health")
 async def health_check():
