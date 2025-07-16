@@ -1054,6 +1054,25 @@ const DiscoverPage = () => {
           <Pagination />
         </section>
       </div>
+
+      {/* Floating Compare Button */}
+      {comparisonTools.length > 0 && (
+        <div className="fixed bottom-6 right-6 z-40">
+          <button
+            onClick={() => setShowComparison(true)}
+            className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-6 py-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center space-x-2 transform hover:scale-105"
+          >
+            <ScaleIcon className="h-5 w-5" />
+            <span className="font-semibold">Compare ({comparisonTools.length})</span>
+          </button>
+        </div>
+      )}
+
+      {/* Tool Comparison Modal */}
+      <ToolComparison
+        isOpen={showComparison}
+        onClose={() => setShowComparison(false)}
+      />
     </div>
   );
 };
