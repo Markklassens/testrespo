@@ -453,6 +453,17 @@ class SearchHistoryResponse(BaseModel):
     class Config:
         from_attributes = True
 
+# Tool Assignment Schema
+class ToolAssignmentRequest(BaseModel):
+    admin_id: str
+
+class ToolAssignmentResponse(BaseModel):
+    message: str
+    tool_id: str
+    tool_name: str
+    admin_id: str
+    admin_name: str
+
 # Combined Search Response
 class CombinedSearchResponse(BaseModel):
     google: Optional[SearchResponse] = None
