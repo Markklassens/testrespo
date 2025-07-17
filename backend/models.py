@@ -50,6 +50,7 @@ class User(Base):
     comments = relationship("Comment", back_populates="user")
     compared_tools = relationship("Tool", secondary=user_tool_comparison, back_populates="compared_by_users")
     ai_generated_content = relationship("AIGeneratedContent", back_populates="user")
+    liked_blogs = relationship("Blog", secondary=user_blog_likes, back_populates="liked_by_users")
 
 class Category(Base):
     __tablename__ = "categories"
