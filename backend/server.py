@@ -495,7 +495,15 @@ async def optimize_tool_seo(
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
-    """Generate SEO optimization for a tool (Admin only)"""
+    """Generate SEO optimization for a tool (Admin only - must have access to tool)"""
+    from auth import check_tool_access
+    
+    # Check if admin has access to this tool
+    if not check_tool_access(current_user, request.tool_id, db):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have access to this tool. Please request access from a superadmin."
+        )
     
     tool = db.query(Tool).filter(Tool.id == request.tool_id).first()
     if not tool:
@@ -549,357 +557,49 @@ async def get_seo_optimizations(
     skip: int = 0,
     limit: int = 50
 ):
-    """Get all SEO optimizations (Admin only)"""
+    """Get SEO optimizations for tools accessible to current admin"""
     
-    optimizations = db.query(SEOOptimization).order_by(
-        desc(SEOOptimization.created_at)
-    ).offset(skip).limit(limit).all()
+    if current_user.user_type == "superadmin":
+        # Superadmins can see all optimizations
+        optimizations = db.query(SEOOptimization).order_by(
+            desc(SEOOptimization.created_at)
+        ).offset(skip).limit(limit).all()
+    else:
+        # Regular admins only see optimizations for their assigned tools
+        optimizations = db.query(SEOOptimization).join(Tool).filter(
+            Tool.assigned_admin_id == current_user.id
+        ).order_by(desc(SEOOptimization.created_at)).offset(skip).limit(limit).all()
     
     return optimizations
 
-# Keep all existing routes (categories, tools, blogs, reviews, etc.)
-# ... [Previous route implementations remain the same] ...
-
-# Categories Routes
-@app.get("/api/categories", response_model=List[CategoryResponse])
-async def get_categories(db: Session = Depends(get_db)):
-    categories = db.query(Category).all()
-    return categories
-
-@app.post("/api/categories", response_model=CategoryResponse)
-async def create_category(
-    category: CategoryCreate,
-    current_user: User = Depends(require_superadmin),
+@app.get("/api/admin/seo/tools")
+async def get_seo_tools(
+    current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
-    db_category = Category(
-        id=str(uuid.uuid4()),
-        name=category.name,
-        description=category.description,
-        icon=category.icon,
-        color=category.color
-    )
-    db.add(db_category)
-    db.commit()
-    db.refresh(db_category)
-    return db_category
-
-# Subcategory Routes
-@app.get("/api/subcategories", response_model=List[SubcategoryResponse])
-async def get_subcategories(category_id: Optional[str] = None, db: Session = Depends(get_db)):
-    query = db.query(Subcategory)
-    if category_id:
-        query = query.filter(Subcategory.category_id == category_id)
-    subcategories = query.all()
-    return subcategories
-
-# Tools Routes
-@app.get("/api/tools", response_model=List[ToolResponse])
-async def get_tools(
-    skip: int = 0,
-    limit: int = 20,
-    category_id: Optional[str] = None,
-    db: Session = Depends(get_db)
-):
-    query = db.query(Tool)
-    if category_id:
-        query = query.filter(Tool.category_id == category_id)
-    tools = query.offset(skip).limit(limit).all()
-    return tools
-
-# Tool Comparison Routes (must be before /api/tools/{tool_id} to avoid route conflicts)
-@app.get("/api/tools/compare")
-async def get_comparison_tools(
-    current_user: User = Depends(get_current_verified_user),
-    db: Session = Depends(get_db)
-):
-    """Get tools that the current user has added to comparison"""
+    """Get SEO status for tools accessible to current admin"""
     
-    # Query the comparison table to get tool IDs for the current user
-    comparison_tool_ids = db.execute(
-        user_tool_comparison.select().where(
-            user_tool_comparison.c.user_id == current_user.id
-        )
-    ).fetchall()
+    if current_user.user_type == "superadmin":
+        # Superadmins can see all tools
+        tools = db.query(Tool).all()
+    else:
+        # Regular admins only see assigned tools
+        tools = db.query(Tool).filter(Tool.assigned_admin_id == current_user.id).all()
     
-    # Extract tool IDs
-    tool_ids = [row.tool_id for row in comparison_tool_ids]
+    seo_tools = []
+    for tool in tools:
+        seo_tools.append({
+            "tool_id": tool.id,
+            "tool_name": tool.name,
+            "has_meta_title": bool(tool.ai_meta_title or tool.meta_title),
+            "has_meta_description": bool(tool.ai_meta_description or tool.meta_description),
+            "has_ai_content": bool(tool.ai_content),
+            "optimizations_count": len(tool.seo_optimizations),
+            "last_updated": tool.last_updated,
+            "assigned_admin_id": tool.assigned_admin_id
+        })
     
-    # If no tools in comparison, return empty list
-    if not tool_ids:
-        return []
-    
-    # Query the actual tools data
-    tools = db.query(Tool).filter(Tool.id.in_(tool_ids)).all()
-    
-    return tools
-
-@app.post("/api/tools/compare")
-async def add_to_comparison(
-    request: ToolComparisonRequest,
-    current_user: User = Depends(get_current_verified_user),
-    db: Session = Depends(get_db)
-):
-    tool_id = request.tool_id
-    
-    # Check if tool exists
-    tool = db.query(Tool).filter(Tool.id == tool_id).first()
-    if not tool:
-        raise HTTPException(status_code=404, detail="Tool not found")
-    
-    # Check if already in comparison
-    existing = db.execute(
-        user_tool_comparison.select().where(
-            user_tool_comparison.c.user_id == current_user.id,
-            user_tool_comparison.c.tool_id == tool_id
-        )
-    ).first()
-    
-    if existing:
-        raise HTTPException(status_code=400, detail="Tool already in comparison")
-    
-    # Add to comparison
-    db.execute(
-        user_tool_comparison.insert().values(
-            user_id=current_user.id,
-            tool_id=tool_id
-        )
-    )
-    db.commit()
-    
-    return {"message": "Tool added to comparison"}
-
-@app.delete("/api/tools/compare/{tool_id}")
-async def remove_from_comparison(
-    tool_id: str,
-    current_user: User = Depends(get_current_verified_user),
-    db: Session = Depends(get_db)
-):
-    db.execute(
-        user_tool_comparison.delete().where(
-            user_tool_comparison.c.user_id == current_user.id,
-            user_tool_comparison.c.tool_id == tool_id
-        )
-    )
-    db.commit()
-    
-    return {"message": "Tool removed from comparison"}
-
-@app.get("/api/tools/{tool_id}", response_model=ToolResponse)
-async def get_tool(tool_id: str, db: Session = Depends(get_db)):
-    tool = db.query(Tool).filter(Tool.id == tool_id).first()
-    if not tool:
-        raise HTTPException(status_code=404, detail="Tool not found")
-    
-    # Use the new trending calculator to increment view and update trending
-    updated_tool = increment_view_and_update_trending(db, tool_id)
-    
-    return updated_tool
-
-@app.get("/api/tools/slug/{slug}", response_model=ToolResponse)
-async def get_tool_by_slug(slug: str, db: Session = Depends(get_db)):
-    """Get tool by slug for SEO-friendly URLs"""
-    tool = db.query(Tool).filter(Tool.slug == slug).first()
-    if not tool:
-        raise HTTPException(status_code=404, detail="Tool not found")
-    
-    # Use the new trending calculator to increment view and update trending
-    updated_tool = increment_view_and_update_trending(db, tool.id)
-    
-    return updated_tool
-
-@app.post("/api/tools/{tool_id}/like")
-async def like_tool(
-    tool_id: str,
-    current_user: User = Depends(get_current_verified_user),
-    db: Session = Depends(get_db)
-):
-    """Like/unlike a tool"""
-    tool = db.query(Tool).filter(Tool.id == tool_id).first()
-    if not tool:
-        raise HTTPException(status_code=404, detail="Tool not found")
-    
-    # For now, just return success - can implement user-specific likes later
-    return {"message": "Tool liked successfully"}
-
-@app.post("/api/tools", response_model=ToolResponse)
-async def create_tool(
-    tool: ToolCreate,
-    current_user: User = Depends(require_superadmin),
-    db: Session = Depends(get_db)
-):
-    db_tool = Tool(
-        id=str(uuid.uuid4()),
-        **tool.dict()
-    )
-    db.add(db_tool)
-    db.commit()
-    db.refresh(db_tool)
-    return db_tool
-
-@app.put("/api/tools/{tool_id}", response_model=ToolResponse)
-async def update_tool(
-    tool_id: str,
-    tool_update: ToolUpdate,
-    current_user: User = Depends(require_superadmin),
-    db: Session = Depends(get_db)
-):
-    db_tool = db.query(Tool).filter(Tool.id == tool_id).first()
-    if not db_tool:
-        raise HTTPException(status_code=404, detail="Tool not found")
-    
-    for field, value in tool_update.dict(exclude_unset=True).items():
-        setattr(db_tool, field, value)
-    
-    db.commit()
-    db.refresh(db_tool)
-    return db_tool
-
-@app.delete("/api/tools/{tool_id}")
-async def delete_tool(
-    tool_id: str,
-    current_user: User = Depends(require_superadmin),
-    db: Session = Depends(get_db)
-):
-    db_tool = db.query(Tool).filter(Tool.id == tool_id).first()
-    if not db_tool:
-        raise HTTPException(status_code=404, detail="Tool not found")
-    
-    db.delete(db_tool)
-    db.commit()
-    return {"message": "Tool deleted successfully"}
-
-
-# Bulk Upload Routes
-@app.post("/api/tools/bulk-upload")
-async def bulk_upload_tools(
-    file: UploadFile = File(...),
-    current_user: User = Depends(require_superadmin),
-    db: Session = Depends(get_db)
-):
-    if not file.filename.endswith('.csv'):
-        raise HTTPException(status_code=400, detail="File must be a CSV")
-    
-    content = await file.read()
-    csv_data = content.decode('utf-8')
-    
-    # Parse CSV and create tools
-    reader = csv.DictReader(io.StringIO(csv_data))
-    created_tools = []
-    errors = []
-    
-    for row_num, row in enumerate(reader, start=2):
-        try:
-            # Convert boolean strings to actual booleans
-            is_hot = row.get('is_hot', 'false').lower() in ('true', '1', 'yes')
-            is_featured = row.get('is_featured', 'false').lower() in ('true', '1', 'yes')
-            
-            # Convert numeric strings to numbers
-            rating = float(row.get('rating', '0')) if row.get('rating') else 0.0
-            total_reviews = int(row.get('total_reviews', '0')) if row.get('total_reviews') else 0
-            views = int(row.get('views', '0')) if row.get('views') else 0
-            trending_score = float(row.get('trending_score', '0')) if row.get('trending_score') else 0.0
-            
-            tool_data = {
-                'id': str(uuid.uuid4()),
-                'name': row['name'],
-                'description': row['description'],
-                'category_id': row['category_id'],
-                'slug': row['name'].lower().replace(' ', '-'),
-                'short_description': row.get('short_description', ''),
-                'website_url': row.get('website_url', ''),
-                'pricing_model': row.get('pricing_model', ''),
-                'pricing_details': row.get('pricing_details', ''),
-                'features': row.get('features', ''),
-                'target_audience': row.get('target_audience', ''),
-                'company_size': row.get('company_size', ''),
-                'integrations': row.get('integrations', ''),
-                'logo_url': row.get('logo_url', ''),
-                'industry': row.get('industry', ''),
-                'employee_size': row.get('employee_size', ''),
-                'revenue_range': row.get('revenue_range', ''),
-                'location': row.get('location', ''),
-                'is_hot': is_hot,
-                'is_featured': is_featured,
-                'meta_title': row.get('meta_title', ''),
-                'meta_description': row.get('meta_description', ''),
-                'rating': rating,
-                'total_reviews': total_reviews,
-                'views': views,
-                'trending_score': trending_score
-            }
-            
-            db_tool = Tool(**tool_data)
-            db.add(db_tool)
-            created_tools.append(tool_data['name'])
-            
-        except Exception as e:
-            errors.append(f"Row {row_num}: {str(e)}")
-    
-    if created_tools:
-        db.commit()
-    
-    return {
-        "tools_created": len(created_tools),
-        "created_tools": created_tools,
-        "errors": errors
-    }
-
-@app.get("/api/tools/csv-template")
-async def get_csv_template():
-    """Get CSV template data for bulk tool upload"""
-    
-    # Generate sample CSV content
-    import io
-    import csv
-    
-    template_data = [
-        {
-            'name': 'Example Tool',
-            'description': 'Example description for a sample tool',
-            'short_description': 'Short description',
-            'website_url': 'https://example.com',
-            'pricing_model': 'Freemium',
-            'pricing_details': 'Free tier available, Pro starts at $10/month',
-            'features': 'Feature 1, Feature 2, Feature 3',
-            'target_audience': 'Small to medium businesses',
-            'company_size': 'SMB',
-            'integrations': 'Slack, Google Drive, Dropbox',
-            'logo_url': 'https://example.com/logo.png',
-            'category_id': 'REPLACE_WITH_ACTUAL_CATEGORY_ID',
-            'industry': 'Technology',
-            'employee_size': '11-50',
-            'revenue_range': '1M-10M',
-            'location': 'San Francisco, CA',
-            'is_hot': 'false',
-            'is_featured': 'false',
-            'meta_title': 'Example Tool - Sample Title',
-            'meta_description': 'Sample meta description',
-            'slug': 'example-tool',
-            'rating': '4.5',
-            'total_reviews': '100',
-            'views': '1000',
-            'trending_score': '85.5'
-        }
-    ]
-    
-    # Generate CSV content
-    output = io.StringIO()
-    writer = csv.DictWriter(output, fieldnames=template_data[0].keys())
-    writer.writeheader()
-    writer.writerows(template_data)
-    csv_content = output.getvalue()
-    
-    from fastapi.responses import Response
-    
-    return Response(
-        content=csv_content,
-        media_type="text/csv",
-        headers={
-            "Content-Disposition": "attachment; filename=tools_template.csv",
-            "Content-Type": "text/csv"
-        }
-    )
+    return seo_tools
 
 # Blog Routes
 @app.get("/api/blogs", response_model=List[BlogResponse])
