@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from database import get_db
@@ -13,6 +13,7 @@ from ai_services import ai_manager
 from typing import Optional
 from datetime import datetime, timedelta
 import uuid
+import base64
 
 router = APIRouter(prefix="/api/auth", tags=["authentication"])
 
