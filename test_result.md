@@ -515,12 +515,21 @@ frontend:
     working: true
     file: "/app/frontend/src/pages/AdminPanel.js"
     stuck_count: 0
-    priority: "medium"
+    priority: "high"
     needs_retesting: false
     status_history:
       - working: true
         agent: "testing"
         comment: "Admin panel access works correctly. All tabs (Overview, Users, Tools, Blogs, Categories) are accessible and display their respective content correctly."
+      - working: false
+        agent: "main"
+        comment: "FolderIcon is not defined error preventing Super admins from accessing the admin panel. ReferenceError: FolderIcon is not defined at AdminPanel component."
+      - working: true
+        agent: "main"
+        comment: "Fixed FolderIcon import issue by adding FolderIcon to the imports from @heroicons/react/24/outline in AdminPanel.js. Super admins can now access the admin panel without errors."
+      - working: true
+        agent: "testing"
+        comment: "FOLDERICON ERROR FIX VERIFICATION COMPLETED SUCCESSFULLY: Tested the specific issue reported in the review request - 'FolderIcon is not defined' error when Super Admin accesses the admin panel. SETUP REQUIRED: Initially found backend connectivity issues (PostgreSQL not running, missing dependencies). Fixed by: 1) Installing PostgreSQL and frozenlist dependency, 2) Creating database and user with proper permissions, 3) Running init_db.py to create tables, 4) Running seed_data.py to create test users including superadmin@marketmindai.com/superadmin123. TEST RESULTS: ✅ SUPER ADMIN LOGIN: Successfully logged in with superadmin@marketmindai.com/superadmin123 and redirected to dashboard, ✅ ADMIN PANEL ACCESS: Successfully navigated to /admin without authentication issues, ✅ FOLDERICON ERROR CHECK: NO 'FolderIcon is not defined' errors found in console logs, ✅ ALL TABS PRESENT: Found all 5 required tabs (Overview, Users, Tools, Blogs, Categories), ✅ CATEGORIES TAB FUNCTIONAL: Successfully clicked Categories tab and loaded Category Management content, confirming FolderIcon is working properly, ✅ NO JAVASCRIPT ERRORS: No console errors detected during testing. CONCLUSION: The FolderIcon import fix is working correctly. Super Admin can now access the admin panel without any 'FolderIcon is not defined' errors. All tabs are present and functional, including the Categories tab which uses the FolderIcon. The fix has been successfully verified."
   
   - task: "User Profile"
     implemented: true
