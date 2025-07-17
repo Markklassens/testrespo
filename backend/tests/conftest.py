@@ -126,9 +126,6 @@ def test_tool(db, test_category):
     db.add(tool)
     db.commit()
     db.refresh(tool)
-    # Ensure the tool is attached to the session for the duration of the test
-    db.expunge(tool)
-    db.add(tool)
     return tool
 
 @pytest.fixture
