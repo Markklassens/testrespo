@@ -156,20 +156,72 @@ async def delete_blog(
     return {"message": "Blog deleted successfully"}
 
 @router.post("/{blog_id}/like")
-async def like_blog(
+async def toggle_blog_like(
     blog_id: str,
     current_user: User = Depends(get_current_verified_user),
     db: Session = Depends(get_db)
 ):
-    """Like a blog"""
+    """Toggle like on a blog (like/unlike)"""
     blog = db.query(Blog).filter(Blog.id == blog_id).first()
     if not blog:
         raise HTTPException(status_code=404, detail="Blog not found")
     
-    blog.likes += 1
+    # Check if user already liked this blog
+    existing_like = db.query(user_blog_likes).filter(
+        user_blog_likes.c.user_id == current_user.id,
+        user_blog_likes.c.blog_id == blog_id
+    ).first()
+    
+    if existing_like:
+        # Unlike the blog
+        db.execute(
+            user_blog_likes.delete().where(
+                user_blog_likes.c.user_id == current_user.id,
+                user_blog_likes.c.blog_id == blog_id
+            )
+        )
+        blog.likes = max(0, blog.likes - 1)
+        action = "unliked"
+    else:
+        # Like the blog
+        db.execute(
+            user_blog_likes.insert().values(
+                user_id=current_user.id,
+                blog_id=blog_id
+            )
+        )
+        blog.likes += 1
+        action = "liked"
+    
     db.commit()
     
-    return {"likes": blog.likes}
+    return {
+        "action": action,
+        "likes": blog.likes,
+        "user_liked": action == "liked"
+    }
+
+@router.get("/{blog_id}/like-status")
+async def get_blog_like_status(
+    blog_id: str,
+    current_user: User = Depends(get_current_verified_user),
+    db: Session = Depends(get_db)
+):
+    """Get user's like status for a blog"""
+    blog = db.query(Blog).filter(Blog.id == blog_id).first()
+    if not blog:
+        raise HTTPException(status_code=404, detail="Blog not found")
+    
+    # Check if user liked this blog
+    user_liked = db.query(user_blog_likes).filter(
+        user_blog_likes.c.user_id == current_user.id,
+        user_blog_likes.c.blog_id == blog_id
+    ).first() is not None
+    
+    return {
+        "user_liked": user_liked,
+        "total_likes": blog.likes
+    }
 
 # Comment Routes
 @router.post("/{blog_id}/comments", response_model=CommentResponse)
