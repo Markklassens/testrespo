@@ -35,7 +35,7 @@ def client(db):
         try:
             yield db
         finally:
-            db.close()
+            pass  # Don't close the db session here
     
     app.dependency_overrides[get_db] = override_get_db
     yield TestClient(app)
