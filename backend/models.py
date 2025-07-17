@@ -171,6 +171,7 @@ class Blog(Base):
     category = relationship("Category", back_populates="blogs")
     subcategory = relationship("Subcategory", back_populates="blogs")
     comments = relationship("Comment", back_populates="blog")
+    liked_by_users = relationship("User", secondary=user_blog_likes, back_populates="liked_blogs")
 
 class Review(Base):
     __tablename__ = "reviews"
