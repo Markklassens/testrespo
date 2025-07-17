@@ -48,6 +48,7 @@ test_category_id = None
 test_subcategory_id = None
 test_tool_id = None
 test_blog_id = None
+access_request_id = None
 
 def print_test_header(test_name: str) -> None:
     """Print a formatted test header"""
