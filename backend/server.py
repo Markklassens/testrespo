@@ -2039,6 +2039,227 @@ async def upload_file(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 
+# Tool CRUD Routes
+@app.post("/api/tools", response_model=ToolResponse)
+async def create_tool(
+    tool: ToolCreate,
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db)
+):
+    """Create a new tool (Super Admin only)"""
+    
+    # Check if slug already exists
+    existing_tool = db.query(Tool).filter(Tool.slug == tool.slug).first()
+    if existing_tool:
+        raise HTTPException(status_code=400, detail="Slug already exists")
+    
+    # Check if category exists
+    category = db.query(Category).filter(Category.id == tool.category_id).first()
+    if not category:
+        raise HTTPException(status_code=400, detail="Category not found")
+    
+    # Check if subcategory exists (if provided)
+    if tool.subcategory_id:
+        subcategory = db.query(Subcategory).filter(Subcategory.id == tool.subcategory_id).first()
+        if not subcategory:
+            raise HTTPException(status_code=400, detail="Subcategory not found")
+    
+    # Create tool
+    db_tool = Tool(
+        id=str(uuid.uuid4()),
+        **tool.dict(),
+        created_at=datetime.utcnow(),
+        last_updated=datetime.utcnow()
+    )
+    
+    db.add(db_tool)
+    db.commit()
+    db.refresh(db_tool)
+    
+    return db_tool
+
+@app.get("/api/tools", response_model=List[ToolResponse])
+async def get_tools(
+    skip: int = 0,
+    limit: int = 20,
+    category_id: Optional[str] = None,
+    search: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """Get all tools with optional filtering"""
+    
+    query = db.query(Tool)
+    
+    if category_id:
+        query = query.filter(Tool.category_id == category_id)
+    
+    if search:
+        query = query.filter(
+            Tool.name.ilike(f"%{search}%") | 
+            Tool.description.ilike(f"%{search}%")
+        )
+    
+    tools = query.offset(skip).limit(limit).all()
+    return tools
+
+@app.get("/api/tools/{tool_id}", response_model=ToolResponse)
+async def get_tool(tool_id: str, db: Session = Depends(get_db)):
+    """Get a specific tool by ID"""
+    
+    tool = db.query(Tool).filter(Tool.id == tool_id).first()
+    if not tool:
+        raise HTTPException(status_code=404, detail="Tool not found")
+    
+    # Increment view count and update trending score
+    increment_view_and_update_trending(tool_id, db)
+    
+    return tool
+
+@app.put("/api/tools/{tool_id}", response_model=ToolResponse)
+async def update_tool(
+    tool_id: str,
+    tool_update: ToolUpdate,
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db)
+):
+    """Update a tool (Super Admin only)"""
+    
+    tool = db.query(Tool).filter(Tool.id == tool_id).first()
+    if not tool:
+        raise HTTPException(status_code=404, detail="Tool not found")
+    
+    # Check if slug already exists (if being updated)
+    if tool_update.slug and tool_update.slug != tool.slug:
+        existing_tool = db.query(Tool).filter(Tool.slug == tool_update.slug).first()
+        if existing_tool:
+            raise HTTPException(status_code=400, detail="Slug already exists")
+    
+    # Update tool
+    update_data = tool_update.dict(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(tool, field, value)
+    
+    tool.last_updated = datetime.utcnow()
+    db.commit()
+    db.refresh(tool)
+    
+    return tool
+
+@app.delete("/api/tools/{tool_id}")
+async def delete_tool(
+    tool_id: str,
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db)
+):
+    """Delete a tool (Super Admin only)"""
+    
+    tool = db.query(Tool).filter(Tool.id == tool_id).first()
+    if not tool:
+        raise HTTPException(status_code=404, detail="Tool not found")
+    
+    db.delete(tool)
+    db.commit()
+    
+    return {"message": "Tool deleted successfully"}
+
+# Bulk Upload Tools
+@app.post("/api/admin/tools/bulk-upload")
+async def bulk_upload_tools(
+    file: UploadFile = File(...),
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db)
+):
+    """Bulk upload tools via CSV (Super Admin only)"""
+    
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(status_code=400, detail="File must be a CSV")
+    
+    content = await file.read()
+    csv_data = content.decode('utf-8')
+    
+    # Parse CSV and create tools
+    reader = csv.DictReader(io.StringIO(csv_data))
+    created_tools = []
+    errors = []
+    
+    for row_num, row in enumerate(reader, start=2):
+        try:
+            # Check if required fields are present
+            if not all(field in row for field in ['name', 'description', 'category_id', 'slug']):
+                errors.append(f"Row {row_num}: Missing required fields (name, description, category_id, slug)")
+                continue
+            
+            # Check if category exists
+            category = db.query(Category).filter(Category.id == row['category_id']).first()
+            if not category:
+                errors.append(f"Row {row_num}: Category not found with ID {row['category_id']}")
+                continue
+            
+            # Check if slug already exists
+            existing_tool = db.query(Tool).filter(Tool.slug == row['slug']).first()
+            if existing_tool:
+                errors.append(f"Row {row_num}: Slug '{row['slug']}' already exists")
+                continue
+            
+            # Convert string boolean values
+            is_hot = row.get('is_hot', 'false').lower() == 'true'
+            is_featured = row.get('is_featured', 'false').lower() == 'true'
+            
+            # Create tool data
+            tool_data = {
+                'id': str(uuid.uuid4()),
+                'name': row['name'],
+                'description': row['description'],
+                'short_description': row.get('short_description', ''),
+                'website_url': row.get('website_url', ''),
+                'pricing_model': row.get('pricing_model', ''),
+                'pricing_details': row.get('pricing_details', ''),
+                'features': row.get('features', ''),
+                'target_audience': row.get('target_audience', ''),
+                'company_size': row.get('company_size', ''),
+                'integrations': row.get('integrations', ''),
+                'logo_url': row.get('logo_url', ''),
+                'screenshots': row.get('screenshots', ''),
+                'video_url': row.get('video_url', ''),
+                'category_id': row['category_id'],
+                'subcategory_id': row.get('subcategory_id') if row.get('subcategory_id') else None,
+                'industry': row.get('industry', ''),
+                'employee_size': row.get('employee_size', ''),
+                'revenue_range': row.get('revenue_range', ''),
+                'location': row.get('location', ''),
+                'is_hot': is_hot,
+                'is_featured': is_featured,
+                'meta_title': row.get('meta_title', ''),
+                'meta_description': row.get('meta_description', ''),
+                'slug': row['slug'],
+                'created_at': datetime.utcnow(),
+                'last_updated': datetime.utcnow()
+            }
+            
+            # Handle launch_date if provided
+            if row.get('launch_date'):
+                try:
+                    tool_data['launch_date'] = datetime.strptime(row['launch_date'], '%Y-%m-%d')
+                except ValueError:
+                    errors.append(f"Row {row_num}: Invalid date format for launch_date (use YYYY-MM-DD)")
+                    continue
+            
+            db_tool = Tool(**tool_data)
+            db.add(db_tool)
+            created_tools.append(tool_data['name'])
+            
+        except Exception as e:
+            errors.append(f"Row {row_num}: {str(e)}")
+    
+    if created_tools:
+        db.commit()
+    
+    return {
+        "tools_created": len(created_tools),
+        "created_tools": created_tools,
+        "errors": errors
+    }
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
