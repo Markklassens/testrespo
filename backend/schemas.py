@@ -293,9 +293,26 @@ class ReviewResponse(ReviewBase):
     helpful_count: int
     created_at: datetime
     updated_at: Optional[datetime] = None
+    is_own_review: Optional[bool] = False
     
     class Config:
         from_attributes = True
+
+class ReviewStatusResponse(BaseModel):
+    has_reviewed: bool
+    review_id: Optional[str] = None
+    user_rating: Optional[int] = None
+    total_reviews: int
+    average_rating: float
+
+class BlogLikeResponse(BaseModel):
+    action: str
+    likes: int
+    user_liked: bool
+
+class BlogLikeStatusResponse(BaseModel):
+    user_liked: bool
+    total_likes: int
 
 # Comment Schemas
 class CommentBase(BaseModel):
