@@ -189,6 +189,9 @@ class Review(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
+    # Ensure one review per user per tool
+    __table_args__ = (UniqueConstraint('user_id', 'tool_id', name='unique_user_tool_review'),)
+    
     # Relationships
     user = relationship("User", back_populates="reviews")
     tool = relationship("Tool", back_populates="reviews")
