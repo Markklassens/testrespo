@@ -122,3 +122,30 @@ def authenticate_user(db: Session, email: str, password: str):
     if not verify_password(password, user.hashed_password):
         return False
     return user
+
+def check_tool_access(current_user: User, tool_id: str, db: Session):
+    """Check if current user has access to a specific tool"""
+    from models import Tool, ToolAccessRequest
+    
+    # Superadmins have access to all tools
+    if current_user.user_type == "superadmin":
+        return True
+    
+    # Regular admins only have access to assigned tools
+    if current_user.user_type == "admin":
+        tool = db.query(Tool).filter(Tool.id == tool_id).first()
+        if tool and tool.assigned_admin_id == current_user.id:
+            return True
+    
+    return False
+
+def require_tool_access(tool_id: str):
+    """Decorator to require tool access for admin operations"""
+    def decorator(current_user: User = Depends(get_current_verified_user), db: Session = Depends(get_db)):
+        if not check_tool_access(current_user, tool_id, db):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You don't have access to this tool. Please request access from a superadmin."
+            )
+        return current_user
+    return decorator
