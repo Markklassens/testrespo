@@ -469,3 +469,34 @@ class CombinedSearchResponse(BaseModel):
     google: Optional[SearchResponse] = None
     bing: Optional[SearchResponse] = None
     errors: Dict[str, str] = {}
+
+# Tool Access Request Schemas
+class ToolAccessRequestBase(BaseModel):
+    tool_id: str
+    request_message: Optional[str] = None
+
+class ToolAccessRequestCreate(ToolAccessRequestBase):
+    pass
+
+class ToolAccessRequestUpdate(BaseModel):
+    status: str  # approved, denied
+    response_message: Optional[str] = None
+
+class ToolAccessRequestResponse(BaseModel):
+    id: str
+    tool_id: str
+    admin_id: str
+    superadmin_id: Optional[str] = None
+    status: str
+    request_message: Optional[str] = None
+    response_message: Optional[str] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    
+    # Additional fields for display
+    tool_name: Optional[str] = None
+    admin_name: Optional[str] = None
+    superadmin_name: Optional[str] = None
+    
+    class Config:
+        from_attributes = True
