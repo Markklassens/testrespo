@@ -3346,6 +3346,50 @@ def run_trending_functionality_tests():
         print(f"\n❌ TRENDING FUNCTIONALITY TESTING FAILED with exception: {str(e)}")
         return False
 
+def run_tool_access_request_tests():
+    """Run the new tool access request system tests as requested in the review"""
+    print("Starting MarketMindAI Tool Access Request System Testing")
+    print(f"Backend URL: {BACKEND_URL}")
+    print("=" * 80)
+    
+    success = True
+    
+    try:
+        # First, ensure we have authentication tokens
+        if not test_health_check():
+            print("❌ Health check failed")
+            return False
+        
+        if not test_login():
+            print("❌ Login failed - cannot proceed with tool access request tests")
+            return False
+        
+        # Run the tool access request system tests
+        if not test_tool_access_request_system():
+            print("❌ Tool access request system tests failed")
+            success = False
+        
+        # Test SEO endpoints with access control
+        if not test_seo_endpoints_with_access_control():
+            print("❌ SEO endpoints access control tests failed")
+            success = False
+        
+        # Test tool content update endpoint
+        if not test_tool_content_update_endpoint():
+            print("❌ Tool content update endpoint tests failed")
+            success = False
+        
+        if success:
+            print("\n✅ ALL TOOL ACCESS REQUEST SYSTEM TESTS PASSED")
+            return True
+        else:
+            print("\n❌ SOME TOOL ACCESS REQUEST SYSTEM TESTS FAILED")
+            return False
+            
+    except Exception as e:
+        print(f"\n❌ TOOL ACCESS REQUEST SYSTEM TESTING FAILED with exception: {str(e)}")
+        return False
+
 def run_review_request_tests():
     """Run only the tests requested in the review request"""
     print("Starting MarketMindAI Review Request Testing")
