@@ -430,7 +430,7 @@ const Blogs = () => {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Content *
                   </label>
-                  <RichTextEditor
+                  <EnhancedRichTextEditor
                     value={newBlog.content}
                     onChange={(content) => {
                       setNewBlog({
