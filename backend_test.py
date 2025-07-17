@@ -3408,6 +3408,256 @@ def run_review_request_tests():
         print(f"\n❌ REVIEW REQUEST TESTING FAILED with exception: {str(e)}")
         return False
 
+def test_super_admin_categories_and_tools():
+    """Test Super Admin Categories and Tools functionality - REVIEW REQUEST SPECIFIC"""
+    print_test_header("SUPER ADMIN CATEGORIES AND TOOLS - REVIEW REQUEST SPECIFIC")
+    
+    success = True
+    
+    # Test 1: Super Admin Authentication
+    print_test_header("Test 1: Super Admin Authentication")
+    login_data = {
+        "email": "superadmin@marketmindai.com",
+        "password": "superadmin123"
+    }
+    response = make_request("POST", "/api/auth/login", login_data, expected_status=200)
+    if response.status_code != 200:
+        print("❌ Super Admin login failed")
+        success = False
+        return False
+    
+    superadmin_token = response.json()["access_token"]
+    print("✅ Super Admin login successful")
+    print(f"✅ Token generated: {superadmin_token[:20]}...")
+    
+    # Test 2: Categories API Testing
+    print_test_header("Test 2: Categories API Testing")
+    
+    # Test GET /api/categories
+    print_test_header("Test 2a: GET /api/categories")
+    response = make_request("GET", "/api/categories", expected_status=200)
+    if response.status_code != 200:
+        print("❌ GET /api/categories failed")
+        success = False
+    else:
+        categories = response.json()
+        print(f"✅ GET /api/categories returned {len(categories)} categories")
+        if not isinstance(categories, list):
+            print("❌ Categories should be a list")
+            success = False
+    
+    # Test POST /api/categories with superadmin token
+    print_test_header("Test 2b: POST /api/categories with superadmin token")
+    category_data = {
+        "name": f"Test Category {uuid.uuid4().hex[:8]}",
+        "description": "Test description for super admin category creation",
+        "icon": "test-icon",
+        "color": "#FF5733"
+    }
+    response = make_request("POST", "/api/categories", category_data, token=superadmin_token, expected_status=200)
+    if response.status_code != 200:
+        print("❌ POST /api/categories with superadmin token failed")
+        success = False
+        print_response(response)
+    else:
+        created_category = response.json()
+        print("✅ POST /api/categories with superadmin token successful")
+        print(f"✅ Created category: {created_category.get('name')} (ID: {created_category.get('id')})")
+        
+        # Store for tools test
+        global test_category_id
+        test_category_id = created_category["id"]
+    
+    # Test 3: Tools API Testing
+    print_test_header("Test 3: Tools API Testing")
+    
+    # Test GET /api/tools
+    print_test_header("Test 3a: GET /api/tools")
+    response = make_request("GET", "/api/tools", expected_status=200)
+    if response.status_code != 200:
+        print("❌ GET /api/tools failed")
+        success = False
+    else:
+        tools = response.json()
+        print(f"✅ GET /api/tools returned {len(tools)} tools")
+        if not isinstance(tools, list):
+            print("❌ Tools should be a list")
+            success = False
+    
+    # Test POST /api/tools with superadmin token
+    print_test_header("Test 3b: POST /api/tools with superadmin token")
+    if test_category_id:
+        tool_data = {
+            "name": f"Test Tool {uuid.uuid4().hex[:8]}",
+            "description": "Test description for super admin tool creation",
+            "category_id": test_category_id,
+            "slug": f"test-tool-{uuid.uuid4().hex[:8]}",
+            "pricing_model": "Freemium",
+            "company_size": "SMB",
+            "short_description": "Short test description"
+        }
+        response = make_request("POST", "/api/tools", tool_data, token=superadmin_token, expected_status=200)
+        if response.status_code != 200:
+            print("❌ POST /api/tools with superadmin token failed")
+            success = False
+            print_response(response)
+        else:
+            created_tool = response.json()
+            print("✅ POST /api/tools with superadmin token successful")
+            print(f"✅ Created tool: {created_tool.get('name')} (ID: {created_tool.get('id')})")
+            
+            # Store for later tests
+            global test_tool_id
+            test_tool_id = created_tool["id"]
+    else:
+        print("❌ Cannot test tool creation without valid category_id")
+        success = False
+    
+    # Test 4: Bulk Upload Testing
+    print_test_header("Test 4: Bulk Upload Testing")
+    
+    # Test GET /api/admin/tools/sample-csv
+    print_test_header("Test 4a: GET /api/admin/tools/sample-csv")
+    response = make_request("GET", "/api/admin/tools/sample-csv", token=superadmin_token, expected_status=200)
+    if response.status_code != 200:
+        print("❌ GET /api/admin/tools/sample-csv failed")
+        success = False
+        print_response(response)
+    else:
+        print("✅ GET /api/admin/tools/sample-csv successful")
+        
+        # Check response headers
+        content_type = response.headers.get("Content-Type")
+        if content_type != "text/csv":
+            print(f"❌ Expected CSV content type, got {content_type}")
+            success = False
+        else:
+            print("✅ CSV endpoint returns correct content type")
+        
+        content_disposition = response.headers.get("Content-Disposition")
+        if not content_disposition or "attachment" not in content_disposition:
+            print(f"❌ Expected attachment disposition, got {content_disposition}")
+            success = False
+        else:
+            print("✅ CSV endpoint returns correct content disposition")
+        
+        # Check CSV content
+        csv_content = response.text
+        if "name" not in csv_content or "description" not in csv_content:
+            print("❌ CSV content should contain headers")
+            success = False
+        else:
+            print("✅ CSV content contains expected headers")
+    
+    # Test POST /api/admin/tools/bulk-upload with sample CSV
+    print_test_header("Test 4b: POST /api/admin/tools/bulk-upload")
+    if test_category_id:
+        # Create sample CSV content
+        csv_content = f"""name,description,short_description,website_url,pricing_model,pricing_details,features,target_audience,company_size,integrations,logo_url,category_id,industry,employee_size,revenue_range,location,is_hot,is_featured,meta_title,meta_description,slug
+Bulk Test Tool 1,Comprehensive project management tool for teams,Project management made easy,https://example1.com,Freemium,Free tier available,Task management,Small businesses,SMB,Slack,https://example.com/logo1.png,{test_category_id},Technology,11-50,1M-10M,San Francisco,true,false,Bulk Test Tool 1 - Management,Streamline your projects,bulk-test-tool-1
+Bulk Test Tool 2,Advanced analytics platform,Analytics made simple,https://example2.com,Paid,Starting at $50/month,Analytics dashboard,Medium businesses,Mid-Market,Google Analytics,https://example.com/logo2.png,{test_category_id},Technology,51-200,10M-50M,New York,false,true,Bulk Test Tool 2 - Analytics,Advanced analytics platform,bulk-test-tool-2"""
+        
+        files = {'file': ('test_tools.csv', csv_content.encode('utf-8'), 'text/csv')}
+        response = make_request("POST", "/api/admin/tools/bulk-upload", files=files, token=superadmin_token, expected_status=200)
+        if response.status_code != 200:
+            print("❌ POST /api/admin/tools/bulk-upload failed")
+            success = False
+            print_response(response)
+        else:
+            bulk_result = response.json()
+            print("✅ POST /api/admin/tools/bulk-upload successful")
+            print(f"✅ Bulk upload result: {bulk_result}")
+            
+            if bulk_result.get("tools_created", 0) > 0:
+                print(f"✅ Successfully created {bulk_result['tools_created']} tools via bulk upload")
+            else:
+                print("❌ No tools were created via bulk upload")
+                success = False
+    else:
+        print("❌ Cannot test bulk upload without valid category_id")
+        success = False
+    
+    # Test 5: Authentication Flow Testing
+    print_test_header("Test 5: Authentication Flow Testing")
+    
+    # Test JWT token works for superadmin operations
+    print_test_header("Test 5a: JWT Token Authentication")
+    response = make_request("GET", "/api/auth/me", token=superadmin_token, expected_status=200)
+    if response.status_code != 200:
+        print("❌ JWT token authentication failed")
+        success = False
+    else:
+        user_info = response.json()
+        print("✅ JWT token authentication successful")
+        print(f"✅ User info: {user_info.get('full_name')} ({user_info.get('user_type')})")
+        
+        if user_info.get("user_type") != "superadmin":
+            print("❌ User should have superadmin role")
+            success = False
+        else:
+            print("✅ User has correct superadmin role")
+    
+    # Test role-based access control
+    print_test_header("Test 5b: Role-based Access Control")
+    
+    # Test that regular user cannot create categories
+    if "user" in tokens:
+        category_data = {
+            "name": f"Unauthorized Category {uuid.uuid4().hex[:8]}",
+            "description": "This should fail",
+            "icon": "fail-icon",
+            "color": "#000000"
+        }
+        response = make_request("POST", "/api/categories", category_data, token=tokens["user"], expected_status=403)
+        if response.status_code != 403:
+            print("❌ Regular user should not be able to create categories")
+            success = False
+        else:
+            print("✅ Regular user correctly denied category creation")
+    
+    # Test that regular admin cannot create categories (only superadmin can)
+    if "admin" in tokens:
+        category_data = {
+            "name": f"Admin Category {uuid.uuid4().hex[:8]}",
+            "description": "This should fail for regular admin",
+            "icon": "admin-icon",
+            "color": "#111111"
+        }
+        response = make_request("POST", "/api/categories", category_data, token=tokens["admin"], expected_status=403)
+        if response.status_code != 403:
+            print("❌ Regular admin should not be able to create categories")
+            success = False
+        else:
+            print("✅ Regular admin correctly denied category creation")
+    
+    # Test superadmin can access advanced analytics
+    print_test_header("Test 5c: Superadmin Advanced Analytics Access")
+    response = make_request("GET", "/api/admin/analytics/advanced", token=superadmin_token, expected_status=200)
+    if response.status_code != 200:
+        print("❌ Superadmin should be able to access advanced analytics")
+        success = False
+    else:
+        analytics = response.json()
+        print("✅ Superadmin can access advanced analytics")
+        
+        # Check analytics structure
+        expected_keys = ["user_stats", "content_stats", "review_stats", "recent_activity"]
+        for key in expected_keys:
+            if key not in analytics:
+                print(f"❌ Missing analytics key: {key}")
+                success = False
+        
+        if success:
+            print("✅ Advanced analytics has all expected data")
+    
+    if success:
+        print("✅ SUPER ADMIN CATEGORIES AND TOOLS TESTS PASSED - All functionality working correctly")
+    else:
+        print("❌ SUPER ADMIN CATEGORIES AND TOOLS TESTS FAILED - Issues found with super admin functionality")
+    
+    return success
+
 if __name__ == "__main__":
-    # Run the tool access request system tests as requested in the review
-    run_tool_access_request_tests()
+    # Run the specific test for the review request
+    print("Running Super Admin Categories and Tools Test - REVIEW REQUEST SPECIFIC")
+    test_super_admin_categories_and_tools()
