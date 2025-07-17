@@ -4,8 +4,8 @@ import api from '../../utils/api';
 // Async thunks
 export const fetchBlogs = createAsyncThunk(
   'blogs/fetchBlogs',
-  async ({ skip = 0, limit = 20, ...filters } = {}) => {
-    const params = new URLSearchParams({ skip, limit, ...filters });
+  async ({ skip = 0, limit = 20, status = 'published', ...filters } = {}) => {
+    const params = new URLSearchParams({ skip, limit, status, ...filters });
     const response = await api.get(`/api/blogs?${params}`);
     return response.data;
   }
