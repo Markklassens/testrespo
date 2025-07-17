@@ -469,6 +469,33 @@ async def get_category_analytics(db: Session = Depends(get_db)):
     
     return analytics
 
+# Categories CRUD Routes
+@app.get("/api/categories", response_model=List[CategoryResponse])
+async def get_categories(db: Session = Depends(get_db)):
+    """Get all categories"""
+    categories = db.query(Category).all()
+    return categories
+
+@app.post("/api/categories", response_model=CategoryResponse)
+async def create_category(
+    category: CategoryCreate,
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db)
+):
+    """Create a new category"""
+    db_category = Category(
+        id=str(uuid.uuid4()),
+        name=category.name,
+        description=category.description,
+        icon=category.icon,
+        color=category.color,
+        created_at=datetime.utcnow()
+    )
+    db.add(db_category)
+    db.commit()
+    db.refresh(db_category)
+    return db_category
+
 # AI Content Generation Routes
 @app.post("/api/ai/generate-content")
 async def generate_ai_content(
