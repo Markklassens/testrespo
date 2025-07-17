@@ -3408,5 +3408,5 @@ def run_review_request_tests():
         return False
 
 if __name__ == "__main__":
-    # Run the trending functionality tests as requested in the review
-    run_trending_functionality_tests()
+    # Run the tool access request system tests as requested in the review
+    run_tool_access_request_tests()
