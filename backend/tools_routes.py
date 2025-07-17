@@ -141,7 +141,7 @@ async def get_tool_by_id(
         raise HTTPException(status_code=404, detail="Tool not found")
     
     # Increment view count and update trending
-    increment_view_and_update_trending(tool_id, db)
+    increment_view_and_update_trending(db, tool_id)
     
     return tool
 
