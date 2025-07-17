@@ -23,7 +23,7 @@ class TestAdminToolManagement:
         
         response = client.put(f"/api/admin/tools/{test_tool.id}/content", json=update_data, headers=auth_headers)
         assert response.status_code == 403
-        assert "You don't have access to this tool" in response.json()["detail"]
+        assert "Not enough permissions" in response.json()["detail"]
     
     def test_request_tool_access(self, client, test_tool, test_admin, admin_headers):
         """Test requesting access to a tool"""
