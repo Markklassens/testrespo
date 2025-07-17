@@ -102,24 +102,105 @@ const RichTextEditor = ({
 
       const fileUrl = response.data.file_url;
       
-      // Insert into editor
+      // Insert into editor with advanced styling
       const quill = quillRef.current.getEditor();
       const range = quill.getSelection();
+      const index = range ? range.index : 0;
       
       if (file.type.startsWith('image/')) {
-        quill.insertEmbed(range ? range.index : 0, 'image', fileUrl);
+        // Create enhanced image HTML with advanced controls
+        const imageHtml = createAdvancedImageHtml(fileUrl, imageSettings);
+        quill.clipboard.dangerouslyPasteHTML(index, imageHtml);
       } else if (file.type.startsWith('video/')) {
-        quill.insertEmbed(range ? range.index : 0, 'video', fileUrl);
+        // Create enhanced video HTML with advanced controls  
+        const videoHtml = createAdvancedVideoHtml(fileUrl, videoSettings);
+        quill.clipboard.dangerouslyPasteHTML(index, videoHtml);
       }
 
       toast.success('File uploaded successfully!');
       setShowImageUpload(false);
       setShowVideoUpload(false);
+      
+      // Reset settings
+      resetImageSettings();
+      resetVideoSettings();
+      
     } catch (error) {
       toast.error('Upload failed: ' + error.message);
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const createAdvancedImageHtml = (src, settings) => {
+    const styles = [
+      `width: ${settings.width === 'auto' ? 'auto' : settings.width + 'px'}`,
+      `height: ${settings.height === 'auto' ? 'auto' : settings.height + 'px'}`,
+      `border-radius: ${settings.borderRadius}px`,
+      `display: block`,
+      `margin: ${settings.alignment === 'center' ? '0 auto' : settings.alignment === 'left' ? '0 auto 0 0' : '0 0 0 auto'}`,
+      settings.border ? 'border: 2px solid #e5e7eb' : '',
+      'max-width: 100%'
+    ].filter(Boolean).join('; ');
+
+    return `
+      <div style="margin: 20px 0; text-align: ${settings.alignment};">
+        ${settings.title ? `<h4 style="margin: 0 0 10px 0; font-size: 16px; font-weight: 600; color: #374151;">${settings.title}</h4>` : ''}
+        <img src="${src}" 
+             alt="${settings.alt || 'Uploaded image'}" 
+             title="${settings.title || ''}"
+             style="${styles}" />
+        ${settings.caption ? `<p style="margin: 10px 0 0 0; font-size: 14px; color: #6b7280; font-style: italic;">${settings.caption}</p>` : ''}
+      </div>
+    `;
+  };
+
+  const createAdvancedVideoHtml = (src, settings) => {
+    const videoAttributes = [
+      `width="${settings.width}"`,
+      `height="${settings.height}"`,
+      settings.controls ? 'controls' : '',
+      settings.autoplay ? 'autoplay' : '',
+      settings.muted ? 'muted' : '',
+      settings.loop ? 'loop' : '',
+      'style="max-width: 100%; border-radius: 8px;"'
+    ].filter(Boolean).join(' ');
+
+    return `
+      <div style="margin: 20px 0; text-align: ${settings.alignment};">
+        ${settings.title ? `<h4 style="margin: 0 0 10px 0; font-size: 16px; font-weight: 600; color: #374151;">${settings.title}</h4>` : ''}
+        <video ${videoAttributes}>
+          <source src="${src}" type="video/mp4">
+          Your browser does not support the video tag.
+        </video>
+      </div>
+    `;
+  };
+
+  const resetImageSettings = () => {
+    setImageSettings({
+      width: 'auto',
+      height: 'auto',
+      title: '',
+      alt: '',
+      alignment: 'center',
+      caption: '',
+      borderRadius: '0',
+      border: false
+    });
+  };
+
+  const resetVideoSettings = () => {
+    setVideoSettings({
+      width: '100%',
+      height: '400px',
+      title: '',
+      autoplay: false,
+      controls: true,
+      muted: false,
+      loop: false,
+      alignment: 'center'
+    });
   };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
