@@ -181,7 +181,10 @@ async def create_review(
     ).first()
     
     if existing_review:
-        raise HTTPException(status_code=400, detail="You have already reviewed this tool")
+        raise HTTPException(
+            status_code=400, 
+            detail="You have already reviewed this tool. Use the edit option to update your review."
+        )
     
     # Create review
     db_review = Review(
@@ -215,11 +218,37 @@ async def get_tool_reviews(
     tool_id: str,
     skip: int = 0,
     limit: int = 20,
+    current_user: User = Depends(get_current_user_optional),
     db: Session = Depends(get_db)
 ):
-    """Get reviews for a tool"""
+    """Get reviews for a tool with user's review status"""
     reviews = db.query(Review).filter(Review.tool_id == tool_id).offset(skip).limit(limit).all()
+    
+    # Add user's review status to each review
+    for review in reviews:
+        if current_user and review.user_id == current_user.id:
+            review.is_own_review = True
+        else:
+            review.is_own_review = False
+    
     return reviews
+
+@router.get("/{tool_id}/reviews/my-review", response_model=ReviewResponse)
+async def get_my_review(
+    tool_id: str,
+    current_user: User = Depends(get_current_verified_user),
+    db: Session = Depends(get_db)
+):
+    """Get current user's review for a tool"""
+    review = db.query(Review).filter(
+        Review.tool_id == tool_id,
+        Review.user_id == current_user.id
+    ).first()
+    
+    if not review:
+        raise HTTPException(status_code=404, detail="You haven't reviewed this tool yet")
+    
+    return review
 
 @router.put("/reviews/{review_id}", response_model=ReviewResponse)
 async def update_review(
