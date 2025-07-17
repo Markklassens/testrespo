@@ -233,22 +233,30 @@ async def get_tool_reviews(
     
     return reviews
 
-@router.get("/{tool_id}/reviews/my-review", response_model=ReviewResponse)
-async def get_my_review(
+@router.get("/{tool_id}/review-status")
+async def get_tool_review_status(
     tool_id: str,
     current_user: User = Depends(get_current_verified_user),
     db: Session = Depends(get_db)
 ):
-    """Get current user's review for a tool"""
-    review = db.query(Review).filter(
+    """Get user's review status for a tool"""
+    tool = db.query(Tool).filter(Tool.id == tool_id).first()
+    if not tool:
+        raise HTTPException(status_code=404, detail="Tool not found")
+    
+    # Check if user has reviewed this tool
+    user_review = db.query(Review).filter(
         Review.tool_id == tool_id,
         Review.user_id == current_user.id
     ).first()
     
-    if not review:
-        raise HTTPException(status_code=404, detail="You haven't reviewed this tool yet")
-    
-    return review
+    return {
+        "has_reviewed": user_review is not None,
+        "review_id": user_review.id if user_review else None,
+        "user_rating": user_review.rating if user_review else None,
+        "total_reviews": tool.total_reviews,
+        "average_rating": tool.rating
+    }
 
 @router.put("/reviews/{review_id}", response_model=ReviewResponse)
 async def update_review(
