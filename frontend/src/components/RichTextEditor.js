@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { useDropzone } from 'react-dropzone';
-import { PhotoIcon, FilmIcon, CodeBracketIcon } from '@heroicons/react/24/outline';
+import { PhotoIcon, FilmIcon, CodeBracketIcon, AdjustmentsHorizontalIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import api from '../utils/api';
 import { toast } from 'react-hot-toast';
 
@@ -19,6 +19,31 @@ const RichTextEditor = ({
   const [showCodeBlock, setShowCodeBlock] = useState(false);
   const [codeLanguage, setCodeLanguage] = useState('javascript');
   const [codeContent, setCodeContent] = useState('');
+  const [codeTitle, setCodeTitle] = useState('');
+  
+  // Advanced media controls state
+  const [imageSettings, setImageSettings] = useState({
+    width: 'auto',
+    height: 'auto',
+    title: '',
+    alt: '',
+    alignment: 'center',
+    caption: '',
+    borderRadius: '0',
+    border: false
+  });
+  
+  const [videoSettings, setVideoSettings] = useState({
+    width: '100%',
+    height: '400px',
+    title: '',
+    autoplay: false,
+    controls: true,
+    muted: false,
+    loop: false,
+    alignment: 'center'
+  });
+  
   const quillRef = useRef(null);
 
   // Memoize handlers to prevent recreation on every render
