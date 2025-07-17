@@ -389,44 +389,188 @@ const RichTextEditor = ({
         </button>
       </div>
 
-      {/* Image Upload Modal */}
+      {/* Enhanced Image Upload Modal */}
       {showImageUpload && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold mb-4">Upload Image</h3>
-            
-            <div
-              {...getRootProps()}
-              className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-                isDragActive 
-                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
-                  : 'border-gray-300 dark:border-gray-600 hover:border-blue-400'
-              }`}
-            >
-              <input {...getInputProps()} />
-              <PhotoIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              {isUploading ? (
-                <p>Uploading...</p>
-              ) : isDragActive ? (
-                <p>Drop the image here...</p>
-              ) : (
-                <div>
-                  <p className="text-gray-600 dark:text-gray-300">
-                    Drag & drop an image here, or click to select
-                  </p>
-                  <p className="text-sm text-gray-500 mt-2">
-                    PNG, JPG, GIF up to 10MB
-                  </p>
-                </div>
-              )}
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Upload & Configure Image</h3>
+              <button
+                onClick={() => setShowImageUpload(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <XMarkIcon className="h-6 w-6" />
+              </button>
             </div>
             
-            <div className="flex justify-end space-x-4 mt-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Upload Section */}
+              <div>
+                <h4 className="text-lg font-medium mb-4 text-gray-900 dark:text-white">Upload Image</h4>
+                <div
+                  {...getRootProps()}
+                  className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                    isDragActive 
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
+                      : 'border-gray-300 dark:border-gray-600 hover:border-blue-400'
+                  }`}
+                >
+                  <input {...getInputProps()} />
+                  <PhotoIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  {isUploading ? (
+                    <div className="space-y-2">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+                      <p className="text-gray-600 dark:text-gray-300">Uploading...</p>
+                    </div>
+                  ) : isDragActive ? (
+                    <p className="text-gray-600 dark:text-gray-300">Drop the image here...</p>
+                  ) : (
+                    <div>
+                      <p className="text-gray-600 dark:text-gray-300 mb-2">
+                        Drag & drop an image here, or click to select
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        PNG, JPG, GIF, WebP up to 10MB
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Advanced Controls */}
+              <div>
+                <h4 className="text-lg font-medium mb-4 text-gray-900 dark:text-white">Image Settings</h4>
+                <div className="space-y-4">
+                  {/* Title */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Title
+                    </label>
+                    <input
+                      type="text"
+                      value={imageSettings.title}
+                      onChange={(e) => setImageSettings({...imageSettings, title: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                      placeholder="Image title (optional)"
+                    />
+                  </div>
+
+                  {/* Alt Text */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Alt Text
+                    </label>
+                    <input
+                      type="text"
+                      value={imageSettings.alt}
+                      onChange={(e) => setImageSettings({...imageSettings, alt: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                      placeholder="Alt text for accessibility"
+                    />
+                  </div>
+
+                  {/* Caption */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Caption
+                    </label>
+                    <input
+                      type="text"
+                      value={imageSettings.caption}
+                      onChange={(e) => setImageSettings({...imageSettings, caption: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                      placeholder="Image caption (optional)"
+                    />
+                  </div>
+
+                  {/* Dimensions */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Width
+                      </label>
+                      <input
+                        type="text"
+                        value={imageSettings.width}
+                        onChange={(e) => setImageSettings({...imageSettings, width: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                        placeholder="auto or px value"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Height
+                      </label>
+                      <input
+                        type="text"
+                        value={imageSettings.height}
+                        onChange={(e) => setImageSettings({...imageSettings, height: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                        placeholder="auto or px value"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Alignment */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Alignment
+                    </label>
+                    <select
+                      value={imageSettings.alignment}
+                      onChange={(e) => setImageSettings({...imageSettings, alignment: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    >
+                      <option value="left">Left</option>
+                      <option value="center">Center</option>
+                      <option value="right">Right</option>
+                    </select>
+                  </div>
+
+                  {/* Border Radius */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Border Radius (px)
+                    </label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="50"
+                      value={imageSettings.borderRadius}
+                      onChange={(e) => setImageSettings({...imageSettings, borderRadius: e.target.value})}
+                      className="w-full"
+                    />
+                    <div className="text-sm text-gray-500 mt-1">{imageSettings.borderRadius}px</div>
+                  </div>
+
+                  {/* Border */}
+                  <div>
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={imageSettings.border}
+                        onChange={(e) => setImageSettings({...imageSettings, border: e.target.checked})}
+                        className="mr-2 rounded focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700 dark:text-gray-300">Add border</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex justify-end space-x-4 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
               <button
                 onClick={() => setShowImageUpload(false)}
                 className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100"
               >
                 Cancel
+              </button>
+              <button
+                onClick={() => resetImageSettings()}
+                className="px-4 py-2 text-blue-600 hover:text-blue-800 font-medium"
+              >
+                Reset Settings
               </button>
             </div>
           </div>
