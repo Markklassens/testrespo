@@ -271,16 +271,73 @@ const RichTextEditor = ({
     
     // Handle YouTube, Vimeo, etc.
     let embedUrl = url;
+    let embedHtml = '';
+    
     if (url.includes('youtube.com/watch?v=')) {
       const videoId = url.split('v=')[1].split('&')[0];
       embedUrl = `https://www.youtube.com/embed/${videoId}`;
+      embedHtml = createAdvancedYouTubeEmbed(embedUrl, videoSettings);
     } else if (url.includes('vimeo.com/')) {
       const videoId = url.split('/').pop();
       embedUrl = `https://player.vimeo.com/video/${videoId}`;
+      embedHtml = createAdvancedVimeoEmbed(embedUrl, videoSettings);
+    } else {
+      // Regular video URL
+      embedHtml = createAdvancedVideoHtml(url, videoSettings);
     }
     
-    quill.insertEmbed(range ? range.index : 0, 'video', embedUrl);
+    quill.clipboard.dangerouslyPasteHTML(range ? range.index : 0, embedHtml);
     setShowVideoUpload(false);
+    resetVideoSettings();
+  };
+
+  const createAdvancedYouTubeEmbed = (embedUrl, settings) => {
+    const params = new URLSearchParams({
+      autoplay: settings.autoplay ? '1' : '0',
+      controls: settings.controls ? '1' : '0',
+      mute: settings.muted ? '1' : '0',
+      loop: settings.loop ? '1' : '0',
+      rel: '0',
+      modestbranding: '1'
+    });
+
+    return `
+      <div style="margin: 20px 0; text-align: ${settings.alignment};">
+        ${settings.title ? `<h4 style="margin: 0 0 10px 0; font-size: 16px; font-weight: 600; color: #374151;">${settings.title}</h4>` : ''}
+        <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: ${settings.width}; margin: 0 auto; border-radius: 8px;">
+          <iframe 
+            src="${embedUrl}?${params.toString()}" 
+            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; border-radius: 8px;"
+            allowfullscreen>
+          </iframe>
+        </div>
+      </div>
+    `;
+  };
+
+  const createAdvancedVimeoEmbed = (embedUrl, settings) => {
+    const params = new URLSearchParams({
+      autoplay: settings.autoplay ? '1' : '0',
+      controls: settings.controls ? '1' : '0',
+      muted: settings.muted ? '1' : '0',
+      loop: settings.loop ? '1' : '0',
+      title: '0',
+      byline: '0',
+      portrait: '0'
+    });
+
+    return `
+      <div style="margin: 20px 0; text-align: ${settings.alignment};">
+        ${settings.title ? `<h4 style="margin: 0 0 10px 0; font-size: 16px; font-weight: 600; color: #374151;">${settings.title}</h4>` : ''}
+        <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: ${settings.width}; margin: 0 auto; border-radius: 8px;">
+          <iframe 
+            src="${embedUrl}?${params.toString()}" 
+            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; border-radius: 8px;"
+            allowfullscreen>
+          </iframe>
+        </div>
+      </div>
+    `;
   };
 
   // Memoize the onChange handler to prevent unnecessary re-renders
