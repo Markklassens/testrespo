@@ -22,6 +22,7 @@ import BlogDetail from './pages/BlogDetail';
 import AdminPanel from './pages/AdminPanel';
 import MyBlogs from './pages/MyBlogs';
 import Compare from './pages/Compare';
+import Profile from './pages/Profile';
 import LoadingSpinner from './components/LoadingSpinner';
 import './codespaceCompat';
 import './App.css';
