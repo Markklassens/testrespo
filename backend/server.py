@@ -2017,6 +2017,219 @@ async def delete_comment(
     
     return {"message": "Comment deleted successfully"}
 
+# Tool Access Request Routes
+@app.post("/api/admin/tools/{tool_id}/request-access", response_model=ToolAccessRequestResponse)
+async def request_tool_access(
+    tool_id: str,
+    request_data: ToolAccessRequestCreate,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Request access to a tool (Admin only)"""
+    from models import ToolAccessRequest
+    
+    # Check if tool exists
+    tool = db.query(Tool).filter(Tool.id == tool_id).first()
+    if not tool:
+        raise HTTPException(status_code=404, detail="Tool not found")
+    
+    # Check if admin already has access
+    if tool.assigned_admin_id == current_user.id:
+        raise HTTPException(status_code=400, detail="You already have access to this tool")
+    
+    # Check if there's already a pending request
+    existing_request = db.query(ToolAccessRequest).filter(
+        ToolAccessRequest.tool_id == tool_id,
+        ToolAccessRequest.admin_id == current_user.id,
+        ToolAccessRequest.status == "pending"
+    ).first()
+    
+    if existing_request:
+        raise HTTPException(status_code=400, detail="You already have a pending request for this tool")
+    
+    # Create access request
+    access_request = ToolAccessRequest(
+        id=str(uuid.uuid4()),
+        tool_id=tool_id,
+        admin_id=current_user.id,
+        request_message=request_data.request_message,
+        status="pending"
+    )
+    
+    db.add(access_request)
+    db.commit()
+    db.refresh(access_request)
+    
+    # Add additional fields for response
+    response = ToolAccessRequestResponse(
+        id=access_request.id,
+        tool_id=access_request.tool_id,
+        admin_id=access_request.admin_id,
+        superadmin_id=access_request.superadmin_id,
+        status=access_request.status,
+        request_message=access_request.request_message,
+        response_message=access_request.response_message,
+        created_at=access_request.created_at,
+        updated_at=access_request.updated_at,
+        tool_name=tool.name,
+        admin_name=current_user.full_name
+    )
+    
+    return response
+
+@app.get("/api/admin/tools/access-requests", response_model=List[ToolAccessRequestResponse])
+async def get_tool_access_requests(
+    current_user: User = Depends(require_superadmin),
+    status: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 50,
+    db: Session = Depends(get_db)
+):
+    """Get all tool access requests (Super Admin only)"""
+    from models import ToolAccessRequest
+    
+    query = db.query(ToolAccessRequest)
+    
+    if status:
+        query = query.filter(ToolAccessRequest.status == status)
+    
+    requests = query.order_by(desc(ToolAccessRequest.created_at)).offset(skip).limit(limit).all()
+    
+    # Add additional fields for response
+    response_list = []
+    for request in requests:
+        tool = db.query(Tool).filter(Tool.id == request.tool_id).first()
+        admin = db.query(User).filter(User.id == request.admin_id).first()
+        superadmin = db.query(User).filter(User.id == request.superadmin_id).first() if request.superadmin_id else None
+        
+        response_item = ToolAccessRequestResponse(
+            id=request.id,
+            tool_id=request.tool_id,
+            admin_id=request.admin_id,
+            superadmin_id=request.superadmin_id,
+            status=request.status,
+            request_message=request.request_message,
+            response_message=request.response_message,
+            created_at=request.created_at,
+            updated_at=request.updated_at,
+            tool_name=tool.name if tool else "Unknown Tool",
+            admin_name=admin.full_name if admin else "Unknown Admin",
+            superadmin_name=superadmin.full_name if superadmin else None
+        )
+        response_list.append(response_item)
+    
+    return response_list
+
+@app.get("/api/admin/tools/my-requests", response_model=List[ToolAccessRequestResponse])
+async def get_my_tool_requests(
+    current_user: User = Depends(require_admin),
+    skip: int = 0,
+    limit: int = 50,
+    db: Session = Depends(get_db)
+):
+    """Get current admin's tool access requests"""
+    from models import ToolAccessRequest
+    
+    requests = db.query(ToolAccessRequest).filter(
+        ToolAccessRequest.admin_id == current_user.id
+    ).order_by(desc(ToolAccessRequest.created_at)).offset(skip).limit(limit).all()
+    
+    # Add additional fields for response
+    response_list = []
+    for request in requests:
+        tool = db.query(Tool).filter(Tool.id == request.tool_id).first()
+        superadmin = db.query(User).filter(User.id == request.superadmin_id).first() if request.superadmin_id else None
+        
+        response_item = ToolAccessRequestResponse(
+            id=request.id,
+            tool_id=request.tool_id,
+            admin_id=request.admin_id,
+            superadmin_id=request.superadmin_id,
+            status=request.status,
+            request_message=request.request_message,
+            response_message=request.response_message,
+            created_at=request.created_at,
+            updated_at=request.updated_at,
+            tool_name=tool.name if tool else "Unknown Tool",
+            admin_name=current_user.full_name,
+            superadmin_name=superadmin.full_name if superadmin else None
+        )
+        response_list.append(response_item)
+    
+    return response_list
+
+@app.put("/api/admin/tools/access-requests/{request_id}", response_model=ToolAccessRequestResponse)
+async def process_tool_access_request(
+    request_id: str,
+    update_data: ToolAccessRequestUpdate,
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db)
+):
+    """Process a tool access request (Super Admin only)"""
+    from models import ToolAccessRequest
+    
+    access_request = db.query(ToolAccessRequest).filter(ToolAccessRequest.id == request_id).first()
+    if not access_request:
+        raise HTTPException(status_code=404, detail="Access request not found")
+    
+    if access_request.status != "pending":
+        raise HTTPException(status_code=400, detail="Request has already been processed")
+    
+    # Update request
+    access_request.status = update_data.status
+    access_request.response_message = update_data.response_message
+    access_request.superadmin_id = current_user.id
+    
+    # If approved, assign the tool to the admin
+    if update_data.status == "approved":
+        tool = db.query(Tool).filter(Tool.id == access_request.tool_id).first()
+        if tool:
+            tool.assigned_admin_id = access_request.admin_id
+    
+    db.commit()
+    db.refresh(access_request)
+    
+    # Add additional fields for response
+    tool = db.query(Tool).filter(Tool.id == access_request.tool_id).first()
+    admin = db.query(User).filter(User.id == access_request.admin_id).first()
+    
+    response = ToolAccessRequestResponse(
+        id=access_request.id,
+        tool_id=access_request.tool_id,
+        admin_id=access_request.admin_id,
+        superadmin_id=access_request.superadmin_id,
+        status=access_request.status,
+        request_message=access_request.request_message,
+        response_message=access_request.response_message,
+        created_at=access_request.created_at,
+        updated_at=access_request.updated_at,
+        tool_name=tool.name if tool else "Unknown Tool",
+        admin_name=admin.full_name if admin else "Unknown Admin",
+        superadmin_name=current_user.full_name
+    )
+    
+    return response
+
+@app.get("/api/admin/tools/assigned", response_model=List[ToolResponse])
+async def get_assigned_tools(
+    current_user: User = Depends(require_admin),
+    skip: int = 0,
+    limit: int = 50,
+    db: Session = Depends(get_db)
+):
+    """Get tools assigned to current admin"""
+    
+    # Superadmins can see all tools
+    if current_user.user_type == "superadmin":
+        tools = db.query(Tool).offset(skip).limit(limit).all()
+    else:
+        # Regular admins only see assigned tools
+        tools = db.query(Tool).filter(
+            Tool.assigned_admin_id == current_user.id
+        ).offset(skip).limit(limit).all()
+    
+    return tools
+
 # File Upload Route
 @app.post("/api/upload")
 async def upload_file(
