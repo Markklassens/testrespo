@@ -284,6 +284,47 @@ async def get_user_dashboard_stats(
         }
     }
 
+# File Upload Route
+@user_router.post("/upload")
+async def upload_file(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_verified_user)
+):
+    """Upload file and return base64 encoded data"""
+    try:
+        # Check file size (max 10MB)
+        file_size = 0
+        content = await file.read()
+        file_size = len(content)
+        
+        if file_size > 10 * 1024 * 1024:  # 10MB limit
+            raise HTTPException(status_code=400, detail="File too large. Maximum size is 10MB")
+        
+        # Check file type
+        allowed_types = [
+            'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
+            'video/mp4', 'video/avi', 'video/mov', 'video/wmv'
+        ]
+        
+        if file.content_type not in allowed_types:
+            raise HTTPException(status_code=400, detail="File type not allowed")
+        
+        # Convert to base64
+        base64_content = base64.b64encode(content).decode('utf-8')
+        
+        # Create data URL
+        data_url = f"data:{file.content_type};base64,{base64_content}"
+        
+        return {
+            "file_url": data_url,
+            "filename": file.filename,
+            "content_type": file.content_type,
+            "size": file_size
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
 # Include both routers
 def get_user_routes():
     """Return combined user routes"""
