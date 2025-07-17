@@ -416,6 +416,36 @@ backend:
         agent: "testing"
         comment: "TRENDING FUNCTIONALITY TESTS PASSED - All trending features working correctly. Successfully tested: 1) /api/tools/analytics endpoint returns all required trending data (trending_tools, top_rated_tools, most_viewed_tools, newest_tools, featured_tools, hot_tools), 2) /api/tools/{tool_id} endpoint correctly increments views and updates trending scores, 3) /api/admin/tools/update-trending endpoint works for superadmin users with detailed update statistics, 4) /api/admin/tools/update-trending-manual endpoint successfully triggers manual trending updates, 5) /api/admin/tools/trending-stats endpoint returns comprehensive trending statistics with proper data structure, 6) Trending scores are calculated correctly and tools are properly sorted by trending score, 7) Role-based access control works correctly - regular admin users are denied access to superadmin-only trending endpoints. All trending functionality is working as expected for the discovery page."
 
+  - task: "Review System Functionality"
+    implemented: true
+    working: true
+    file: "/app/backend/tools_routes.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Initial setup for testing new review system functionality as requested in review request"
+      - working: true
+        agent: "testing"
+        comment: "REVIEW SYSTEM FUNCTIONALITY TESTS PASSED - All review features working correctly. Successfully tested: 1) User Authentication with admin credentials (admin@marketmindai.com/admin123) works perfectly, 2) Review Creation via POST /api/tools/{tool_id}/reviews successfully creates reviews with all required fields (rating, title, content, pros, cons), 3) Duplicate review prevention works correctly - users cannot create second review for same tool with appropriate error message, 4) Review Status Check via GET /api/tools/{tool_id}/review-status returns correct metadata (has_reviewed, review_id, user_rating, total_reviews, average_rating), 5) Review Editing via PUT /api/tools/reviews/{review_id} allows users to edit their own reviews and updates tool statistics correctly, 6) Review Deletion via DELETE /api/tools/reviews/{review_id} allows users to delete their own reviews and recalculates tool statistics properly, 7) Database constraints work correctly - one review per user per tool is enforced. All review system functionality is working as expected with proper authentication, authorization, and data integrity."
+
+  - task: "Blog Like System"
+    implemented: true
+    working: true
+    file: "/app/backend/blogs_routes.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Initial setup for testing blog like system functionality as requested in review request"
+      - working: true
+        agent: "testing"
+        comment: "BLOG LIKE SYSTEM TESTS PASSED - All blog like features working correctly. Successfully tested: 1) User can like a blog via POST /api/blogs/{blog_id}/like with proper response format (action, likes, user_liked), 2) Like count is tracked correctly and increments/decrements properly, 3) User can unlike a blog (toggle functionality) - same endpoint toggles between like/unlike states, 4) Like status check via GET /api/blogs/{blog_id}/like-status returns correct user like status and total likes count, 5) Database constraint works correctly - one like per user per blog is enforced through toggle functionality preventing duplicate likes, 6) All like operations require proper authentication and return appropriate responses. The blog like system is fully functional with proper toggle behavior and data integrity."
+
 frontend:
   - task: "Frontend Authentication"
     implemented: true
