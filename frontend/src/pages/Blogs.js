@@ -7,7 +7,8 @@ import {
   ClockIcon, 
   UserIcon,
   PencilIcon,
-  PlusIcon 
+  PlusIcon,
+  DocumentTextIcon
 } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
 import LoadingSpinner from '../components/LoadingSpinner';
