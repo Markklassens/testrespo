@@ -287,3 +287,21 @@ class SearchHistory(Base):
     # Relationships
     tool = relationship("FreeTool", back_populates="search_history")
     user = relationship("User", backref="search_history")
+
+class ToolAccessRequest(Base):
+    __tablename__ = "tool_access_requests"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    tool_id = Column(String, ForeignKey("tools.id"), nullable=False)
+    admin_id = Column(String, ForeignKey("users.id"), nullable=False)  # Admin requesting access
+    superadmin_id = Column(String, ForeignKey("users.id"), nullable=True)  # Superadmin who approved/denied
+    status = Column(String, default="pending")  # pending, approved, denied
+    request_message = Column(Text, nullable=True)  # Admin's reason for requesting
+    response_message = Column(Text, nullable=True)  # Superadmin's response
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Relationships
+    tool = relationship("Tool", backref="access_requests")
+    admin = relationship("User", foreign_keys=[admin_id], backref="tool_access_requests")
+    superadmin = relationship("User", foreign_keys=[superadmin_id], backref="processed_requests")
