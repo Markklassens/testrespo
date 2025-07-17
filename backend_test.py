@@ -4054,7 +4054,430 @@ Bulk Test Tool 2,Advanced analytics platform,Analytics made simple,https://examp
     
     return success
 
+def test_enhanced_blog_functionality():
+    """Test enhanced blog functionality with comprehensive testing - REVIEW REQUEST"""
+    print_test_header("ENHANCED BLOG FUNCTIONALITY - COMPREHENSIVE TESTING")
+    
+    success = True
+    
+    # Test 1: User Authentication with admin credentials
+    print_test_header("Test 1: User Authentication with Admin Credentials")
+    
+    admin_login_data = {
+        "email": "admin@marketmindai.com",
+        "password": "admin123"
+    }
+    response = make_request("POST", "/api/auth/login", admin_login_data, expected_status=200)
+    if response.status_code != 200:
+        print("❌ Admin login failed")
+        success = False
+        return False
+    
+    admin_token = response.json()["access_token"]
+    admin_user_id = None
+    
+    # Get current user info
+    user_response = make_request("GET", "/api/auth/me", token=admin_token)
+    if user_response.status_code == 200:
+        admin_user_id = user_response.json()["id"]
+        print(f"✅ Admin authentication successful (User ID: {admin_user_id})")
+    else:
+        print("❌ Failed to get admin user info")
+        success = False
+        return False
+    
+    # Get a category for blog creation
+    categories_response = make_request("GET", "/api/categories")
+    if categories_response.status_code != 200 or not categories_response.json():
+        print("❌ Cannot get categories for blog testing")
+        return False
+    
+    test_category = categories_response.json()[0]
+    category_id = test_category["id"]
+    print(f"ℹ️ Using category: {test_category['name']} (ID: {category_id})")
+    
+    # Test 2: Enhanced Blog Creation with Draft Status
+    print_test_header("Test 2: Enhanced Blog Creation with Draft Status")
+    
+    enhanced_blog_data = {
+        "title": f"Enhanced Blog with Rich Content {uuid.uuid4().hex[:8]}",
+        "content": """
+        <h2>Introduction</h2>
+        <p>This is an enhanced blog post with rich content including:</p>
+        
+        <h3>Images with Size Controls</h3>
+        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChAI9jU8j8wAAAABJRU5ErkJggg==" 
+             alt="Sample Image" 
+             style="width: 300px; height: 200px; object-fit: cover;" />
+        
+        <h3>Video with Aspect Ratios</h3>
+        <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;">
+            <iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" 
+                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" 
+                    frameborder="0" allowfullscreen></iframe>
+        </div>
+        
+        <h3>Code Blocks with Advanced Formatting</h3>
+        <pre><code class="language-javascript">
+// JavaScript example with syntax highlighting
+function enhancedBlogFeature() {
+    const blogData = {
+        title: "Enhanced Blog",
+        content: "Rich content with formatting",
+        status: "draft"
+    };
+    
+    return blogData;
+}
+        </code></pre>
+        
+        <pre><code class="language-python">
+# Python example with theme
+def create_enhanced_blog():
+    blog = {
+        "title": "Enhanced Blog Post",
+        "content": "Rich content with images and videos",
+        "formatting": "advanced"
+    }
+    return blog
+        </code></pre>
+        
+        <h3>Advanced Formatting</h3>
+        <p><strong>Bold text</strong> and <em>italic text</em> with <u>underlined content</u>.</p>
+        <ul>
+            <li>Enhanced bullet points</li>
+            <li>Rich text formatting</li>
+            <li>Advanced content structure</li>
+        </ul>
+        
+        <blockquote>
+            This is a blockquote with enhanced styling and formatting capabilities.
+        </blockquote>
+        """,
+        "excerpt": "An enhanced blog post demonstrating rich content capabilities including images, videos, and code blocks with advanced formatting.",
+        "status": "draft",  # Creating as draft first
+        "category_id": category_id,
+        "meta_title": "Enhanced Blog with Rich Content - MarketMindAI",
+        "meta_description": "Comprehensive blog post showcasing enhanced content features including images with size controls, videos with aspect ratios, and code blocks with advanced formatting themes.",
+        "slug": f"enhanced-blog-rich-content-{uuid.uuid4().hex[:8]}",
+        "is_ai_generated": False
+    }
+    
+    response = make_request("POST", "/api/blogs", enhanced_blog_data, token=admin_token, expected_status=200)
+    if response.status_code != 200:
+        print("❌ Enhanced blog creation with draft status failed")
+        success = False
+        return False
+    
+    draft_blog = response.json()
+    draft_blog_id = draft_blog["id"]
+    print("✅ Enhanced blog creation with draft status successful")
+    
+    # Verify draft blog properties
+    if draft_blog.get("status") != "draft":
+        print(f"❌ Expected status 'draft', got {draft_blog.get('status')}")
+        success = False
+    
+    if draft_blog.get("published_at") is not None:
+        print("❌ Draft blog should not have published_at timestamp")
+        success = False
+    
+    if draft_blog.get("author_id") != admin_user_id:
+        print(f"❌ Expected author_id {admin_user_id}, got {draft_blog.get('author_id')}")
+        success = False
+    
+    # Verify enhanced content is preserved
+    if "Images with Size Controls" not in draft_blog.get("content", ""):
+        print("❌ Enhanced content (images) not preserved")
+        success = False
+    
+    if "Video with Aspect Ratios" not in draft_blog.get("content", ""):
+        print("❌ Enhanced content (videos) not preserved")
+        success = False
+    
+    if "Code Blocks with Advanced Formatting" not in draft_blog.get("content", ""):
+        print("❌ Enhanced content (code blocks) not preserved")
+        success = False
+    
+    if "language-javascript" not in draft_blog.get("content", ""):
+        print("❌ Code block formatting (JavaScript theme) not preserved")
+        success = False
+    
+    if "language-python" not in draft_blog.get("content", ""):
+        print("❌ Code block formatting (Python theme) not preserved")
+        success = False
+    
+    print("✅ Enhanced content with formatting preserved correctly")
+    
+    # Test 3: Update Blog Status from Draft to Published
+    print_test_header("Test 3: Update Blog Status from Draft to Published")
+    
+    publish_update = {
+        "status": "published"
+    }
+    
+    response = make_request("PUT", f"/api/blogs/{draft_blog_id}", publish_update, token=admin_token, expected_status=200)
+    if response.status_code != 200:
+        print("❌ Blog status update from draft to published failed")
+        success = False
+    else:
+        published_blog = response.json()
+        print("✅ Blog status update from draft to published successful")
+        
+        if published_blog.get("status") != "published":
+            print(f"❌ Expected status 'published', got {published_blog.get('status')}")
+            success = False
+        
+        if published_blog.get("published_at") is None:
+            print("❌ Published blog should have published_at timestamp")
+            success = False
+        else:
+            print("✅ Published blog has correct published_at timestamp")
+    
+    # Test 4: Create Another Blog with Published Status
+    print_test_header("Test 4: Create Blog with Published Status")
+    
+    published_blog_data = {
+        "title": f"Published Enhanced Blog {uuid.uuid4().hex[:8]}",
+        "content": """
+        <h2>Published Blog Content</h2>
+        <p>This blog is created directly with published status.</p>
+        
+        <h3>Enhanced Image Content</h3>
+        <img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/2wBDAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwA/wA=" 
+             alt="Published Blog Image" 
+             style="width: 400px; height: 300px; border-radius: 8px;" />
+        
+        <h3>Code Example with Theme</h3>
+        <pre><code class="language-sql">
+-- SQL example with database theme
+SELECT 
+    b.title,
+    b.content,
+    b.status,
+    u.full_name as author
+FROM blogs b
+JOIN users u ON b.author_id = u.id
+WHERE b.status = 'published'
+ORDER BY b.created_at DESC;
+        </code></pre>
+        """,
+        "excerpt": "A blog created directly with published status to test immediate publishing.",
+        "status": "published",  # Creating as published directly
+        "category_id": category_id,
+        "slug": f"published-enhanced-blog-{uuid.uuid4().hex[:8]}",
+        "is_ai_generated": False
+    }
+    
+    response = make_request("POST", "/api/blogs", published_blog_data, token=admin_token, expected_status=200)
+    if response.status_code != 200:
+        print("❌ Blog creation with published status failed")
+        success = False
+    else:
+        published_blog = response.json()
+        published_blog_id = published_blog["id"]
+        print("✅ Blog creation with published status successful")
+        
+        if published_blog.get("status") != "published":
+            print(f"❌ Expected status 'published', got {published_blog.get('status')}")
+            success = False
+        
+        if published_blog.get("published_at") is None:
+            print("❌ Published blog should have published_at timestamp")
+            success = False
+        else:
+            print("✅ Published blog has correct published_at timestamp")
+    
+    # Test 5: User-specific Blog Filtering (by author_id)
+    print_test_header("Test 5: User-specific Blog Filtering (by author_id)")
+    
+    response = make_request("GET", f"/api/blogs?author_id={admin_user_id}", expected_status=200)
+    if response.status_code != 200:
+        print("❌ User-specific blog filtering failed")
+        success = False
+    else:
+        user_blogs = response.json()
+        print(f"✅ User-specific blog filtering successful - found {len(user_blogs)} blogs")
+        
+        # Verify all blogs belong to the admin user
+        for blog in user_blogs:
+            if blog.get("author_id") != admin_user_id:
+                print(f"❌ Blog {blog.get('id')} has wrong author_id: {blog.get('author_id')}")
+                success = False
+        
+        # Verify our created blogs are in the list
+        blog_ids = [blog["id"] for blog in user_blogs]
+        if draft_blog_id not in blog_ids:
+            print("❌ Draft blog not found in user's blogs")
+            success = False
+        if published_blog_id not in blog_ids:
+            print("❌ Published blog not found in user's blogs")
+            success = False
+        
+        print("✅ All blogs correctly filtered by author_id")
+    
+    # Test 6: Blog Status Filtering (draft, published, all)
+    print_test_header("Test 6: Blog Status Filtering")
+    
+    # Test draft filtering
+    print_test_header("Test 6a: Draft Status Filtering")
+    response = make_request("GET", "/api/blogs?status=draft", expected_status=200)
+    if response.status_code != 200:
+        print("❌ Draft status filtering failed")
+        success = False
+    else:
+        draft_blogs = response.json()
+        print(f"✅ Draft status filtering successful - found {len(draft_blogs)} draft blogs")
+        
+        # Verify all blogs are drafts
+        for blog in draft_blogs:
+            if blog.get("status") != "draft":
+                print(f"❌ Blog {blog.get('id')} has wrong status: {blog.get('status')}")
+                success = False
+    
+    # Test published filtering
+    print_test_header("Test 6b: Published Status Filtering")
+    response = make_request("GET", "/api/blogs?status=published", expected_status=200)
+    if response.status_code != 200:
+        print("❌ Published status filtering failed")
+        success = False
+    else:
+        published_blogs = response.json()
+        print(f"✅ Published status filtering successful - found {len(published_blogs)} published blogs")
+        
+        # Verify all blogs are published
+        for blog in published_blogs:
+            if blog.get("status") != "published":
+                print(f"❌ Blog {blog.get('id')} has wrong status: {blog.get('status')}")
+                success = False
+    
+    # Test all status filtering
+    print_test_header("Test 6c: All Status Filtering")
+    response = make_request("GET", "/api/blogs?status=all", expected_status=200)
+    if response.status_code != 200:
+        print("❌ All status filtering failed")
+        success = False
+    else:
+        all_blogs = response.json()
+        print(f"✅ All status filtering successful - found {len(all_blogs)} total blogs")
+        
+        # Verify we get both draft and published blogs
+        statuses = [blog.get("status") for blog in all_blogs]
+        if "draft" not in statuses or "published" not in statuses:
+            print("❌ All status filter should return both draft and published blogs")
+            success = False
+        else:
+            print("✅ All status filter correctly returns blogs of all statuses")
+    
+    # Test 7: Combined Filtering (author_id + status)
+    print_test_header("Test 7: Combined Filtering (author_id + status)")
+    
+    response = make_request("GET", f"/api/blogs?author_id={admin_user_id}&status=published", expected_status=200)
+    if response.status_code != 200:
+        print("❌ Combined filtering failed")
+        success = False
+    else:
+        filtered_blogs = response.json()
+        print(f"✅ Combined filtering successful - found {len(filtered_blogs)} published blogs by admin")
+        
+        # Verify all blogs match both filters
+        for blog in filtered_blogs:
+            if blog.get("author_id") != admin_user_id:
+                print(f"❌ Blog {blog.get('id')} has wrong author_id: {blog.get('author_id')}")
+                success = False
+            if blog.get("status") != "published":
+                print(f"❌ Blog {blog.get('id')} has wrong status: {blog.get('status')}")
+                success = False
+    
+    # Test 8: Advanced Blog Content Preservation Test
+    print_test_header("Test 8: Advanced Blog Content Preservation Test")
+    
+    # Retrieve the draft blog and verify content preservation
+    response = make_request("GET", f"/api/blogs/{draft_blog_id}", expected_status=200)
+    if response.status_code != 200:
+        print("❌ Blog retrieval failed")
+        success = False
+    else:
+        retrieved_blog = response.json()
+        print("✅ Blog retrieval successful")
+        
+        # Test specific content preservation
+        content = retrieved_blog.get("content", "")
+        
+        # Check image preservation with styling
+        if 'style="width: 300px; height: 200px; object-fit: cover;"' not in content:
+            print("❌ Image size controls not preserved")
+            success = False
+        else:
+            print("✅ Image size controls preserved")
+        
+        # Check video aspect ratio preservation
+        if 'padding-bottom: 56.25%' not in content:
+            print("❌ Video aspect ratio styling not preserved")
+            success = False
+        else:
+            print("✅ Video aspect ratio styling preserved")
+        
+        # Check code block themes preservation
+        if 'class="language-javascript"' not in content:
+            print("❌ JavaScript code block theme not preserved")
+            success = False
+        else:
+            print("✅ JavaScript code block theme preserved")
+        
+        if 'class="language-python"' not in content:
+            print("❌ Python code block theme not preserved")
+            success = False
+        else:
+            print("✅ Python code block theme preserved")
+        
+        # Check advanced formatting preservation
+        if '<blockquote>' not in content:
+            print("❌ Blockquote formatting not preserved")
+            success = False
+        else:
+            print("✅ Blockquote formatting preserved")
+        
+        if '<strong>Bold text</strong>' not in content:
+            print("❌ Bold text formatting not preserved")
+            success = False
+        else:
+            print("✅ Bold text formatting preserved")
+    
+    # Test 9: Unpublish Blog (Published to Draft)
+    print_test_header("Test 9: Unpublish Blog (Published to Draft)")
+    
+    unpublish_update = {
+        "status": "draft"
+    }
+    
+    response = make_request("PUT", f"/api/blogs/{published_blog_id}", unpublish_update, token=admin_token, expected_status=200)
+    if response.status_code != 200:
+        print("❌ Blog unpublishing failed")
+        success = False
+    else:
+        unpublished_blog = response.json()
+        print("✅ Blog unpublishing successful")
+        
+        if unpublished_blog.get("status") != "draft":
+            print(f"❌ Expected status 'draft', got {unpublished_blog.get('status')}")
+            success = False
+        else:
+            print("✅ Blog status correctly changed from published to draft")
+    
+    if success:
+        print("✅ ENHANCED BLOG FUNCTIONALITY TESTS PASSED - All features working correctly")
+        print("✅ Enhanced Blog Creation: WORKING")
+        print("✅ Draft/Published Status: WORKING") 
+        print("✅ User-specific Blog Filtering: WORKING")
+        print("✅ Blog Status Filtering: WORKING")
+        print("✅ Advanced Blog Content Preservation: WORKING")
+    else:
+        print("❌ ENHANCED BLOG FUNCTIONALITY TESTS FAILED - Issues found")
+    
+    return success
+
 if __name__ == "__main__":
     # Run the specific test for the review request
-    print("Running Super Admin Categories and Tools Test - REVIEW REQUEST SPECIFIC")
-    test_super_admin_categories_and_tools()
+    print("Running Enhanced Blog Functionality Test - REVIEW REQUEST SPECIFIC")
+    test_enhanced_blog_functionality()
