@@ -217,15 +217,52 @@ const RichTextEditor = ({
     const quill = quillRef.current.getEditor();
     const range = quill.getSelection();
     
-    const codeHtml = `
-      <pre class="ql-syntax" data-language="${codeLanguage}">
-        <code>${codeContent}</code>
-      </pre>
-    `;
+    const codeHtml = createAdvancedCodeBlockHtml(codeContent, codeLanguage, codeTitle);
     
     quill.clipboard.dangerouslyPasteHTML(range ? range.index : 0, codeHtml);
     setShowCodeBlock(false);
     setCodeContent('');
+    setCodeTitle('');
+  };
+
+  const createAdvancedCodeBlockHtml = (content, language, title) => {
+    // Language-specific styling colors
+    const languageColors = {
+      javascript: '#f7df1e',
+      python: '#3776ab',
+      html: '#e34c26',
+      css: '#1572b6',
+      json: '#000000',
+      sql: '#336791',
+      bash: '#4eaa25',
+      typescript: '#3178c6',
+      java: '#ed8b00',
+      cpp: '#00599c',
+      csharp: '#239120',
+      php: '#777bb4',
+      ruby: '#cc342d',
+      go: '#00add8',
+      rust: '#000000',
+      swift: '#fa7343'
+    };
+
+    const langColor = languageColors[language] || '#6b7280';
+    const escapedContent = content.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    return `
+      <div style="margin: 20px 0; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; background-color: #f9fafb;">
+        <div style="background-color: #f3f4f6; padding: 12px 16px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="width: 12px; height: 12px; background-color: ${langColor}; border-radius: 50%; display: inline-block;"></span>
+            <span style="font-family: 'SF Mono', Monaco, 'Inconsolata', 'Roboto Mono', 'Source Code Pro', monospace; font-size: 14px; color: #374151; font-weight: 600;">${language.toUpperCase()}</span>
+          </div>
+          ${title ? `<span style="font-size: 14px; color: #6b7280; font-weight: 500;">${title}</span>` : ''}
+        </div>
+        <div style="padding: 16px; background-color: #1f2937; color: #f9fafb; font-family: 'SF Mono', Monaco, 'Inconsolata', 'Roboto Mono', 'Source Code Pro', monospace; font-size: 14px; line-height: 1.6; overflow-x: auto;">
+          <pre style="margin: 0; white-space: pre-wrap; word-wrap: break-word;"><code>${escapedContent}</code></pre>
+        </div>
+      </div>
+    `;
   };
 
   const insertVideoEmbed = (url) => {
