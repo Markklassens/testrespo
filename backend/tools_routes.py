@@ -258,6 +258,23 @@ async def get_tool_review_status(
         "average_rating": tool.rating
     }
 
+@router.get("/{tool_id}/reviews/my-review", response_model=ReviewResponse)
+async def get_my_review(
+    tool_id: str,
+    current_user: User = Depends(get_current_verified_user),
+    db: Session = Depends(get_db)
+):
+    """Get current user's review for a tool"""
+    review = db.query(Review).filter(
+        Review.tool_id == tool_id,
+        Review.user_id == current_user.id
+    ).first()
+    
+    if not review:
+        raise HTTPException(status_code=404, detail="You haven't reviewed this tool yet")
+    
+    return review
+
 @router.put("/reviews/{review_id}", response_model=ReviewResponse)
 async def update_review(
     review_id: str,
@@ -281,6 +298,15 @@ async def update_review(
     db_review.pros = review_update.pros
     db_review.cons = review_update.cons
     
+    # Recalculate tool rating statistics
+    tool = db.query(Tool).filter(Tool.id == db_review.tool_id).first()
+    if tool:
+        reviews = db.query(Review).filter(Review.tool_id == db_review.tool_id).all()
+        if reviews:
+            avg_rating = sum(r.rating for r in reviews) / len(reviews)
+            tool.rating = avg_rating
+            tool.total_reviews = len(reviews)
+    
     db.commit()
     db.refresh(db_review)
     
@@ -301,7 +327,21 @@ async def delete_review(
     if db_review.user_id != current_user.id and current_user.user_type not in ["admin", "superadmin"]:
         raise HTTPException(status_code=403, detail="Not authorized to delete this review")
     
+    tool_id = db_review.tool_id
     db.delete(db_review)
+    
+    # Recalculate tool rating statistics
+    tool = db.query(Tool).filter(Tool.id == tool_id).first()
+    if tool:
+        reviews = db.query(Review).filter(Review.tool_id == tool_id).all()
+        if reviews:
+            avg_rating = sum(r.rating for r in reviews) / len(reviews)
+            tool.rating = avg_rating
+            tool.total_reviews = len(reviews)
+        else:
+            tool.rating = 0.0
+            tool.total_reviews = 0
+    
     db.commit()
     
     return {"message": "Review deleted successfully"}
