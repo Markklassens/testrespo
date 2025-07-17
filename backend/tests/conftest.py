@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker
 from database import get_db
 from models import Base
 from server import app
-from models import User, Category, Tool, Blog, FreeTool
+from models import User, Category, Tool, Blog, FreeTool, ToolAccessRequest
 from auth import get_password_hash
 import uuid
 
