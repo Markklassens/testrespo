@@ -1225,6 +1225,457 @@ def test_tools_analytics():
     print("✅ Tools analytics endpoint passed - all required carousels present")
     return True
 
+def test_tool_access_request_system():
+    """Test the new tool access request system - REVIEW REQUEST"""
+    print_test_header("TOOL ACCESS REQUEST SYSTEM - REVIEW REQUEST")
+    
+    success = True
+    
+    # Test 1: Admin requests access to a tool
+    print_test_header("Test 1: Admin Request Access to Tool")
+    
+    if "admin" not in tokens:
+        print("❌ Cannot test tool access requests without admin token")
+        return False
+    
+    # Get a tool to request access to
+    tools_response = make_request("GET", "/api/tools?limit=1")
+    if tools_response.status_code != 200 or not tools_response.json():
+        print("❌ Cannot get tools for access request test")
+        return False
+    
+    test_tool = tools_response.json()[0]
+    tool_id = test_tool["id"]
+    tool_name = test_tool["name"]
+    
+    print(f"ℹ️ Requesting access to tool: {tool_name} (ID: {tool_id})")
+    
+    # Request access to the tool
+    request_data = {
+        "request_message": "I need access to this tool for SEO optimization and content updates."
+    }
+    response = make_request("POST", f"/api/admin/tools/{tool_id}/request-access", request_data, token=tokens["admin"])
+    if response.status_code != 200:
+        print("❌ Admin tool access request failed")
+        success = False
+        print_response(response)
+    else:
+        print("✅ Admin tool access request successful")
+        request_response = response.json()
+        expected_keys = ["id", "tool_id", "admin_id", "status", "request_message", "tool_name", "admin_name"]
+        for key in expected_keys:
+            if key not in request_response:
+                print(f"❌ Missing key in access request response: {key}")
+                success = False
+        
+        if request_response.get("status") != "pending":
+            print(f"❌ Expected status 'pending', got {request_response.get('status')}")
+            success = False
+        else:
+            print("✅ Access request created with pending status")
+        
+        # Store request ID for later tests
+        global access_request_id
+        access_request_id = request_response["id"]
+    
+    # Test 2: Get current admin's requests
+    print_test_header("Test 2: Get Current Admin's Requests")
+    response = make_request("GET", "/api/admin/tools/my-requests", token=tokens["admin"])
+    if response.status_code != 200:
+        print("❌ Get admin's requests failed")
+        success = False
+    else:
+        print("✅ Get admin's requests successful")
+        requests = response.json()
+        if not isinstance(requests, list):
+            print("❌ Expected list of requests")
+            success = False
+        else:
+            print(f"✅ Admin has {len(requests)} access requests")
+            # Verify our request is in the list
+            request_found = False
+            for req in requests:
+                if req.get("tool_id") == tool_id:
+                    request_found = True
+                    print(f"✅ Found our access request for tool: {req.get('tool_name')}")
+                    break
+            if not request_found:
+                print("❌ Our access request not found in admin's requests")
+                success = False
+    
+    # Test 3: Get assigned tools for admin (should be empty initially)
+    print_test_header("Test 3: Get Assigned Tools for Admin")
+    response = make_request("GET", "/api/admin/tools/assigned", token=tokens["admin"])
+    if response.status_code != 200:
+        print("❌ Get assigned tools for admin failed")
+        success = False
+    else:
+        print("✅ Get assigned tools for admin successful")
+        assigned_tools = response.json()
+        if not isinstance(assigned_tools, list):
+            print("❌ Expected list of assigned tools")
+            success = False
+        else:
+            print(f"✅ Admin has {len(assigned_tools)} assigned tools")
+    
+    # Test 4: Superadmin gets all access requests
+    print_test_header("Test 4: Superadmin Get All Access Requests")
+    
+    if "superadmin" not in tokens:
+        print("❌ Cannot test superadmin access requests without superadmin token")
+        success = False
+    else:
+        response = make_request("GET", "/api/admin/tools/access-requests", token=tokens["superadmin"])
+        if response.status_code != 200:
+            print("❌ Superadmin get access requests failed")
+            success = False
+        else:
+            print("✅ Superadmin get access requests successful")
+            all_requests = response.json()
+            if not isinstance(all_requests, list):
+                print("❌ Expected list of access requests")
+                success = False
+            else:
+                print(f"✅ Found {len(all_requests)} total access requests")
+                # Verify our request is in the list
+                request_found = False
+                for req in all_requests:
+                    if req.get("tool_id") == tool_id:
+                        request_found = True
+                        print(f"✅ Found our access request in superadmin view: {req.get('tool_name')}")
+                        break
+                if not request_found:
+                    print("❌ Our access request not found in superadmin's view")
+                    success = False
+    
+    # Test 5: Superadmin approves the request
+    print_test_header("Test 5: Superadmin Approve Access Request")
+    
+    if "superadmin" not in tokens or 'access_request_id' not in globals():
+        print("❌ Cannot test request approval without superadmin token or request ID")
+        success = False
+    else:
+        approval_data = {
+            "status": "approved",
+            "response_message": "Access granted for SEO optimization work."
+        }
+        response = make_request("PUT", f"/api/admin/tools/access-requests/{access_request_id}", approval_data, token=tokens["superadmin"])
+        if response.status_code != 200:
+            print("❌ Superadmin approve request failed")
+            success = False
+            print_response(response)
+        else:
+            print("✅ Superadmin approve request successful")
+            approved_request = response.json()
+            if approved_request.get("status") != "approved":
+                print(f"❌ Expected status 'approved', got {approved_request.get('status')}")
+                success = False
+            else:
+                print("✅ Request status updated to approved")
+    
+    # Test 6: Get assigned tools for admin after approval
+    print_test_header("Test 6: Get Assigned Tools for Admin After Approval")
+    response = make_request("GET", "/api/admin/tools/assigned", token=tokens["admin"])
+    if response.status_code != 200:
+        print("❌ Get assigned tools after approval failed")
+        success = False
+    else:
+        print("✅ Get assigned tools after approval successful")
+        assigned_tools = response.json()
+        if not isinstance(assigned_tools, list):
+            print("❌ Expected list of assigned tools")
+            success = False
+        else:
+            print(f"✅ Admin now has {len(assigned_tools)} assigned tools")
+            # Verify our tool is now assigned
+            tool_found = False
+            for tool in assigned_tools:
+                if tool.get("id") == tool_id:
+                    tool_found = True
+                    print(f"✅ Tool now assigned to admin: {tool.get('name')}")
+                    break
+            if not tool_found:
+                print("❌ Approved tool not found in admin's assigned tools")
+                success = False
+    
+    # Test 7: Get all tools for superadmin
+    print_test_header("Test 7: Get All Tools for Superadmin")
+    
+    if "superadmin" not in tokens:
+        print("❌ Cannot test superadmin assigned tools without superadmin token")
+        success = False
+    else:
+        response = make_request("GET", "/api/admin/tools/assigned", token=tokens["superadmin"])
+        if response.status_code != 200:
+            print("❌ Get all tools for superadmin failed")
+            success = False
+        else:
+            print("✅ Get all tools for superadmin successful")
+            superadmin_tools = response.json()
+            if not isinstance(superadmin_tools, list):
+                print("❌ Expected list of tools")
+                success = False
+            else:
+                print(f"✅ Superadmin has access to {len(superadmin_tools)} tools")
+    
+    if success:
+        print("✅ TOOL ACCESS REQUEST SYSTEM TESTS PASSED - All functionality working correctly")
+    else:
+        print("❌ TOOL ACCESS REQUEST SYSTEM TESTS FAILED - Issues found with access request workflow")
+    
+    return success
+
+def test_seo_endpoints_with_access_control():
+    """Test SEO endpoints with access control - REVIEW REQUEST"""
+    print_test_header("SEO ENDPOINTS WITH ACCESS CONTROL - REVIEW REQUEST")
+    
+    success = True
+    
+    # Test 1: GET /api/admin/seo/tools - Should show only assigned tools for admin
+    print_test_header("Test 1: GET /api/admin/seo/tools - Access Control")
+    
+    if "admin" not in tokens:
+        print("❌ Cannot test SEO tools access without admin token")
+        return False
+    
+    response = make_request("GET", "/api/admin/seo/tools", token=tokens["admin"])
+    if response.status_code != 200:
+        print("❌ GET SEO tools failed")
+        success = False
+    else:
+        print("✅ GET SEO tools successful")
+        seo_tools = response.json()
+        if not isinstance(seo_tools, list):
+            print("❌ Expected list of SEO tools")
+            success = False
+        else:
+            print(f"✅ Admin can see {len(seo_tools)} tools for SEO management")
+            # Verify each tool has expected SEO properties
+            if seo_tools:
+                sample_tool = seo_tools[0]
+                expected_keys = ["tool_id", "tool_name", "has_meta_title", "has_meta_description", "has_ai_content", "optimizations_count"]
+                for key in expected_keys:
+                    if key not in sample_tool:
+                        print(f"❌ Missing SEO tool property: {key}")
+                        success = False
+                if success:
+                    print("✅ SEO tools have all expected properties")
+    
+    # Test 2: POST /api/admin/seo/optimize - Should check tool access
+    print_test_header("Test 2: POST /api/admin/seo/optimize - Access Control")
+    
+    # Get a tool to optimize (should be one admin has access to)
+    tools_response = make_request("GET", "/api/admin/tools/assigned", token=tokens["admin"])
+    if tools_response.status_code != 200 or not tools_response.json():
+        print("❌ Cannot get assigned tools for SEO optimization test")
+        success = False
+    else:
+        assigned_tools = tools_response.json()
+        if assigned_tools:
+            test_tool = assigned_tools[0]
+            tool_id = test_tool["id"]
+            tool_name = test_tool["name"]
+            
+            print(f"ℹ️ Testing SEO optimization for assigned tool: {tool_name}")
+            
+            seo_request = {
+                "tool_id": tool_id,
+                "target_keywords": ["marketing", "automation", "b2b"],
+                "search_engine": "google"
+            }
+            
+            # This might fail due to missing AI API keys, but should not fail due to access control
+            response = make_request("POST", "/api/admin/seo/optimize", seo_request, token=tokens["admin"], expected_status=[200, 500])
+            if response.status_code == 403:
+                print("❌ Admin should have access to optimize assigned tools")
+                success = False
+            elif response.status_code in [200, 500]:
+                print("✅ Admin has access to optimize assigned tools (may fail due to API keys)")
+            else:
+                print(f"❌ Unexpected status code for SEO optimization: {response.status_code}")
+                success = False
+        else:
+            print("⚠️ No assigned tools found for SEO optimization test")
+    
+    # Test 3: Try to optimize a tool admin doesn't have access to
+    print_test_header("Test 3: SEO Optimize Tool Without Access")
+    
+    # Get all tools and find one not assigned to admin
+    all_tools_response = make_request("GET", "/api/tools?limit=10")
+    assigned_tools_response = make_request("GET", "/api/admin/tools/assigned", token=tokens["admin"])
+    
+    if all_tools_response.status_code == 200 and assigned_tools_response.status_code == 200:
+        all_tools = all_tools_response.json()
+        assigned_tools = assigned_tools_response.json()
+        assigned_tool_ids = {tool["id"] for tool in assigned_tools}
+        
+        unassigned_tool = None
+        for tool in all_tools:
+            if tool["id"] not in assigned_tool_ids:
+                unassigned_tool = tool
+                break
+        
+        if unassigned_tool:
+            print(f"ℹ️ Testing SEO optimization for unassigned tool: {unassigned_tool['name']}")
+            
+            seo_request = {
+                "tool_id": unassigned_tool["id"],
+                "target_keywords": ["test", "keywords"],
+                "search_engine": "google"
+            }
+            
+            response = make_request("POST", "/api/admin/seo/optimize", seo_request, token=tokens["admin"], expected_status=403)
+            if response.status_code != 403:
+                print("❌ Admin should NOT have access to optimize unassigned tools")
+                success = False
+            else:
+                print("✅ Admin correctly denied access to optimize unassigned tools")
+        else:
+            print("⚠️ All tools are assigned to admin, cannot test access denial")
+    
+    if success:
+        print("✅ SEO ENDPOINTS ACCESS CONTROL TESTS PASSED - Access control working correctly")
+    else:
+        print("❌ SEO ENDPOINTS ACCESS CONTROL TESTS FAILED - Issues found with access control")
+    
+    return success
+
+def test_tool_content_update_endpoint():
+    """Test the new tool content update endpoint with access control - REVIEW REQUEST"""
+    print_test_header("TOOL CONTENT UPDATE ENDPOINT - REVIEW REQUEST")
+    
+    success = True
+    
+    # Test 1: Update content for assigned tool
+    print_test_header("Test 1: Update Content for Assigned Tool")
+    
+    if "admin" not in tokens:
+        print("❌ Cannot test tool content update without admin token")
+        return False
+    
+    # Get an assigned tool
+    assigned_tools_response = make_request("GET", "/api/admin/tools/assigned", token=tokens["admin"])
+    if assigned_tools_response.status_code != 200 or not assigned_tools_response.json():
+        print("❌ Cannot get assigned tools for content update test")
+        return False
+    
+    assigned_tools = assigned_tools_response.json()
+    if not assigned_tools:
+        print("⚠️ No assigned tools found for content update test")
+        return False
+    
+    test_tool = assigned_tools[0]
+    tool_id = test_tool["id"]
+    tool_name = test_tool["name"]
+    
+    print(f"ℹ️ Testing content update for assigned tool: {tool_name}")
+    
+    # Update tool content
+    content_update = {
+        "description": f"Updated description for {tool_name} - {uuid.uuid4().hex[:8]}",
+        "short_description": f"Updated short description - {uuid.uuid4().hex[:8]}",
+        "features": "Updated feature 1, Updated feature 2, Updated feature 3",
+        "meta_title": f"Updated Meta Title for {tool_name}",
+        "meta_description": f"Updated meta description for {tool_name}"
+    }
+    
+    response = make_request("PUT", f"/api/admin/tools/{tool_id}/content", content_update, token=tokens["admin"])
+    if response.status_code != 200:
+        print("❌ Tool content update for assigned tool failed")
+        success = False
+        print_response(response)
+    else:
+        print("✅ Tool content update for assigned tool successful")
+        updated_tool = response.json()
+        
+        # Verify the updates were applied
+        if updated_tool.get("description") != content_update["description"]:
+            print("❌ Description was not updated correctly")
+            success = False
+        else:
+            print("✅ Description updated correctly")
+        
+        if updated_tool.get("meta_title") != content_update["meta_title"]:
+            print("❌ Meta title was not updated correctly")
+            success = False
+        else:
+            print("✅ Meta title updated correctly")
+    
+    # Test 2: Try to update content for unassigned tool
+    print_test_header("Test 2: Update Content for Unassigned Tool")
+    
+    # Get all tools and find one not assigned to admin
+    all_tools_response = make_request("GET", "/api/tools?limit=10")
+    
+    if all_tools_response.status_code == 200:
+        all_tools = all_tools_response.json()
+        assigned_tool_ids = {tool["id"] for tool in assigned_tools}
+        
+        unassigned_tool = None
+        for tool in all_tools:
+            if tool["id"] not in assigned_tool_ids:
+                unassigned_tool = tool
+                break
+        
+        if unassigned_tool:
+            print(f"ℹ️ Testing content update for unassigned tool: {unassigned_tool['name']}")
+            
+            content_update = {
+                "description": "This should not be allowed",
+                "short_description": "Access denied test"
+            }
+            
+            response = make_request("PUT", f"/api/admin/tools/{unassigned_tool['id']}/content", content_update, token=tokens["admin"], expected_status=403)
+            if response.status_code != 403:
+                print("❌ Admin should NOT be able to update content for unassigned tools")
+                success = False
+            else:
+                print("✅ Admin correctly denied access to update unassigned tool content")
+        else:
+            print("⚠️ All tools are assigned to admin, cannot test access denial")
+    
+    # Test 3: Superadmin can update any tool content
+    print_test_header("Test 3: Superadmin Update Any Tool Content")
+    
+    if "superadmin" not in tokens:
+        print("❌ Cannot test superadmin tool content update without superadmin token")
+        success = False
+    else:
+        # Get any tool
+        all_tools_response = make_request("GET", "/api/tools?limit=1")
+        if all_tools_response.status_code == 200 and all_tools_response.json():
+            test_tool = all_tools_response.json()[0]
+            tool_id = test_tool["id"]
+            tool_name = test_tool["name"]
+            
+            print(f"ℹ️ Testing superadmin content update for tool: {tool_name}")
+            
+            content_update = {
+                "description": f"Superadmin updated description - {uuid.uuid4().hex[:8]}",
+                "ai_content": f"AI generated content by superadmin - {uuid.uuid4().hex[:8]}"
+            }
+            
+            response = make_request("PUT", f"/api/admin/tools/{tool_id}/content", content_update, token=tokens["superadmin"])
+            if response.status_code != 200:
+                print("❌ Superadmin tool content update failed")
+                success = False
+            else:
+                print("✅ Superadmin tool content update successful")
+                updated_tool = response.json()
+                
+                if updated_tool.get("description") != content_update["description"]:
+                    print("❌ Superadmin description update failed")
+                    success = False
+                else:
+                    print("✅ Superadmin description updated correctly")
+    
+    if success:
+        print("✅ TOOL CONTENT UPDATE ENDPOINT TESTS PASSED - Access control working correctly")
+    else:
+        print("❌ TOOL CONTENT UPDATE ENDPOINT TESTS FAILED - Issues found with access control")
+    
+    return success
+
 def test_trending_functionality():
     """Test trending functionality for MarketMindAI discovery page - REVIEW REQUEST"""
     print_test_header("TRENDING FUNCTIONALITY - REVIEW REQUEST")
