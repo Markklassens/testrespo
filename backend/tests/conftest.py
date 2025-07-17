@@ -158,9 +158,6 @@ def test_free_tool(db):
     db.add(free_tool)
     db.commit()
     db.refresh(free_tool)
-    # Ensure the free tool is attached to the session for the duration of the test
-    db.expunge(free_tool)
-    db.add(free_tool)
     return free_tool
 
 @pytest.fixture
