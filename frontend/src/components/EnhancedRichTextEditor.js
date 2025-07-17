@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+import './EnhancedEditor.css';
 import { useDropzone } from 'react-dropzone';
 import { 
   PhotoIcon, 
