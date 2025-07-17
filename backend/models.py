@@ -14,6 +14,15 @@ user_tool_comparison = Table(
     Column('tool_id', String, ForeignKey('tools.id'), primary_key=True)
 )
 
+# Association table for user-blog likes
+user_blog_likes = Table(
+    'user_blog_likes',
+    Base.metadata,
+    Column('user_id', String, ForeignKey('users.id'), primary_key=True),
+    Column('blog_id', String, ForeignKey('blogs.id'), primary_key=True),
+    Column('created_at', DateTime(timezone=True), server_default=func.now())
+)
+
 class User(Base):
     __tablename__ = "users"
     
