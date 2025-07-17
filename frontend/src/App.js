@@ -118,6 +118,11 @@ function AppContent() {
               <Blogs />
             </ProtectedRoute>
           } />
+          <Route path="/my-blogs" element={
+            <ProtectedRoute>
+              <MyBlogs />
+            </ProtectedRoute>
+          } />
           <Route path="/blog/:id" element={<BlogDetail />} />
           <Route path="/profile" element={
             <ProtectedRoute>
