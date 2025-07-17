@@ -1426,6 +1426,403 @@ def test_tool_access_request_system():
     
     return success
 
+def test_review_system():
+    """Test the new review system functionality - REVIEW REQUEST"""
+    print_test_header("REVIEW SYSTEM FUNCTIONALITY - REVIEW REQUEST")
+    
+    success = True
+    
+    # Test 1: User Authentication with admin credentials
+    print_test_header("Test 1: User Authentication with Admin Credentials")
+    
+    admin_login_data = {
+        "email": "admin@marketmindai.com",
+        "password": "admin123"
+    }
+    response = make_request("POST", "/api/auth/login", admin_login_data, expected_status=200)
+    if response.status_code != 200:
+        print("❌ Admin login failed")
+        success = False
+        return False
+    
+    admin_token = response.json()["access_token"]
+    print("✅ Admin authentication successful")
+    
+    # Get a tool to test reviews with
+    tools_response = make_request("GET", "/api/tools?limit=1")
+    if tools_response.status_code != 200 or not tools_response.json():
+        print("❌ Cannot get tools for review testing")
+        return False
+    
+    test_tool = tools_response.json()[0]
+    tool_id = test_tool["id"]
+    tool_name = test_tool["name"]
+    print(f"ℹ️ Using tool for review testing: {tool_name} (ID: {tool_id})")
+    
+    # Test 2: Review Creation
+    print_test_header("Test 2: Review Creation")
+    
+    # Test successful review creation
+    review_data = {
+        "rating": 4,
+        "title": "Great tool for marketing automation",
+        "content": "This tool has been very helpful for our marketing campaigns. The interface is intuitive and the features are comprehensive.",
+        "pros": "Easy to use, comprehensive features, good support",
+        "cons": "Could be more affordable for small businesses",
+        "tool_id": tool_id
+    }
+    
+    response = make_request("POST", f"/api/tools/{tool_id}/reviews", review_data, token=admin_token, expected_status=200)
+    if response.status_code != 200:
+        print("❌ Review creation failed")
+        success = False
+        return False
+    
+    review_response = response.json()
+    review_id = review_response["id"]
+    print("✅ Review creation successful")
+    
+    # Verify review data is stored correctly
+    expected_keys = ["id", "rating", "title", "content", "pros", "cons", "user_id", "tool_id", "is_verified", "helpful_count", "created_at"]
+    for key in expected_keys:
+        if key not in review_response:
+            print(f"❌ Missing key in review response: {key}")
+            success = False
+    
+    if review_response.get("rating") != review_data["rating"]:
+        print(f"❌ Rating mismatch: expected {review_data['rating']}, got {review_response.get('rating')}")
+        success = False
+    
+    if review_response.get("title") != review_data["title"]:
+        print(f"❌ Title mismatch: expected {review_data['title']}, got {review_response.get('title')}")
+        success = False
+    
+    print("✅ Review data stored correctly with all fields")
+    
+    # Test attempt to create second review for same tool (should fail)
+    print_test_header("Test 2b: Attempt Second Review for Same Tool")
+    
+    duplicate_review_data = {
+        "rating": 5,
+        "title": "Another review attempt",
+        "content": "This should fail because user already reviewed this tool",
+        "tool_id": tool_id
+    }
+    
+    response = make_request("POST", f"/api/tools/{tool_id}/reviews", duplicate_review_data, token=admin_token, expected_status=400)
+    if response.status_code != 400:
+        print("❌ Duplicate review should be rejected")
+        success = False
+    else:
+        print("✅ Duplicate review correctly rejected")
+        error_message = response.json().get("detail", "")
+        if "already reviewed" not in error_message.lower():
+            print(f"❌ Error message should mention already reviewed: {error_message}")
+            success = False
+        else:
+            print("✅ Appropriate error message for duplicate review")
+    
+    # Test 3: Review Status Check
+    print_test_header("Test 3: Review Status Check")
+    
+    response = make_request("GET", f"/api/tools/{tool_id}/review-status", token=admin_token, expected_status=200)
+    if response.status_code != 200:
+        print("❌ Review status check failed")
+        success = False
+    else:
+        print("✅ Review status check successful")
+        status_response = response.json()
+        
+        # Verify review status metadata
+        expected_status_keys = ["has_reviewed", "review_id", "user_rating", "total_reviews", "average_rating"]
+        for key in expected_status_keys:
+            if key not in status_response:
+                print(f"❌ Missing key in review status: {key}")
+                success = False
+        
+        if not status_response.get("has_reviewed"):
+            print("❌ has_reviewed should be True for user who reviewed")
+            success = False
+        else:
+            print("✅ Correct review status for user who has reviewed")
+        
+        if status_response.get("review_id") != review_id:
+            print(f"❌ Review ID mismatch: expected {review_id}, got {status_response.get('review_id')}")
+            success = False
+        
+        if status_response.get("user_rating") != review_data["rating"]:
+            print(f"❌ User rating mismatch: expected {review_data['rating']}, got {status_response.get('user_rating')}")
+            success = False
+        
+        print("✅ Review status metadata correct")
+    
+    # Test 4: Review Editing
+    print_test_header("Test 4: Review Editing")
+    
+    # Test user can edit their own review
+    updated_review_data = {
+        "rating": 5,
+        "title": "Updated: Excellent tool for marketing automation",
+        "content": "After using this tool for a few more weeks, I'm even more impressed. Updated my rating to 5 stars.",
+        "pros": "Easy to use, comprehensive features, excellent support, great value",
+        "cons": "Minor learning curve for advanced features",
+        "tool_id": tool_id
+    }
+    
+    response = make_request("PUT", f"/api/tools/reviews/{review_id}", updated_review_data, token=admin_token, expected_status=200)
+    if response.status_code != 200:
+        print("❌ Review editing failed")
+        success = False
+    else:
+        print("✅ User can edit their own review")
+        updated_response = response.json()
+        
+        if updated_response.get("rating") != updated_review_data["rating"]:
+            print(f"❌ Updated rating not saved: expected {updated_review_data['rating']}, got {updated_response.get('rating')}")
+            success = False
+        
+        if updated_response.get("title") != updated_review_data["title"]:
+            print(f"❌ Updated title not saved: expected {updated_review_data['title']}, got {updated_response.get('title')}")
+            success = False
+        
+        print("✅ Rating and review content updated correctly")
+    
+    # Test user cannot edit someone else's review (create another user first)
+    print_test_header("Test 4b: Cannot Edit Someone Else's Review")
+    
+    # Create a second user for testing
+    second_user_data = {
+        "email": f"testuser_{uuid.uuid4().hex[:8]}@example.com",
+        "username": f"testuser_{uuid.uuid4().hex[:8]}",
+        "full_name": "Test User 2",
+        "password": "TestPassword123!",
+        "user_type": "user"
+    }
+    
+    response = make_request("POST", "/api/auth/register", second_user_data, expected_status=200)
+    if response.status_code == 200:
+        # Login as second user
+        login_data = {
+            "email": second_user_data["email"],
+            "password": second_user_data["password"]
+        }
+        response = make_request("POST", "/api/auth/login", login_data, expected_status=200)
+        if response.status_code == 200:
+            second_user_token = response.json()["access_token"]
+            
+            # Try to edit the admin's review
+            response = make_request("PUT", f"/api/tools/reviews/{review_id}", updated_review_data, token=second_user_token, expected_status=403)
+            if response.status_code != 403:
+                print("❌ User should NOT be able to edit someone else's review")
+                success = False
+            else:
+                print("✅ User correctly denied access to edit someone else's review")
+        else:
+            print("⚠️ Could not login as second user to test edit permissions")
+    else:
+        print("⚠️ Could not create second user to test edit permissions")
+    
+    # Test 5: Review Deletion
+    print_test_header("Test 5: Review Deletion")
+    
+    # First, verify the review exists and tool statistics are updated
+    response = make_request("GET", f"/api/tools/{tool_id}/review-status", token=admin_token, expected_status=200)
+    if response.status_code == 200:
+        pre_delete_status = response.json()
+        print(f"ℹ️ Before deletion - Total reviews: {pre_delete_status.get('total_reviews')}, Average rating: {pre_delete_status.get('average_rating')}")
+    
+    # Test user can delete their own review
+    response = make_request("DELETE", f"/api/tools/reviews/{review_id}", token=admin_token, expected_status=200)
+    if response.status_code != 200:
+        print("❌ Review deletion failed")
+        success = False
+    else:
+        print("✅ User can delete their own review")
+        delete_response = response.json()
+        if "message" not in delete_response or "deleted successfully" not in delete_response["message"].lower():
+            print(f"❌ Expected success message, got: {delete_response}")
+            success = False
+        else:
+            print("✅ Correct deletion success message")
+    
+    # Verify tool statistics are recalculated after deletion
+    response = make_request("GET", f"/api/tools/{tool_id}/review-status", token=admin_token, expected_status=200)
+    if response.status_code == 200:
+        post_delete_status = response.json()
+        print(f"ℹ️ After deletion - Total reviews: {post_delete_status.get('total_reviews')}, Average rating: {post_delete_status.get('average_rating')}")
+        
+        if post_delete_status.get("has_reviewed"):
+            print("❌ has_reviewed should be False after deletion")
+            success = False
+        else:
+            print("✅ Tool statistics recalculated correctly after deletion")
+    
+    if success:
+        print("✅ REVIEW SYSTEM TESTS PASSED - All functionality working correctly")
+    else:
+        print("❌ REVIEW SYSTEM TESTS FAILED - Issues found with review system")
+    
+    return success
+
+def test_blog_like_system():
+    """Test the blog like system functionality - REVIEW REQUEST"""
+    print_test_header("BLOG LIKE SYSTEM FUNCTIONALITY - REVIEW REQUEST")
+    
+    success = True
+    
+    # Use admin token from previous test
+    admin_login_data = {
+        "email": "admin@marketmindai.com",
+        "password": "admin123"
+    }
+    response = make_request("POST", "/api/auth/login", admin_login_data, expected_status=200)
+    if response.status_code != 200:
+        print("❌ Admin login failed")
+        return False
+    
+    admin_token = response.json()["access_token"]
+    
+    # Get a blog to test likes with
+    blogs_response = make_request("GET", "/api/blogs?limit=1")
+    if blogs_response.status_code != 200 or not blogs_response.json():
+        print("❌ Cannot get blogs for like testing")
+        return False
+    
+    test_blog = blogs_response.json()[0]
+    blog_id = test_blog["id"]
+    blog_title = test_blog["title"]
+    initial_likes = test_blog.get("likes", 0)
+    print(f"ℹ️ Using blog for like testing: {blog_title} (ID: {blog_id})")
+    print(f"ℹ️ Initial likes count: {initial_likes}")
+    
+    # Test 1: User can like a blog
+    print_test_header("Test 1: User Can Like a Blog")
+    
+    response = make_request("POST", f"/api/blogs/{blog_id}/like", token=admin_token, expected_status=200)
+    if response.status_code != 200:
+        print("❌ Blog like failed")
+        success = False
+    else:
+        print("✅ User can like a blog")
+        like_response = response.json()
+        
+        expected_keys = ["action", "likes", "user_liked"]
+        for key in expected_keys:
+            if key not in like_response:
+                print(f"❌ Missing key in like response: {key}")
+                success = False
+        
+        if like_response.get("action") != "liked":
+            print(f"❌ Expected action 'liked', got {like_response.get('action')}")
+            success = False
+        
+        if like_response.get("user_liked") != True:
+            print(f"❌ Expected user_liked True, got {like_response.get('user_liked')}")
+            success = False
+        
+        if like_response.get("likes") != initial_likes + 1:
+            print(f"❌ Expected likes {initial_likes + 1}, got {like_response.get('likes')}")
+            success = False
+        else:
+            print("✅ Like count tracked correctly")
+    
+    # Test 2: Check like status
+    print_test_header("Test 2: Check User's Like Status")
+    
+    response = make_request("GET", f"/api/blogs/{blog_id}/like-status", token=admin_token, expected_status=200)
+    if response.status_code != 200:
+        print("❌ Like status check failed")
+        success = False
+    else:
+        print("✅ Like status check successful")
+        status_response = response.json()
+        
+        expected_status_keys = ["user_liked", "total_likes"]
+        for key in expected_status_keys:
+            if key not in status_response:
+                print(f"❌ Missing key in like status: {key}")
+                success = False
+        
+        if not status_response.get("user_liked"):
+            print("❌ user_liked should be True for user who liked")
+            success = False
+        else:
+            print("✅ Correct like status for user who has liked")
+        
+        if status_response.get("total_likes") != initial_likes + 1:
+            print(f"❌ Expected total_likes {initial_likes + 1}, got {status_response.get('total_likes')}")
+            success = False
+    
+    # Test 3: User can unlike a blog (toggle functionality)
+    print_test_header("Test 3: User Can Unlike a Blog (Toggle)")
+    
+    response = make_request("POST", f"/api/blogs/{blog_id}/like", token=admin_token, expected_status=200)
+    if response.status_code != 200:
+        print("❌ Blog unlike failed")
+        success = False
+    else:
+        print("✅ User can unlike a blog")
+        unlike_response = response.json()
+        
+        if unlike_response.get("action") != "unliked":
+            print(f"❌ Expected action 'unliked', got {unlike_response.get('action')}")
+            success = False
+        
+        if unlike_response.get("user_liked") != False:
+            print(f"❌ Expected user_liked False, got {unlike_response.get('user_liked')}")
+            success = False
+        
+        if unlike_response.get("likes") != initial_likes:
+            print(f"❌ Expected likes back to {initial_likes}, got {unlike_response.get('likes')}")
+            success = False
+        else:
+            print("✅ Toggle functionality works correctly")
+    
+    # Test 4: Verify like status after unlike
+    print_test_header("Test 4: Verify Like Status After Unlike")
+    
+    response = make_request("GET", f"/api/blogs/{blog_id}/like-status", token=admin_token, expected_status=200)
+    if response.status_code == 200:
+        status_response = response.json()
+        
+        if status_response.get("user_liked"):
+            print("❌ user_liked should be False after unlike")
+            success = False
+        else:
+            print("✅ Like status correctly updated after unlike")
+        
+        if status_response.get("total_likes") != initial_likes:
+            print(f"❌ Expected total_likes back to {initial_likes}, got {status_response.get('total_likes')}")
+            success = False
+    
+    # Test 5: Database constraint - one like per user per blog
+    print_test_header("Test 5: Database Constraint - One Like Per User Per Blog")
+    
+    # Like the blog again
+    response = make_request("POST", f"/api/blogs/{blog_id}/like", token=admin_token, expected_status=200)
+    if response.status_code == 200:
+        print("✅ User can like blog again after unliking")
+        
+        # Try to like again (should toggle to unlike)
+        response = make_request("POST", f"/api/blogs/{blog_id}/like", token=admin_token, expected_status=200)
+        if response.status_code == 200:
+            toggle_response = response.json()
+            if toggle_response.get("action") == "unliked":
+                print("✅ Database constraint working - toggle functionality prevents duplicate likes")
+            else:
+                print("❌ Expected toggle to unlike, but got like action")
+                success = False
+        else:
+            print("❌ Toggle functionality failed")
+            success = False
+    
+    if success:
+        print("✅ BLOG LIKE SYSTEM TESTS PASSED - All functionality working correctly")
+    else:
+        print("❌ BLOG LIKE SYSTEM TESTS FAILED - Issues found with like system")
+    
+    return success
+
 def test_seo_endpoints_with_access_control():
     """Test SEO endpoints with access control - REVIEW REQUEST"""
     print_test_header("SEO ENDPOINTS WITH ACCESS CONTROL - REVIEW REQUEST")
