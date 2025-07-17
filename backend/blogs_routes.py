@@ -23,7 +23,11 @@ async def get_blogs(
     db: Session = Depends(get_db)
 ):
     """Get blogs with filtering and sorting"""
-    query = db.query(Blog).filter(Blog.status == status)
+    query = db.query(Blog)
+    
+    # If status is provided, filter by status, otherwise get all statuses
+    if status != "all":
+        query = query.filter(Blog.status == status)
     
     if category_id:
         query = query.filter(Blog.category_id == category_id)
