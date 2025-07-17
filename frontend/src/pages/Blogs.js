@@ -125,15 +125,26 @@ const Blogs = () => {
                 Insights, tips, and stories from the B2B world
               </p>
             </div>
-            {user && (
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="flex items-center space-x-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
-              >
-                <PlusIcon className="h-5 w-5" />
-                <span>Write a Blog</span>
-              </button>
-            )}
+            <div className="flex space-x-4">
+              {user && (
+                <Link
+                  to="/my-blogs"
+                  className="flex items-center space-x-2 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+                >
+                  <DocumentTextIcon className="h-5 w-5" />
+                  <span>My Blogs</span>
+                </Link>
+              )}
+              {user && (
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="flex items-center space-x-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+                >
+                  <PlusIcon className="h-5 w-5" />
+                  <span>Write a Blog</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
