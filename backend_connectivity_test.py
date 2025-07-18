@@ -376,7 +376,7 @@ def test_database_operations():
     
     # Test 1: Basic database connectivity through API
     print("🔍 Testing basic database connectivity...")
-    response = make_authenticated_request("GET", "/api/categories", show_details=False)
+    response = make_authenticated_request("GET", "/api/tools/categories", show_details=False)
     
     if response.status_code == 200:
         categories = response.json()
@@ -391,7 +391,7 @@ def test_database_operations():
     
     # Test 2: Test database through tools endpoint
     print("\n🔍 Testing database through tools endpoint...")
-    response = make_authenticated_request("GET", "/api/tools?limit=5", show_details=False)
+    response = make_authenticated_request("GET", "/api/tools/search?per_page=5", show_details=False)
     
     if response.status_code == 200:
         tools = response.json()
