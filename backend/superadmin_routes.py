@@ -674,7 +674,7 @@ async def bulk_upload_tools(
                     meta_description=row.get('meta_description', ''),
                     slug=row['slug'],
                     created_at=datetime.utcnow(),
-                    updated_at=datetime.utcnow()
+                    last_updated=datetime.utcnow()
                 )
                 
                 db.add(db_tool)
