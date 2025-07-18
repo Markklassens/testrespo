@@ -4,7 +4,7 @@ from sqlalchemy import func, desc, asc
 from database import get_db
 from models import *
 from schemas import *
-from auth import get_current_verified_user, get_current_user_optional
+from auth import get_current_verified_user, get_current_user_optional, require_admin, require_superadmin
 from search_service import search_service
 from trending_calculator import get_trending_analytics, increment_view_and_update_trending
 from typing import Optional, List
@@ -12,6 +12,7 @@ import uuid
 import json
 import math
 from jose import JWTError, jwt
+from datetime import datetime
 
 router = APIRouter(prefix="/api/tools", tags=["tools"])
 
