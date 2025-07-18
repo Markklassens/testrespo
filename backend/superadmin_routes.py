@@ -502,6 +502,239 @@ async def get_trending_stats(
         ]
     }
 
+# Tool Creation Endpoint
+@router.post("/tools", response_model=ToolResponse)
+async def create_tool(
+    tool: ToolCreate,
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db)
+):
+    """Create a new tool (Super Admin only)"""
+    
+    # Check if slug already exists
+    existing_tool = db.query(Tool).filter(Tool.slug == tool.slug).first()
+    if existing_tool:
+        raise HTTPException(status_code=400, detail="Slug already exists")
+    
+    # Check if category exists
+    category = db.query(Category).filter(Category.id == tool.category_id).first()
+    if not category:
+        raise HTTPException(status_code=400, detail="Category not found")
+    
+    # Check if subcategory exists (if provided)
+    if tool.subcategory_id:
+        subcategory = db.query(Subcategory).filter(Subcategory.id == tool.subcategory_id).first()
+        if not subcategory:
+            raise HTTPException(status_code=400, detail="Subcategory not found")
+    
+    # Create tool
+    db_tool = Tool(
+        id=str(uuid.uuid4()),
+        **tool.dict(),
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow()
+    )
+    
+    db.add(db_tool)
+    db.commit()
+    db.refresh(db_tool)
+    
+    # Get category name for response
+    category_name = category.name if category else None
+    
+    # Get subcategory name for response
+    subcategory_name = None
+    if tool.subcategory_id:
+        subcategory = db.query(Subcategory).filter(Subcategory.id == tool.subcategory_id).first()
+        subcategory_name = subcategory.name if subcategory else None
+    
+    return ToolResponse(
+        id=db_tool.id,
+        name=db_tool.name,
+        description=db_tool.description,
+        short_description=db_tool.short_description,
+        website_url=db_tool.website_url,
+        pricing_model=db_tool.pricing_model,
+        pricing_details=db_tool.pricing_details,
+        features=db_tool.features,
+        target_audience=db_tool.target_audience,
+        company_size=db_tool.company_size,
+        integrations=db_tool.integrations,
+        logo_url=db_tool.logo_url,
+        category_id=db_tool.category_id,
+        category_name=category_name,
+        subcategory_id=db_tool.subcategory_id,
+        subcategory_name=subcategory_name,
+        industry=db_tool.industry,
+        employee_size=db_tool.employee_size,
+        revenue_range=db_tool.revenue_range,
+        location=db_tool.location,
+        is_hot=db_tool.is_hot,
+        is_featured=db_tool.is_featured,
+        total_reviews=db_tool.total_reviews,
+        rating=db_tool.rating,
+        views=db_tool.views,
+        trending_score=db_tool.trending_score,
+        meta_title=db_tool.meta_title,
+        meta_description=db_tool.meta_description,
+        slug=db_tool.slug,
+        created_at=db_tool.created_at,
+        updated_at=db_tool.updated_at
+    )
+
+# Bulk Upload Tools
+@router.post("/tools/bulk-upload")
+async def bulk_upload_tools(
+    file: UploadFile = File(...),
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db)
+):
+    """Bulk upload tools from CSV file (Super Admin only)"""
+    
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(status_code=400, detail="File must be a CSV")
+    
+    try:
+        # Read CSV content
+        content = await file.read()
+        content = content.decode('utf-8')
+        
+        # Parse CSV
+        import io
+        import csv
+        
+        csv_reader = csv.DictReader(io.StringIO(content))
+        
+        created_tools = []
+        errors = []
+        
+        for row_num, row in enumerate(csv_reader, start=2):  # Start from row 2 (after header)
+            try:
+                # Validate required fields
+                required_fields = ['name', 'description', 'website_url', 'pricing_model', 'category_id']
+                missing_fields = [field for field in required_fields if not row.get(field)]
+                
+                if missing_fields:
+                    errors.append(f"Row {row_num}: Missing required fields: {', '.join(missing_fields)}")
+                    continue
+                
+                # Check if category exists
+                category = db.query(Category).filter(Category.id == row['category_id']).first()
+                if not category:
+                    errors.append(f"Row {row_num}: Category not found: {row['category_id']}")
+                    continue
+                
+                # Auto-generate slug if not provided
+                if not row.get('slug'):
+                    row['slug'] = row['name'].lower().replace(' ', '-').replace('/', '-')
+                
+                # Check if slug already exists
+                existing_tool = db.query(Tool).filter(Tool.slug == row['slug']).first()
+                if existing_tool:
+                    errors.append(f"Row {row_num}: Slug already exists: {row['slug']}")
+                    continue
+                
+                # Parse features (comma-separated string to list)
+                features = []
+                if row.get('features'):
+                    features = [f.strip() for f in row['features'].split(',')]
+                
+                # Parse integrations (comma-separated string to list)
+                integrations = []
+                if row.get('integrations'):
+                    integrations = [i.strip() for i in row['integrations'].split(',')]
+                
+                # Convert boolean strings
+                is_hot = row.get('is_hot', '').lower() == 'true'
+                is_featured = row.get('is_featured', '').lower() == 'true'
+                
+                # Create tool
+                db_tool = Tool(
+                    id=str(uuid.uuid4()),
+                    name=row['name'],
+                    description=row['description'],
+                    short_description=row.get('short_description', ''),
+                    website_url=row['website_url'],
+                    pricing_model=row['pricing_model'],
+                    pricing_details=row.get('pricing_details', ''),
+                    features=features,
+                    target_audience=row.get('target_audience', ''),
+                    company_size=row.get('company_size', ''),
+                    integrations=integrations,
+                    logo_url=row.get('logo_url', ''),
+                    category_id=row['category_id'],
+                    subcategory_id=row.get('subcategory_id') or None,
+                    industry=row.get('industry', ''),
+                    employee_size=row.get('employee_size', ''),
+                    revenue_range=row.get('revenue_range', ''),
+                    location=row.get('location', ''),
+                    is_hot=is_hot,
+                    is_featured=is_featured,
+                    meta_title=row.get('meta_title', row['name']),
+                    meta_description=row.get('meta_description', ''),
+                    slug=row['slug'],
+                    created_at=datetime.utcnow(),
+                    updated_at=datetime.utcnow()
+                )
+                
+                db.add(db_tool)
+                created_tools.append(db_tool.name)
+                
+            except Exception as e:
+                errors.append(f"Row {row_num}: Error processing row: {str(e)}")
+        
+        # Commit all valid tools
+        if created_tools:
+            db.commit()
+        
+        return {
+            "message": f"Bulk upload completed. Created {len(created_tools)} tools.",
+            "created_tools": created_tools,
+            "errors": errors,
+            "total_processed": len(created_tools),
+            "total_errors": len(errors)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
+# Category Management
+@router.post("/categories", response_model=CategoryResponse)
+async def create_category(
+    category: CategoryCreate,
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db)
+):
+    """Create a new category (Super Admin only)"""
+    
+    # Check if category name already exists
+    existing_category = db.query(Category).filter(Category.name == category.name).first()
+    if existing_category:
+        raise HTTPException(status_code=400, detail="Category name already exists")
+    
+    # Create category
+    db_category = Category(
+        id=str(uuid.uuid4()),
+        name=category.name,
+        description=category.description,
+        icon=category.icon,
+        color=category.color,
+        created_at=datetime.utcnow()
+    )
+    
+    db.add(db_category)
+    db.commit()
+    db.refresh(db_category)
+    
+    return CategoryResponse(
+        id=db_category.id,
+        name=db_category.name,
+        description=db_category.description,
+        icon=db_category.icon,
+        color=db_category.color,
+        created_at=db_category.created_at
+    )
+
 # CSV Sample File Generation
 @router.get("/tools/sample-csv")
 async def download_sample_csv(
