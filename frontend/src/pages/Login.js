@@ -27,14 +27,14 @@ const Login = () => {
     try {
       const result = await login(formData.email, formData.password);
       
-      if (result.success) {
+      // If login is successful, result will be the user data
+      if (result) {
         toast.success('Login successful!');
         navigate('/dashboard');
-      } else {
-        toast.error(result.error);
       }
     } catch (error) {
-      toast.error('Something went wrong. Please try again.');
+      // Error handling is already done in the login function
+      console.error('Login failed:', error);
     } finally {
       setLoading(false);
     }
