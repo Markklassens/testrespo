@@ -137,6 +137,11 @@ async def get_categories(db: Session = Depends(get_db)):
     """Get all categories"""
     categories = db.query(Category).all()
     return categories
+@router.get("/categories", response_model=List[CategoryResponse])
+async def get_categories(db: Session = Depends(get_db)):
+    """Get all categories"""
+    categories = db.query(Category).all()
+    return categories
 
 @router.get("/categories/analytics")
 async def get_category_analytics(db: Session = Depends(get_db)):
