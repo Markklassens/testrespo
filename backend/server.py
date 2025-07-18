@@ -116,7 +116,7 @@ allowed_origins.extend([
     "https://psychic-space-potato-x54gpgwg9pw626rpp-8001.app.github.dev",
 ])
 
-# Dynamic pattern matching for emergentagent.com
+# Enhanced dynamic pattern matching for any github.dev and emergentagent.com domains
 import re
 @app.middleware("http")
 async def dynamic_cors(request: Request, call_next):
@@ -132,6 +132,12 @@ async def dynamic_cors(request: Request, call_next):
         # Allow all github.dev subdomains
         if re.match(r'https://.*\.github\.dev$', origin):
             logger.info(f"Allowing github.dev origin: {origin}")
+            if origin not in allowed_origins:
+                allowed_origins.append(origin)
+        
+        # Allow all app.github.dev subdomains 
+        if re.match(r'https://.*\.app\.github\.dev$', origin):
+            logger.info(f"Allowing app.github.dev origin: {origin}")
             if origin not in allowed_origins:
                 allowed_origins.append(origin)
     
