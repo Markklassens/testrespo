@@ -4906,7 +4906,75 @@ ORDER BY b.created_at DESC;
     
     return success
 
+def test_review_request_functionality():
+    """Test all functionality mentioned in the review request"""
+    print_test_header("REVIEW REQUEST FUNCTIONALITY TESTING")
+    
+    test_results = {}
+    
+    # Test 1: Tools Comparison System
+    print_test_header("TESTING: Tools Comparison System")
+    test_results["tools_comparison"] = test_tools_comparison()
+    
+    # Test 2: Categories Route
+    print_test_header("TESTING: Categories Route")
+    test_results["categories_route"] = test_categories_route()
+    
+    # Test 3: Tools CRUD Operations
+    print_test_header("TESTING: Tools CRUD Operations")
+    test_results["tools_crud"] = test_tools_crud_operations()
+    
+    # Test 4: Free Tools Admin Management
+    print_test_header("TESTING: Free Tools Admin Management")
+    test_results["free_tools_admin"] = test_free_tools_admin_management()
+    
+    # Summary
+    print_test_header("REVIEW REQUEST TESTING SUMMARY")
+    
+    passed_tests = []
+    failed_tests = []
+    
+    for test_name, result in test_results.items():
+        if result:
+            passed_tests.append(test_name)
+            print(f"✅ {test_name.replace('_', ' ').title()}: PASSED")
+        else:
+            failed_tests.append(test_name)
+            print(f"❌ {test_name.replace('_', ' ').title()}: FAILED")
+    
+    print(f"\n📊 FINAL RESULTS:")
+    print(f"✅ Passed: {len(passed_tests)}/{len(test_results)}")
+    print(f"❌ Failed: {len(failed_tests)}/{len(test_results)}")
+    
+    if failed_tests:
+        print(f"\n🔍 Failed Tests: {', '.join(failed_tests)}")
+        return False
+    else:
+        print(f"\n🎉 ALL REVIEW REQUEST TESTS PASSED!")
+        return True
+
 if __name__ == "__main__":
-    # Run the specific test for the review request
-    print("Running Enhanced Blog Functionality Test - REVIEW REQUEST SPECIFIC")
-    test_enhanced_blog_functionality()
+    print("🚀 Starting MarketMindAI Backend Testing - Review Request Focus")
+    print("=" * 80)
+    
+    # Run basic health check first
+    if not test_health_check():
+        print("❌ Health check failed. Exiting.")
+        exit(1)
+    
+    # Login to get tokens
+    if not test_login():
+        print("❌ Login failed. Exiting.")
+        exit(1)
+    
+    # Run the specific review request tests
+    success = test_review_request_functionality()
+    
+    if success:
+        print("\n🎉 ALL REVIEW REQUEST TESTS COMPLETED SUCCESSFULLY!")
+        print("✅ The newly added functionality from server_original.py has been successfully implemented.")
+        exit(0)
+    else:
+        print("\n❌ SOME REVIEW REQUEST TESTS FAILED!")
+        print("🔍 Please check the failed tests above for details.")
+        exit(1)
