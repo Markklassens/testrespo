@@ -394,8 +394,9 @@ def test_database_operations():
     response = make_authenticated_request("GET", "/api/tools/search?per_page=5", show_details=False)
     
     if response.status_code == 200:
-        tools = response.json()
-        if isinstance(tools, list):
+        tools_data = response.json()
+        if isinstance(tools_data, dict) and "tools" in tools_data:
+            tools = tools_data["tools"]
             print(f"✅ Database tools query successful - {len(tools)} tools found")
         else:
             print("❌ Database tools query returned unexpected format")
