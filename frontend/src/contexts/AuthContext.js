@@ -57,10 +57,11 @@ export const AuthProvider = ({ children }) => {
         setConnectionStatus('disconnected');
         setConnectionAttempts(prev => prev + 1);
         
-        // Only show error toast if we haven't exceeded retry limit
-        if (connectionAttempts < 3) {
+        // Only show error toast if we haven't exceeded retry limit and it's not a repeated failure
+        if (connectionAttempts < 3 && connectionStatus !== 'disconnected') {
           toast.error(`Connection failed. Retrying... (${connectionAttempts + 1}/3)`, {
-            duration: 3000,
+            duration: 2000,
+            id: 'connection-error', // Prevents duplicate toasts
           });
         }
         
