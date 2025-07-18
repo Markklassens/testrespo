@@ -261,6 +261,7 @@ class IntelligentBackendConnector {
   async reconnect() {
     if (this.retryCount >= this.maxRetries) {
       console.error('❌ Max reconnection attempts reached');
+      this.stopHealthCheck();
       return false;
     }
     
