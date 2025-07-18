@@ -144,6 +144,11 @@ function AppContent() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
+      
+      {/* Connection Status and Debug Panel */}
+      <ConnectionStatus />
+      <DebugPanel />
+      
       <Toaster
         position="top-right"
         toastOptions={{
