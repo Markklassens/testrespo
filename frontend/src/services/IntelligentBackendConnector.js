@@ -184,9 +184,20 @@ class IntelligentBackendConnector {
       
       // Configure axios
       const axios = require('axios');
+      
+      // Clear any existing configuration
+      delete axios.defaults.baseURL;
+      delete axios.defaults.headers.common['Authorization'];
+      
+      // Set new configuration
       axios.defaults.baseURL = backendUrl;
       axios.defaults.timeout = 30000;
       axios.defaults.headers.common['Content-Type'] = 'application/json';
+      
+      // Test the configuration immediately
+      console.log('🧪 Testing axios configuration with:', backendUrl);
+      const testResponse = await axios.get('/api/health');
+      console.log('✅ Axios test successful:', testResponse.status);
       
       // Add request interceptor for logging
       axios.interceptors.request.use(
