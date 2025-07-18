@@ -70,8 +70,9 @@ export const AuthProvider = ({ children }) => {
           if (connectionAttempts < 3) {
             initializeConnection();
           } else {
-            toast.error('Connection failed. Please check your internet connection and refresh the page.', {
-              duration: 0, // Don't auto-dismiss
+            toast.error('Unable to connect to backend. Please refresh the page if issues persist.', {
+              duration: 5000,
+              id: 'connection-max-retries',
             });
           }
         }, Math.min(2000 * Math.pow(2, connectionAttempts), 10000));
