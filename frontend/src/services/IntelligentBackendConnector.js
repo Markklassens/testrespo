@@ -79,8 +79,9 @@ class IntelligentBackendConnector {
     }
     
     // Add environment variable if available
-    if (process.env.REACT_APP_BACKEND_URL) {
-      urls.unshift(process.env.REACT_APP_BACKEND_URL);
+    const envBackendUrl = process.env.REACT_APP_BACKEND_URL || window.REACT_APP_BACKEND_URL;
+    if (envBackendUrl) {
+      urls.unshift(envBackendUrl);
     }
     
     // Add stored working URL if available
