@@ -69,7 +69,7 @@ class IntelligentBackendConnector {
     }
     
     // Add the current known working URL
-    urls.push('https://cce2b6c3-1a87-4b89-ba91-78109b03f3ef.preview.emergentagent.com');
+    urls.push('https://1f8ac190-1d4e-4cfa-b71d-d091aca21669.preview.emergentagent.com');
     
     // Extract base domain patterns
     if (currentHost.includes('github.dev')) {
