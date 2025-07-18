@@ -112,6 +112,8 @@ allowed_origins.extend([
     "https://fictional-happiness-jjgp7p5p4gp4hq9rw-3000.app.github.dev",
     "https://fictional-happiness-jjgp7p5p4gp4hq9rw-8001.app.github.dev",
     "https://652511bd-95fd-487c-8258-e1c95dd730f8.preview.emergentagent.com",
+    "https://psychic-space-potato-x54gpgwg9pw626rpp-3000.app.github.dev",
+    "https://psychic-space-potato-x54gpgwg9pw626rpp-8001.app.github.dev",
 ])
 
 # Dynamic pattern matching for emergentagent.com
