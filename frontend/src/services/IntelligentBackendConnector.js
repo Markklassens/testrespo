@@ -168,10 +168,26 @@ class IntelligentBackendConnector {
         async (error) => {
           console.error('📥 Response Error:', error);
           
-          // If we get a network error, try to reconnect
-          if (error.code === 'NETWORK_ERROR' || error.code === 'ECONNREFUSED') {
+          // Only attempt reconnection for actual network errors (not 401, 403, etc.)
+          const isNetworkError = error.code === 'NETWORK_ERROR' || 
+                                error.code === 'ECONNREFUSED' || 
+                                !error.response;
+          
+          if (isNetworkError && this.isConnected) {
             console.log('🔄 Network error detected, attempting to reconnect...');
-            await this.reconnect();
+            this.isConnected = false;
+            
+            // Notify listeners about disconnection
+            this.connectionCallbacks.forEach(callback => callback(false, this.currentUrl, error));
+            
+            // Attempt to reconnect after a delay
+            setTimeout(async () => {
+              try {
+                await this.reconnect();
+              } catch (reconnectError) {
+                console.error('❌ Reconnection failed:', reconnectError);
+              }
+            }, 3000);
           }
           
           return Promise.reject(error);
