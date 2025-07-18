@@ -97,7 +97,10 @@ async def login(login_data: LoginRequest, db: Session = Depends(get_db)):
             "full_name": user.full_name,
             "user_type": user.user_type,
             "is_active": user.is_active,
-            "is_verified": user.is_verified
+            "is_verified": user.is_verified,
+            "created_at": user.created_at,
+            "groq_api_key": user.groq_api_key,
+            "claude_api_key": user.claude_api_key
         }
     }
 
