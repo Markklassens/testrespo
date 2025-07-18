@@ -11,10 +11,13 @@ import {
 } from '@heroicons/react/24/outline';
 
 const IntelligentConnectionStatus = () => {
-  const { connectionStatus, backendUrl, testBackendConnection, getConnectionStatus } = useAuth();
+  const { connectionStatus, backendUrl, testBackendConnection, getConnectionStatus, user } = useAuth();
   const [showDetails, setShowDetails] = useState(false);
   const [connectionDetails, setConnectionDetails] = useState(null);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [isWidgetVisible, setIsWidgetVisible] = useState(true);
+
+  const isSuperAdmin = user?.user_type === 'superadmin';
 
   useEffect(() => {
     if (getConnectionStatus) {
