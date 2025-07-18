@@ -65,7 +65,7 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
             detail="Failed to send verification email"
         )
 
-@router.post("/login", response_model=Token)
+@router.post("/login", response_model=LoginResponse)
 async def login(login_data: LoginRequest, db: Session = Depends(get_db)):
     user = authenticate_user(db, login_data.email, login_data.password)
     if not user:
