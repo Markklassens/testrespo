@@ -11,6 +11,7 @@ import { initializeFromStorage } from './store/slices/comparisonSlice';
 import Navbar from './components/Navbar';
 import ConnectionStatus from './components/ConnectionStatus';
 import DebugPanel from './components/DebugPanel';
+import BackendTester from './components/BackendTester';
 import Home from './pages/Home';
 import DiscoverPage from './pages/DiscoverPage';
 import Login from './pages/Login';
