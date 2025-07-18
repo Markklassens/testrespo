@@ -11,6 +11,71 @@ from datetime import datetime
 
 router = APIRouter(prefix="/api/superadmin", tags=["superadmin"])
 
+# Admin Settings Management
+@router.get("/settings")
+async def get_admin_settings(
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db)
+):
+    """Get all admin settings (Super Admin only)"""
+    settings = db.query(AdminSettings).all()
+    return {setting.setting_key: setting.setting_value for setting in settings}
+
+@router.get("/settings/{setting_key}")
+async def get_admin_setting(
+    setting_key: str,
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db)
+):
+    """Get specific admin setting (Super Admin only)"""
+    setting = db.query(AdminSettings).filter(AdminSettings.setting_key == setting_key).first()
+    if not setting:
+        return {"setting_key": setting_key, "setting_value": None}
+    return {"setting_key": setting.setting_key, "setting_value": setting.setting_value}
+
+@router.post("/settings/{setting_key}")
+async def update_admin_setting(
+    setting_key: str,
+    setting_value: str,
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db)
+):
+    """Update admin setting (Super Admin only)"""
+    setting = db.query(AdminSettings).filter(AdminSettings.setting_key == setting_key).first()
+    
+    if setting:
+        setting.setting_value = setting_value
+        setting.updated_at = datetime.utcnow()
+    else:
+        setting = AdminSettings(
+            id=str(uuid.uuid4()),
+            setting_key=setting_key,
+            setting_value=setting_value,
+            description=f"Admin setting for {setting_key}"
+        )
+        db.add(setting)
+    
+    db.commit()
+    db.refresh(setting)
+    
+    return {"message": f"Setting {setting_key} updated successfully", "setting": setting}
+
+@router.delete("/settings/{setting_key}")
+async def delete_admin_setting(
+    setting_key: str,
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db)
+):
+    """Delete admin setting (Super Admin only)"""
+    setting = db.query(AdminSettings).filter(AdminSettings.setting_key == setting_key).first()
+    if not setting:
+        raise HTTPException(status_code=404, detail="Setting not found")
+    
+    db.delete(setting)
+    db.commit()
+    
+    return {"message": f"Setting {setting_key} deleted successfully"}
+
 # User Management Routes
 @router.get("/users", response_model=List[UserResponse])
 async def get_all_users(
