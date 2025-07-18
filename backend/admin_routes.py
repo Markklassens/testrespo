@@ -202,6 +202,169 @@ async def delete_review(
     db.commit()
     return {"message": "Review deleted successfully"}
 
+# Free Tools Admin Management Routes
+@router.post("/free-tools", response_model=FreeToolResponse)
+async def create_free_tool(
+    tool: FreeToolCreate,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Create a new free tool (Admin only)"""
+    # Check if slug already exists
+    existing_tool = db.query(FreeTool).filter(FreeTool.slug == tool.slug).first()
+    if existing_tool:
+        raise HTTPException(status_code=400, detail="Slug already exists")
+    
+    db_tool = FreeTool(
+        id=str(uuid.uuid4()),
+        **tool.dict()
+    )
+    db.add(db_tool)
+    db.commit()
+    db.refresh(db_tool)
+    return db_tool
+
+@router.put("/free-tools/{tool_id}", response_model=FreeToolResponse)
+async def update_free_tool(
+    tool_id: str,
+    tool_update: FreeToolUpdate,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Update a free tool (Admin only)"""
+    db_tool = db.query(FreeTool).filter(FreeTool.id == tool_id).first()
+    if not db_tool:
+        raise HTTPException(status_code=404, detail="Free tool not found")
+    
+    update_data = tool_update.dict(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_tool, field, value)
+    
+    db.commit()
+    db.refresh(db_tool)
+    return db_tool
+
+@router.delete("/free-tools/{tool_id}")
+async def delete_free_tool(
+    tool_id: str,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Delete a free tool (Admin only)"""
+    db_tool = db.query(FreeTool).filter(FreeTool.id == tool_id).first()
+    if not db_tool:
+        raise HTTPException(status_code=404, detail="Free tool not found")
+    
+    db.delete(db_tool)
+    db.commit()
+    return {"message": "Free tool deleted successfully"}
+
+@router.get("/free-tools", response_model=List[FreeToolResponse])
+async def get_all_free_tools_admin(
+    skip: int = 0,
+    limit: int = 100,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Get all free tools including inactive ones (Admin only)"""
+    tools = db.query(FreeTool).offset(skip).limit(limit).all()
+    return tools
+
+@router.post("/free-tools/bulk-upload")
+async def bulk_upload_free_tools(
+    file: UploadFile = File(...),
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Bulk upload free tools via CSV (Admin only)"""
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(status_code=400, detail="File must be a CSV")
+    
+    content = await file.read()
+    csv_data = content.decode('utf-8')
+    
+    # Parse CSV and create free tools
+    reader = csv.DictReader(io.StringIO(csv_data))
+    created_tools = []
+    errors = []
+    
+    for row_num, row in enumerate(reader, start=2):
+        try:
+            tool_data = {
+                'id': str(uuid.uuid4()),
+                'name': row['name'],
+                'description': row['description'],
+                'short_description': row.get('short_description', ''),
+                'slug': row['slug'],
+                'category': row.get('category', ''),
+                'icon': row.get('icon', ''),
+                'color': row.get('color', ''),
+                'website_url': row.get('website_url', ''),
+                'features': row.get('features', ''),
+                'is_active': row.get('is_active', 'true').lower() == 'true',
+                'meta_title': row.get('meta_title', ''),
+                'meta_description': row.get('meta_description', '')
+            }
+            
+            db_tool = FreeTool(**tool_data)
+            db.add(db_tool)
+            created_tools.append(tool_data['name'])
+            
+        except Exception as e:
+            errors.append(f"Row {row_num}: {str(e)}")
+    
+    if created_tools:
+        db.commit()
+    
+    return {
+        "tools_created": len(created_tools),
+        "created_tools": created_tools,
+        "errors": errors
+    }
+
+@router.get("/free-tools/analytics")
+async def get_free_tools_analytics(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Get analytics for free tools (Admin only)"""
+    from sqlalchemy import func
+    
+    total_tools = db.query(FreeTool).count()
+    active_tools = db.query(FreeTool).filter(FreeTool.is_active == True).count()
+    total_searches = db.query(SearchHistory).count()
+    total_views = db.query(func.sum(FreeTool.views)).scalar() or 0
+    
+    # Most popular tools
+    popular_tools = db.query(FreeTool).order_by(desc(FreeTool.searches_count)).limit(10).all()
+    
+    # Recent search activity
+    recent_searches = db.query(SearchHistory).order_by(desc(SearchHistory.created_at)).limit(20).all()
+    
+    return {
+        "total_tools": total_tools,
+        "active_tools": active_tools,
+        "total_searches": total_searches,
+        "total_views": total_views,
+        "popular_tools": popular_tools,
+        "recent_searches": recent_searches
+    }
+
+@router.get("/free-tools/{tool_id}/search-history", response_model=List[SearchHistoryResponse])
+async def get_tool_search_history(
+    tool_id: str,
+    skip: int = 0,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """Get search history for a specific tool (Admin only)"""
+    history = db.query(SearchHistory).filter(
+        SearchHistory.tool_id == tool_id
+    ).order_by(desc(SearchHistory.created_at)).offset(skip).limit(limit).all()
+    
+    return history
+
 # SEO Management Routes
 @router.post("/seo/optimize")
 async def optimize_tool_seo(
