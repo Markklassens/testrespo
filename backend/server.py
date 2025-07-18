@@ -262,6 +262,14 @@ app.include_router(get_user_routes(), prefix="", tags=["user", "authentication"]
 app.include_router(get_tools_routes(), prefix="", tags=["tools", "free-tools"])
 app.include_router(blogs_router, prefix="", tags=["blogs"])
 
+# Global Categories Route
+@app.get("/api/categories")
+async def get_categories_global(db: Session = Depends(get_db)):
+    """Get all categories - Global endpoint"""
+    from models import Category
+    categories = db.query(Category).all()
+    return categories
+
 # Root endpoint
 @app.get("/")
 async def root():
