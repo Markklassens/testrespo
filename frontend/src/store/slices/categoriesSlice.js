@@ -22,7 +22,7 @@ export const fetchSubcategories = createAsyncThunk(
 export const createCategory = createAsyncThunk(
   'categories/createCategory',
   async (categoryData) => {
-    const response = await api.post('/api/categories', categoryData);
+    const response = await api.post('/api/superadmin/categories', categoryData);
     return response.data;
   }
 );
