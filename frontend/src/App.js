@@ -149,6 +149,7 @@ function AppContent() {
       {/* Connection Status and Debug Panel */}
       <ConnectionStatus />
       <DebugPanel />
+      <BackendTester />
       
       <Toaster
         position="top-right"
