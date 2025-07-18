@@ -373,25 +373,6 @@ async def update_tool_access_request(
     return {"message": f"Access request {update_data.status} successfully"}
 
 # Category Management Routes
-@router.post("/categories", response_model=CategoryResponse)
-async def create_category(
-    category: CategoryCreate,
-    current_user: User = Depends(require_superadmin),
-    db: Session = Depends(get_db)
-):
-    """Create a new category"""
-    db_category = Category(
-        id=str(uuid.uuid4()),
-        name=category.name,
-        description=category.description,
-        icon=category.icon,
-        color=category.color,
-        created_at=datetime.utcnow()
-    )
-    db.add(db_category)
-    db.commit()
-    db.refresh(db_category)
-    return db_category
 
 @router.put("/categories/{category_id}", response_model=CategoryResponse)
 async def update_category(
