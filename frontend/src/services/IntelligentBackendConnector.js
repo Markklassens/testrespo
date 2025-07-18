@@ -6,6 +6,46 @@ class IntelligentBackendConnector {
     this.retryCount = 0;
     this.maxRetries = 3;
     this.connectionCallbacks = [];
+    this.healthCheckInterval = null;
+    this.healthCheckEnabled = false;
+  }
+
+  // Start periodic health checks (only when connected)
+  startHealthCheck() {
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval);
+    }
+    
+    this.healthCheckEnabled = true;
+    this.healthCheckInterval = setInterval(async () => {
+      if (this.isConnected && this.currentUrl) {
+        try {
+          await this.testBackendUrl(this.currentUrl, 3000);
+        } catch (error) {
+          console.log('🔄 Health check failed, attempting reconnection...');
+          this.isConnected = false;
+          this.connectionCallbacks.forEach(callback => callback(false, this.currentUrl, error));
+          
+          // Try to reconnect
+          setTimeout(async () => {
+            try {
+              await this.reconnect();
+            } catch (reconnectError) {
+              console.error('❌ Health check reconnection failed:', reconnectError);
+            }
+          }, 5000);
+        }
+      }
+    }, 30000); // Check every 30 seconds
+  }
+
+  // Stop health checks
+  stopHealthCheck() {
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval);
+      this.healthCheckInterval = null;
+    }
+    this.healthCheckEnabled = false;
   }
 
   // Generate possible backend URLs based on current environment
