@@ -345,7 +345,7 @@ def test_enhanced_error_handling():
         
         # Test 403 Forbidden (admin trying to access superadmin endpoint)
         print("\n🔍 Testing 403 Forbidden...")
-        response = make_authenticated_request("GET", "/api/admin/analytics/advanced", token=admin_token, expected_status=403, show_details=False)
+        response = make_authenticated_request("GET", "/api/superadmin/users", token=admin_token, expected_status=403, show_details=False)
         
         if response.status_code == 403:
             print("✅ 403 forbidden error handling working")
