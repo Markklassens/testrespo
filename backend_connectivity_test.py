@@ -455,16 +455,16 @@ def test_api_endpoints():
     
     success = True
     
-    # Test 1: Root endpoint
+    # Test 1: Root endpoint (serves frontend HTML)
     print("🔍 Testing root endpoint...")
     response = make_authenticated_request("GET", "/", show_details=False)
     
     if response.status_code == 200:
-        root_data = response.json()
-        if "message" in root_data and "version" in root_data:
-            print(f"✅ Root endpoint working - Version: {root_data['version']}")
+        # Root endpoint serves HTML frontend, not JSON API
+        if "MarketMindAI" in response.text and "<!DOCTYPE html>" in response.text:
+            print("✅ Root endpoint working - Serving frontend HTML")
         else:
-            print("❌ Root endpoint missing required fields")
+            print("❌ Root endpoint not serving expected frontend content")
             success = False
     else:
         print(f"❌ Root endpoint failed with status {response.status_code}")
