@@ -80,8 +80,9 @@ function AppContent() {
     dispatch(initializeFromStorage());
   }, [dispatch]);
   
+  // Show intelligent loading screen
   if (loading) {
-    return <LoadingSpinner />;
+    return <IntelligentLoadingScreen />;
   }
   
   return (
