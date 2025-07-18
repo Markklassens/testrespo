@@ -305,6 +305,7 @@ class IntelligentBackendConnector {
   // Force refresh connection
   async refreshConnection() {
     console.log('🔄 Forcing connection refresh...');
+    this.stopHealthCheck();
     localStorage.removeItem('workingBackendUrl');
     localStorage.removeItem('backendTestResults');
     this.isConnected = false;
