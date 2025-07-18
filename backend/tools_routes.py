@@ -137,12 +137,6 @@ async def get_categories(db: Session = Depends(get_db)):
     """Get all categories"""
     categories = db.query(Category).all()
     return categories
-
-@router.get("/categories", response_model=List[CategoryResponse])
-async def get_categories_duplicate(db: Session = Depends(get_db)):
-    """Get all categories - backup route"""
-    categories = db.query(Category).all()
-    return categories
 @router.get("/categories", response_model=List[CategoryResponse])
 async def get_categories(db: Session = Depends(get_db)):
     """Get all categories"""
