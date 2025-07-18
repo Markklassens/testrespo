@@ -58,6 +58,7 @@ class IntelligentBackendConnector {
 
   // Test a single backend URL
   async testBackendUrl(url, timeout = 5000) {
+    const startTime = Date.now();
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeout);
