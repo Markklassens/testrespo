@@ -20,11 +20,13 @@ from tools_routes import get_tools_routes
 from blogs_routes import router as blogs_router
 
 # Configure logging
+import os
+os.makedirs('/tmp/logs', exist_ok=True)
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('/var/log/backend.log'),
+        logging.FileHandler('/tmp/logs/backend.log'),
         logging.StreamHandler()
     ]
 )
