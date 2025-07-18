@@ -16,8 +16,34 @@ const IntelligentConnectionStatus = () => {
   const [connectionDetails, setConnectionDetails] = useState(null);
   const [isRetrying, setIsRetrying] = useState(false);
   const [isWidgetVisible, setIsWidgetVisible] = useState(true);
+  const [autoHideTimeout, setAutoHideTimeout] = useState(null);
 
   const isSuperAdmin = user?.user_type === 'superadmin';
+  const isDev = process.env.NODE_ENV === 'development';
+
+  // Auto-hide the widget when connected (only in production)
+  useEffect(() => {
+    if (connectionStatus === 'connected' && !isDev && !isSuperAdmin) {
+      // Auto-hide after 5 seconds of being connected
+      const timeout = setTimeout(() => {
+        setIsWidgetVisible(false);
+      }, 5000);
+      setAutoHideTimeout(timeout);
+    } else if (connectionStatus !== 'connected') {
+      // Show widget when not connected
+      setIsWidgetVisible(true);
+      if (autoHideTimeout) {
+        clearTimeout(autoHideTimeout);
+        setAutoHideTimeout(null);
+      }
+    }
+
+    return () => {
+      if (autoHideTimeout) {
+        clearTimeout(autoHideTimeout);
+      }
+    };
+  }, [connectionStatus, isDev, isSuperAdmin, autoHideTimeout]);
 
   useEffect(() => {
     if (getConnectionStatus) {
@@ -75,8 +101,8 @@ const IntelligentConnectionStatus = () => {
     }
   };
 
-  // If SuperAdmin has hidden the widget, don't show it
-  if (isSuperAdmin && !isWidgetVisible) {
+  // Show "Show Connection Status" button for SuperAdmin or when widget is hidden
+  if ((isSuperAdmin || isDev) && !isWidgetVisible) {
     return (
       <div className="fixed bottom-4 right-4 z-50">
         <button
@@ -90,33 +116,42 @@ const IntelligentConnectionStatus = () => {
     );
   }
 
+  // Don't show widget at all if hidden and not admin/dev
+  if (!isWidgetVisible && !isSuperAdmin && !isDev) {
+    return null;
+  }
+
+  // Simple connected status (minimized)
   if (connectionStatus === 'connected' && !showDetails) {
     return (
       <div className="fixed bottom-4 right-4 z-50">
-        <div className="bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center space-x-2">
-          <CheckCircleIcon className="h-5 w-5" />
-          <span className="text-sm">Connected</span>
-          <button
-            onClick={() => setShowDetails(true)}
-            className="p-1 hover:bg-green-600 rounded"
-            title="Show connection details"
-          >
-            <CogIcon className="h-4 w-4" />
-          </button>
-          {isSuperAdmin && (
-            <button
-              onClick={() => setIsWidgetVisible(false)}
-              className="p-1 hover:bg-green-600 rounded"
-              title="Hide connection status widget"
-            >
-              <XCircleIcon className="h-4 w-4" />
-            </button>
+        <div className="bg-green-500 text-white px-3 py-1 rounded-full shadow-lg flex items-center space-x-2 text-sm">
+          <CheckCircleIcon className="h-4 w-4" />
+          <span>Connected</span>
+          {(isSuperAdmin || isDev) && (
+            <>
+              <button
+                onClick={() => setShowDetails(true)}
+                className="p-1 hover:bg-green-600 rounded-full"
+                title="Show connection details"
+              >
+                <CogIcon className="h-3 w-3" />
+              </button>
+              <button
+                onClick={() => setIsWidgetVisible(false)}
+                className="p-1 hover:bg-green-600 rounded-full"
+                title="Hide connection status widget"
+              >
+                <XCircleIcon className="h-3 w-3" />
+              </button>
+            </>
           )}
         </div>
       </div>
     );
   }
 
+  // Full widget for non-connected states or when details are requested
   return (
     <div className="fixed bottom-4 right-4 z-50">
       <div className={`${getStatusColor()} text-white px-4 py-2 rounded-lg shadow-lg max-w-sm`}>
@@ -135,16 +170,18 @@ const IntelligentConnectionStatus = () => {
             </button>
           )}
           
-          <button
-            onClick={() => setShowDetails(!showDetails)}
-            className="p-1 hover:bg-opacity-80 rounded"
-            title="Toggle connection details"
-          >
-            <CogIcon className="h-4 w-4" />
-          </button>
+          {(isSuperAdmin || isDev) && (
+            <button
+              onClick={() => setShowDetails(!showDetails)}
+              className="p-1 hover:bg-opacity-80 rounded"
+              title="Toggle connection details"
+            >
+              <CogIcon className="h-4 w-4" />
+            </button>
+          )}
         </div>
         
-        {showDetails && (
+        {showDetails && (isSuperAdmin || isDev) && (
           <div className="mt-3 pt-3 border-t border-white border-opacity-20">
             <div className="space-y-2 text-xs">
               <div className="flex items-center justify-between">
@@ -191,14 +228,12 @@ const IntelligentConnectionStatus = () => {
                 </button>
                 
                 <div className="flex items-center space-x-2">
-                  {isSuperAdmin && (
-                    <button
-                      onClick={() => setIsWidgetVisible(false)}
-                      className="px-2 py-1 bg-white bg-opacity-20 rounded text-xs hover:bg-opacity-30"
-                    >
-                      Hide Widget
-                    </button>
-                  )}
+                  <button
+                    onClick={() => setIsWidgetVisible(false)}
+                    className="px-2 py-1 bg-white bg-opacity-20 rounded text-xs hover:bg-opacity-30"
+                  >
+                    Hide Widget
+                  </button>
                   <button
                     onClick={() => setShowDetails(false)}
                     className="px-2 py-1 bg-white bg-opacity-20 rounded text-xs hover:bg-opacity-30"
