@@ -114,6 +114,26 @@ const testBackendConnection = async () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [connectionStatus, setConnectionStatus] = useState('checking');
+
+  // Check backend connectivity on mount
+  useEffect(() => {
+    const checkConnection = async () => {
+      try {
+        await testBackendConnection();
+        setConnectionStatus('connected');
+      } catch (error) {
+        setConnectionStatus('disconnected');
+        toast.error('Unable to connect to backend server');
+      }
+    };
+
+    checkConnection();
+    
+    // Check connection every 5 minutes
+    const interval = setInterval(checkConnection, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -128,9 +148,14 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await axios.get('/api/auth/me');
       setUser(response.data);
+      setConnectionStatus('connected');
     } catch (error) {
       console.error('Error fetching user:', error);
-      localStorage.removeItem('token');
+      if (error.response?.status === 401) {
+        localStorage.removeItem('token');
+      } else {
+        setConnectionStatus('disconnected');
+      }
     } finally {
       setLoading(false);
     }
@@ -142,8 +167,18 @@ export const AuthProvider = ({ children }) => {
       const { access_token } = response.data;
       localStorage.setItem('token', access_token);
       await fetchUser();
+      setConnectionStatus('connected');
+      toast.success('Login successful!');
       return { success: true };
     } catch (error) {
+      console.error('Login error:', error);
+      if (error.code === 'NETWORK_ERROR' || !error.response) {
+        setConnectionStatus('disconnected');
+        return { 
+          success: false, 
+          error: 'Unable to connect to server. Please check your connection.' 
+        };
+      }
       return { 
         success: false, 
         error: error.response?.data?.detail || 'Login failed' 
@@ -154,8 +189,18 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       const response = await axios.post('/api/auth/register', userData);
+      setConnectionStatus('connected');
+      toast.success('Registration successful! Please check your email for verification.');
       return { success: true, data: response.data };
     } catch (error) {
+      console.error('Registration error:', error);
+      if (error.code === 'NETWORK_ERROR' || !error.response) {
+        setConnectionStatus('disconnected');
+        return { 
+          success: false, 
+          error: 'Unable to connect to server. Please check your connection.' 
+        };
+      }
       return { 
         success: false, 
         error: error.response?.data?.detail || 'Registration failed' 
@@ -166,8 +211,18 @@ export const AuthProvider = ({ children }) => {
   const verifyEmail = async (token) => {
     try {
       const response = await axios.post('/api/auth/verify-email', { token });
+      setConnectionStatus('connected');
+      toast.success('Email verified successfully!');
       return { success: true, message: response.data.message };
     } catch (error) {
+      console.error('Email verification error:', error);
+      if (error.code === 'NETWORK_ERROR' || !error.response) {
+        setConnectionStatus('disconnected');
+        return { 
+          success: false, 
+          error: 'Unable to connect to server. Please check your connection.' 
+        };
+      }
       return { 
         success: false, 
         error: error.response?.data?.detail || 'Verification failed' 
@@ -178,8 +233,18 @@ export const AuthProvider = ({ children }) => {
   const requestPasswordReset = async (email) => {
     try {
       const response = await axios.post('/api/auth/request-password-reset', { email });
+      setConnectionStatus('connected');
+      toast.success('Password reset email sent!');
       return { success: true, message: response.data.message };
     } catch (error) {
+      console.error('Password reset request error:', error);
+      if (error.code === 'NETWORK_ERROR' || !error.response) {
+        setConnectionStatus('disconnected');
+        return { 
+          success: false, 
+          error: 'Unable to connect to server. Please check your connection.' 
+        };
+      }
       return { 
         success: false, 
         error: error.response?.data?.detail || 'Request failed' 
@@ -193,8 +258,18 @@ export const AuthProvider = ({ children }) => {
         token, 
         new_password: newPassword 
       });
+      setConnectionStatus('connected');
+      toast.success('Password reset successful!');
       return { success: true, message: response.data.message };
     } catch (error) {
+      console.error('Password reset error:', error);
+      if (error.code === 'NETWORK_ERROR' || !error.response) {
+        setConnectionStatus('disconnected');
+        return { 
+          success: false, 
+          error: 'Unable to connect to server. Please check your connection.' 
+        };
+      }
       return { 
         success: false, 
         error: error.response?.data?.detail || 'Password reset failed' 
@@ -205,18 +280,34 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('token');
     setUser(null);
+    toast.success('Logged out successfully!');
+  };
+
+  // Debug function for testing connectivity
+  const debugConnectivity = async () => {
+    try {
+      const response = await axios.get('/api/debug/connectivity');
+      console.log('Debug connectivity:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Debug connectivity error:', error);
+      throw error;
+    }
   };
 
   const value = {
     user,
     loading,
+    connectionStatus,
     login,
     register,
     verifyEmail,
     requestPasswordReset,
     resetPassword,
     logout,
-    fetchUser
+    fetchUser,
+    testBackendConnection,
+    debugConnectivity
   };
 
   return (
