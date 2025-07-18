@@ -721,6 +721,435 @@ def test_tools_comparison():
     
     return success
 
+def test_free_tools_admin_management():
+    """Test Free Tools Admin Management - REVIEW REQUEST"""
+    print_test_header("FREE TOOLS ADMIN MANAGEMENT - REVIEW REQUEST")
+    
+    if "admin" not in tokens:
+        print("❌ Cannot test free tools admin management without admin token")
+        return False
+    
+    success = True
+    created_free_tool_id = None
+    
+    # Test 1: POST /api/admin/free-tools - Create a new free tool
+    print_test_header("Test 1: POST /api/admin/free-tools - Create Free Tool")
+    
+    free_tool_data = {
+        "name": f"Test Free Tool {uuid.uuid4().hex[:8]}",
+        "description": "This is a test free tool for admin management testing",
+        "short_description": "Test free tool",
+        "slug": f"test-free-tool-{uuid.uuid4().hex[:8]}",
+        "category": "SEO",
+        "icon": "search-icon",
+        "color": "#4F46E5",
+        "website_url": "https://example.com",
+        "features": "Feature 1, Feature 2, Feature 3",
+        "is_active": True,
+        "meta_title": "Test Free Tool Meta Title",
+        "meta_description": "Test free tool meta description"
+    }
+    
+    response = make_request("POST", "/api/admin/free-tools", free_tool_data, token=tokens["admin"], expected_status=200)
+    if response.status_code != 200:
+        print("❌ Create free tool failed")
+        success = False
+        print_response(response)
+    else:
+        print("✅ Create free tool successful")
+        created_tool = response.json()
+        created_free_tool_id = created_tool["id"]
+        
+        # Verify all fields are present
+        expected_keys = ["id", "name", "description", "slug", "category", "is_active"]
+        for key in expected_keys:
+            if key not in created_tool:
+                print(f"❌ Missing key in created free tool: {key}")
+                success = False
+        
+        if created_tool.get("name") != free_tool_data["name"]:
+            print(f"❌ Name mismatch: expected {free_tool_data['name']}, got {created_tool.get('name')}")
+            success = False
+        else:
+            print("✅ Free tool created with correct data")
+    
+    # Test 2: GET /api/admin/free-tools - Get all free tools
+    print_test_header("Test 2: GET /api/admin/free-tools - Get All Free Tools")
+    
+    response = make_request("GET", "/api/admin/free-tools", token=tokens["admin"], expected_status=200)
+    if response.status_code != 200:
+        print("❌ Get all free tools failed")
+        success = False
+    else:
+        print("✅ Get all free tools successful")
+        free_tools = response.json()
+        if not isinstance(free_tools, list):
+            print("❌ Expected list of free tools")
+            success = False
+        else:
+            print(f"✅ Retrieved {len(free_tools)} free tools")
+            
+            # Verify our created tool is in the list
+            if created_free_tool_id:
+                tool_found = False
+                for tool in free_tools:
+                    if tool.get("id") == created_free_tool_id:
+                        tool_found = True
+                        print(f"✅ Created free tool found in list: {tool.get('name')}")
+                        break
+                if not tool_found:
+                    print("❌ Created free tool not found in list")
+                    success = False
+    
+    # Test 3: PUT /api/admin/free-tools/{tool_id} - Update free tool
+    print_test_header("Test 3: PUT /api/admin/free-tools/{tool_id} - Update Free Tool")
+    
+    if created_free_tool_id:
+        update_data = {
+            "description": f"Updated description {uuid.uuid4().hex[:8]}",
+            "category": "Marketing",
+            "is_active": False
+        }
+        
+        response = make_request("PUT", f"/api/admin/free-tools/{created_free_tool_id}", update_data, token=tokens["admin"], expected_status=200)
+        if response.status_code != 200:
+            print("❌ Update free tool failed")
+            success = False
+            print_response(response)
+        else:
+            print("✅ Update free tool successful")
+            updated_tool = response.json()
+            
+            if updated_tool.get("description") != update_data["description"]:
+                print(f"❌ Description not updated: expected {update_data['description']}, got {updated_tool.get('description')}")
+                success = False
+            else:
+                print("✅ Free tool updated with correct data")
+    else:
+        print("⚠️ Cannot test update without created tool ID")
+        success = False
+    
+    # Test 4: GET /api/admin/free-tools/analytics - Get free tools analytics
+    print_test_header("Test 4: GET /api/admin/free-tools/analytics - Get Analytics")
+    
+    response = make_request("GET", "/api/admin/free-tools/analytics", token=tokens["admin"], expected_status=200)
+    if response.status_code != 200:
+        print("❌ Get free tools analytics failed")
+        success = False
+        print_response(response)
+    else:
+        print("✅ Get free tools analytics successful")
+        analytics = response.json()
+        
+        # Verify analytics structure
+        expected_analytics_keys = ["total_tools", "active_tools", "total_searches", "total_views", "popular_tools", "recent_searches"]
+        for key in expected_analytics_keys:
+            if key not in analytics:
+                print(f"❌ Missing analytics key: {key}")
+                success = False
+        
+        if isinstance(analytics.get("popular_tools"), list) and isinstance(analytics.get("recent_searches"), list):
+            print("✅ Analytics data structure is correct")
+        else:
+            print("❌ Analytics data structure is incorrect")
+            success = False
+    
+    # Test 5: GET /api/admin/free-tools/{tool_id}/search-history - Get search history
+    print_test_header("Test 5: GET /api/admin/free-tools/{tool_id}/search-history - Get Search History")
+    
+    if created_free_tool_id:
+        response = make_request("GET", f"/api/admin/free-tools/{created_free_tool_id}/search-history", token=tokens["admin"], expected_status=200)
+        if response.status_code != 200:
+            print("❌ Get search history failed")
+            success = False
+            print_response(response)
+        else:
+            print("✅ Get search history successful")
+            search_history = response.json()
+            if not isinstance(search_history, list):
+                print("❌ Expected list of search history")
+                success = False
+            else:
+                print(f"✅ Retrieved {len(search_history)} search history entries")
+    else:
+        print("⚠️ Cannot test search history without created tool ID")
+        success = False
+    
+    # Test 6: DELETE /api/admin/free-tools/{tool_id} - Delete free tool
+    print_test_header("Test 6: DELETE /api/admin/free-tools/{tool_id} - Delete Free Tool")
+    
+    if created_free_tool_id:
+        response = make_request("DELETE", f"/api/admin/free-tools/{created_free_tool_id}", token=tokens["admin"], expected_status=200)
+        if response.status_code != 200:
+            print("❌ Delete free tool failed")
+            success = False
+            print_response(response)
+        else:
+            print("✅ Delete free tool successful")
+            delete_response = response.json()
+            if "message" not in delete_response:
+                print("❌ Delete response should contain message")
+                success = False
+            else:
+                print(f"✅ Delete message: {delete_response['message']}")
+        
+        # Verify tool is deleted by trying to get it
+        response = make_request("GET", f"/api/admin/free-tools", token=tokens["admin"])
+        if response.status_code == 200:
+            remaining_tools = response.json()
+            tool_still_exists = False
+            for tool in remaining_tools:
+                if tool.get("id") == created_free_tool_id:
+                    tool_still_exists = True
+                    break
+            
+            if tool_still_exists:
+                print("❌ Tool still exists after deletion")
+                success = False
+            else:
+                print("✅ Tool successfully deleted")
+    else:
+        print("⚠️ Cannot test delete without created tool ID")
+        success = False
+    
+    if success:
+        print("✅ FREE TOOLS ADMIN MANAGEMENT TESTS PASSED - All CRUD operations working correctly")
+    else:
+        print("❌ FREE TOOLS ADMIN MANAGEMENT TESTS FAILED - Issues found with admin management functionality")
+    
+    return success
+
+def test_categories_route():
+    """Test Categories Route - REVIEW REQUEST"""
+    print_test_header("CATEGORIES ROUTE - REVIEW REQUEST")
+    
+    success = True
+    
+    # Test 1: GET /api/categories (global route)
+    print_test_header("Test 1: GET /api/categories (Global Route)")
+    
+    response = make_request("GET", "/api/categories", expected_status=200)
+    if response.status_code != 200:
+        print("❌ Get categories (global) failed")
+        success = False
+        print_response(response)
+    else:
+        print("✅ Get categories (global) successful")
+        categories = response.json()
+        if not isinstance(categories, list):
+            print("❌ Expected list of categories")
+            success = False
+        else:
+            print(f"✅ Retrieved {len(categories)} categories from global route")
+            
+            # Verify category structure
+            if categories:
+                sample_category = categories[0]
+                expected_keys = ["id", "name", "description"]
+                for key in expected_keys:
+                    if key not in sample_category:
+                        print(f"❌ Missing key in category: {key}")
+                        success = False
+                if success:
+                    print("✅ Category structure is correct")
+    
+    # Test 2: GET /api/tools/categories (tools route)
+    print_test_header("Test 2: GET /api/tools/categories (Tools Route)")
+    
+    response = make_request("GET", "/api/tools/categories", expected_status=200)
+    if response.status_code != 200:
+        print("❌ Get categories (tools) failed")
+        success = False
+        print_response(response)
+    else:
+        print("✅ Get categories (tools) successful")
+        tools_categories = response.json()
+        if not isinstance(tools_categories, list):
+            print("❌ Expected list of categories")
+            success = False
+        else:
+            print(f"✅ Retrieved {len(tools_categories)} categories from tools route")
+    
+    # Test 3: Compare both routes return same data
+    print_test_header("Test 3: Compare Global vs Tools Categories Routes")
+    
+    if success:
+        global_response = make_request("GET", "/api/categories")
+        tools_response = make_request("GET", "/api/tools/categories")
+        
+        if global_response.status_code == 200 and tools_response.status_code == 200:
+            global_categories = global_response.json()
+            tools_categories = tools_response.json()
+            
+            if len(global_categories) == len(tools_categories):
+                print("✅ Both routes return same number of categories")
+            else:
+                print(f"❌ Category count mismatch: global={len(global_categories)}, tools={len(tools_categories)}")
+                success = False
+        else:
+            print("❌ Cannot compare routes due to previous failures")
+            success = False
+    
+    if success:
+        print("✅ CATEGORIES ROUTE TESTS PASSED - Both global and tools routes working correctly")
+    else:
+        print("❌ CATEGORIES ROUTE TESTS FAILED - Issues found with category routes")
+    
+    return success
+
+def test_tools_crud_operations():
+    """Test Tools CRUD Operations - REVIEW REQUEST"""
+    print_test_header("TOOLS CRUD OPERATIONS - REVIEW REQUEST")
+    
+    if "admin" not in tokens:
+        print("❌ Cannot test tools CRUD without admin token")
+        return False
+    
+    success = True
+    created_tool_id = None
+    
+    # First, get a category for tool creation
+    categories_response = make_request("GET", "/api/categories")
+    if categories_response.status_code != 200 or not categories_response.json():
+        print("❌ Cannot get categories for tool creation")
+        return False
+    
+    test_category = categories_response.json()[0]
+    category_id = test_category["id"]
+    
+    # Test 1: POST /api/tools - Create a new tool
+    print_test_header("Test 1: POST /api/tools - Create Tool")
+    
+    tool_data = {
+        "name": f"Test Tool {uuid.uuid4().hex[:8]}",
+        "description": "This is a comprehensive test tool for CRUD operations testing",
+        "short_description": "Test tool for CRUD",
+        "category_id": category_id,
+        "pricing_model": "Freemium",
+        "company_size": "SMB",
+        "slug": f"test-tool-{uuid.uuid4().hex[:8]}",
+        "is_hot": True,
+        "is_featured": False,
+        "features": "Feature 1, Feature 2, Feature 3",
+        "website_url": "https://example.com",
+        "logo_url": "https://example.com/logo.png"
+    }
+    
+    response = make_request("POST", "/api/tools", tool_data, token=tokens["admin"], expected_status=200)
+    if response.status_code != 200:
+        print("❌ Create tool failed")
+        success = False
+        print_response(response)
+    else:
+        print("✅ Create tool successful")
+        created_tool = response.json()
+        created_tool_id = created_tool["id"]
+        
+        # Verify all fields are present
+        expected_keys = ["id", "name", "description", "category_id", "pricing_model", "slug"]
+        for key in expected_keys:
+            if key not in created_tool:
+                print(f"❌ Missing key in created tool: {key}")
+                success = False
+        
+        if created_tool.get("name") != tool_data["name"]:
+            print(f"❌ Name mismatch: expected {tool_data['name']}, got {created_tool.get('name')}")
+            success = False
+        else:
+            print("✅ Tool created with correct data")
+    
+    # Test 2: PUT /api/tools/{tool_id} - Update tool
+    print_test_header("Test 2: PUT /api/tools/{tool_id} - Update Tool")
+    
+    if created_tool_id:
+        update_data = {
+            "description": f"Updated tool description {uuid.uuid4().hex[:8]}",
+            "pricing_model": "Paid",
+            "is_featured": True,
+            "features": "Updated Feature 1, Updated Feature 2"
+        }
+        
+        response = make_request("PUT", f"/api/tools/{created_tool_id}", update_data, token=tokens["admin"], expected_status=200)
+        if response.status_code != 200:
+            print("❌ Update tool failed")
+            success = False
+            print_response(response)
+        else:
+            print("✅ Update tool successful")
+            updated_tool = response.json()
+            
+            if updated_tool.get("description") != update_data["description"]:
+                print(f"❌ Description not updated: expected {update_data['description']}, got {updated_tool.get('description')}")
+                success = False
+            
+            if updated_tool.get("pricing_model") != update_data["pricing_model"]:
+                print(f"❌ Pricing model not updated: expected {update_data['pricing_model']}, got {updated_tool.get('pricing_model')}")
+                success = False
+            
+            if success:
+                print("✅ Tool updated with correct data")
+    else:
+        print("⚠️ Cannot test update without created tool ID")
+        success = False
+    
+    # Test 3: GET /api/tools/{tool_id} - Get tool by ID
+    print_test_header("Test 3: GET /api/tools/{tool_id} - Get Tool by ID")
+    
+    if created_tool_id:
+        response = make_request("GET", f"/api/tools/{created_tool_id}", expected_status=200)
+        if response.status_code != 200:
+            print("❌ Get tool by ID failed")
+            success = False
+            print_response(response)
+        else:
+            print("✅ Get tool by ID successful")
+            retrieved_tool = response.json()
+            
+            if retrieved_tool.get("id") != created_tool_id:
+                print(f"❌ Tool ID mismatch: expected {created_tool_id}, got {retrieved_tool.get('id')}")
+                success = False
+            else:
+                print("✅ Retrieved correct tool by ID")
+    else:
+        print("⚠️ Cannot test get by ID without created tool ID")
+        success = False
+    
+    # Test 4: DELETE /api/tools/{tool_id} - Delete tool
+    print_test_header("Test 4: DELETE /api/tools/{tool_id} - Delete Tool")
+    
+    if created_tool_id:
+        response = make_request("DELETE", f"/api/tools/{created_tool_id}", token=tokens["admin"], expected_status=200)
+        if response.status_code != 200:
+            print("❌ Delete tool failed")
+            success = False
+            print_response(response)
+        else:
+            print("✅ Delete tool successful")
+            delete_response = response.json()
+            if "message" not in delete_response:
+                print("❌ Delete response should contain message")
+                success = False
+            else:
+                print(f"✅ Delete message: {delete_response['message']}")
+        
+        # Verify tool is deleted by trying to get it
+        response = make_request("GET", f"/api/tools/{created_tool_id}", expected_status=404)
+        if response.status_code != 404:
+            print("❌ Tool should return 404 after deletion")
+            success = False
+        else:
+            print("✅ Tool successfully deleted (returns 404)")
+    else:
+        print("⚠️ Cannot test delete without created tool ID")
+        success = False
+    
+    if success:
+        print("✅ TOOLS CRUD OPERATIONS TESTS PASSED - All CRUD operations working correctly")
+    else:
+        print("❌ TOOLS CRUD OPERATIONS TESTS FAILED - Issues found with CRUD functionality")
+    
+    return success
+
 def test_blogs_crud():
     """Test blogs CRUD operations"""
     print_test_header("Blogs CRUD")
