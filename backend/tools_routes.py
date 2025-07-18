@@ -130,6 +130,43 @@ async def advanced_search_tools(
         has_prev=has_prev
     )
 
+# Categories Routes (must be before /{tool_id} route to avoid conflicts)
+@router.get("/categories", response_model=List[CategoryResponse])
+async def get_categories(db: Session = Depends(get_db)):
+    """Get all categories"""
+    categories = db.query(Category).all()
+    return categories
+
+@router.get("/categories/analytics")
+async def get_category_analytics(db: Session = Depends(get_db)):
+    """Get analytics for each category"""
+    categories = db.query(Category).all()
+    analytics = []
+    
+    for category in categories:
+        tools_in_category = db.query(Tool).filter(Tool.category_id == category.id)
+        tool_count = tools_in_category.count()
+        
+        if tool_count > 0:
+            avg_rating = tools_in_category.with_entities(func.avg(Tool.rating)).scalar() or 0
+            total_views = tools_in_category.with_entities(func.sum(Tool.views)).scalar() or 0
+            recommended_tools = tools_in_category.order_by(desc(Tool.rating)).limit(5).all()
+        else:
+            avg_rating = 0
+            total_views = 0
+            recommended_tools = []
+        
+        analytics.append(CategoryAnalytics(
+            category_id=category.id,
+            category_name=category.name,
+            tool_count=tool_count,
+            avg_rating=float(avg_rating),
+            total_views=int(total_views),
+            recommended_tools=recommended_tools
+        ))
+    
+    return analytics
+
 @router.get("/{tool_id}", response_model=ToolResponse)
 async def get_tool_by_id(
     tool_id: str,
