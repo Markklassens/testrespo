@@ -85,7 +85,21 @@ async def login(login_data: LoginRequest, db: Session = Depends(get_db)):
     access_token = create_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
-    return {"access_token": access_token, "token_type": "bearer"}
+    
+    # Return both token and user data
+    return {
+        "access_token": access_token, 
+        "token_type": "bearer",
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "username": user.username,
+            "full_name": user.full_name,
+            "user_type": user.user_type,
+            "is_active": user.is_active,
+            "is_verified": user.is_verified
+        }
+    }
 
 @router.post("/verify-email")
 async def verify_email(verification: EmailVerification, db: Session = Depends(get_db)):
