@@ -29,7 +29,15 @@ class CustomHTTPBearer(HTTPBearer):
                 headers={"WWW-Authenticate": "Bearer"},
             )
         
-        scheme, credentials = authorization.split()
+        parts = authorization.split()
+        if len(parts) != 2:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid authorization header format",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        scheme, credentials = parts
         if scheme.lower() != "bearer":
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
