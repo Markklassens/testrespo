@@ -532,7 +532,7 @@ async def create_tool(
         id=str(uuid.uuid4()),
         **tool.dict(),
         created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow()
+        last_updated=datetime.utcnow()
     )
     
     db.add(db_tool)
