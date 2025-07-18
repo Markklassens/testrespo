@@ -919,6 +919,303 @@ def test_free_tools_admin_management():
     
     return success
 
+def test_category_creation_functionality():
+    """Test Category Creation Functionality - REVIEW REQUEST"""
+    print_test_header("CATEGORY CREATION FUNCTIONALITY - REVIEW REQUEST")
+    
+    success = True
+    created_category_id = None
+    
+    # Test 1: Superadmin can successfully create categories via POST /api/superadmin/categories
+    print_test_header("Test 1: Superadmin Category Creation")
+    
+    if "superadmin" not in tokens:
+        print("❌ Cannot test category creation without superadmin token")
+        return False
+    
+    # Create a unique category
+    unique_name = f"Test Category {uuid.uuid4().hex[:8]}"
+    category_data = {
+        "name": unique_name,
+        "description": "Test category for functionality testing",
+        "icon": "test-icon",
+        "color": "#FF5733"
+    }
+    
+    response = make_request("POST", "/api/superadmin/categories", category_data, token=tokens["superadmin"], expected_status=200)
+    if response.status_code != 200:
+        print("❌ Superadmin category creation failed")
+        success = False
+        print_response(response)
+    else:
+        print("✅ Superadmin can successfully create categories")
+        created_category = response.json()
+        created_category_id = created_category["id"]
+        
+        # Verify all required fields are present
+        expected_keys = ["id", "name", "description", "icon", "color", "created_at"]
+        for key in expected_keys:
+            if key not in created_category:
+                print(f"❌ Missing key in created category: {key}")
+                success = False
+        
+        # Verify data matches input
+        if created_category.get("name") != category_data["name"]:
+            print(f"❌ Name mismatch: expected {category_data['name']}, got {created_category.get('name')}")
+            success = False
+        
+        if created_category.get("description") != category_data["description"]:
+            print(f"❌ Description mismatch: expected {category_data['description']}, got {created_category.get('description')}")
+            success = False
+        
+        if success:
+            print("✅ Category created with correct data")
+    
+    # Test 2: Category creation validates required fields (name)
+    print_test_header("Test 2: Required Field Validation")
+    
+    # Test with missing name field
+    invalid_category_data = {
+        "description": "Category without name",
+        "icon": "test-icon",
+        "color": "#FF5733"
+    }
+    
+    response = make_request("POST", "/api/superadmin/categories", invalid_category_data, token=tokens["superadmin"], expected_status=422)
+    if response.status_code != 422:
+        print("❌ Category creation should fail without required name field")
+        success = False
+    else:
+        print("✅ Category creation correctly validates required name field")
+        # Check if error mentions name field
+        try:
+            error_detail = response.json().get("detail", [])
+            name_error_found = False
+            if isinstance(error_detail, list):
+                for error in error_detail:
+                    if isinstance(error, dict) and "name" in str(error.get("loc", [])):
+                        name_error_found = True
+                        print(f"✅ Validation error correctly identifies name field: {error}")
+                        break
+            if not name_error_found:
+                print(f"⚠️ Validation error doesn't specifically mention name field: {error_detail}")
+        except:
+            print("⚠️ Could not parse validation error details")
+    
+    # Test with empty name field
+    empty_name_category_data = {
+        "name": "",
+        "description": "Category with empty name",
+        "icon": "test-icon",
+        "color": "#FF5733"
+    }
+    
+    response = make_request("POST", "/api/superadmin/categories", empty_name_category_data, token=tokens["superadmin"], expected_status=422)
+    if response.status_code != 422:
+        print("❌ Category creation should fail with empty name field")
+        success = False
+    else:
+        print("✅ Category creation correctly rejects empty name field")
+    
+    # Test 3: Category creation prevents duplicate names
+    print_test_header("Test 3: Duplicate Name Prevention")
+    
+    if created_category_id:
+        # Try to create another category with the same name
+        duplicate_category_data = {
+            "name": unique_name,  # Same name as the first category
+            "description": "Duplicate category name test",
+            "icon": "duplicate-icon",
+            "color": "#33FF57"
+        }
+        
+        response = make_request("POST", "/api/superadmin/categories", duplicate_category_data, token=tokens["superadmin"], expected_status=400)
+        if response.status_code != 400:
+            print("❌ Category creation should prevent duplicate names")
+            success = False
+        else:
+            print("✅ Category creation correctly prevents duplicate names")
+            # Check if error message mentions duplicate name
+            try:
+                error_response = response.json()
+                if "already exists" in error_response.get("detail", "").lower():
+                    print("✅ Correct error message for duplicate name")
+                else:
+                    print(f"⚠️ Error message doesn't mention duplicate: {error_response.get('detail')}")
+            except:
+                print("⚠️ Could not parse duplicate name error response")
+    else:
+        print("⚠️ Cannot test duplicate name prevention without created category")
+        success = False
+    
+    # Test 4: Created category is properly stored in database
+    print_test_header("Test 4: Database Storage Verification")
+    
+    if created_category_id:
+        # Retrieve categories to verify storage
+        response = make_request("GET", "/api/categories", expected_status=200)
+        if response.status_code != 200:
+            print("❌ Cannot retrieve categories to verify storage")
+            success = False
+        else:
+            categories = response.json()
+            category_found = False
+            for category in categories:
+                if category.get("id") == created_category_id:
+                    category_found = True
+                    print(f"✅ Created category found in database: {category.get('name')}")
+                    
+                    # Verify all data is correctly stored
+                    if category.get("name") == unique_name:
+                        print("✅ Category name correctly stored")
+                    else:
+                        print(f"❌ Category name mismatch in database: expected {unique_name}, got {category.get('name')}")
+                        success = False
+                    break
+            
+            if not category_found:
+                print("❌ Created category not found in database")
+                success = False
+    else:
+        print("⚠️ Cannot verify database storage without created category ID")
+        success = False
+    
+    # Test 5: Category data can be retrieved via GET /api/categories
+    print_test_header("Test 5: Category Retrieval")
+    
+    response = make_request("GET", "/api/categories", expected_status=200)
+    if response.status_code != 200:
+        print("❌ Cannot retrieve categories")
+        success = False
+    else:
+        print("✅ Categories can be retrieved via GET /api/categories")
+        categories = response.json()
+        if not isinstance(categories, list):
+            print("❌ Expected list of categories")
+            success = False
+        else:
+            print(f"✅ Retrieved {len(categories)} categories")
+            
+            # Verify category structure
+            if categories:
+                sample_category = categories[0]
+                expected_keys = ["id", "name", "description"]
+                for key in expected_keys:
+                    if key not in sample_category:
+                        print(f"❌ Missing key in retrieved category: {key}")
+                        success = False
+                if success:
+                    print("✅ Retrieved category structure is correct")
+    
+    # Test 6: Only superadmin users can create categories (test with admin and user roles)
+    print_test_header("Test 6: Role-Based Access Control")
+    
+    # Test with admin token (should fail)
+    if "admin" in tokens:
+        admin_category_data = {
+            "name": f"Admin Test Category {uuid.uuid4().hex[:8]}",
+            "description": "Admin should not be able to create this",
+            "icon": "admin-icon",
+            "color": "#5733FF"
+        }
+        
+        response = make_request("POST", "/api/superadmin/categories", admin_category_data, token=tokens["admin"], expected_status=403)
+        if response.status_code != 403:
+            print("❌ Admin users should NOT be able to create categories")
+            success = False
+        else:
+            print("✅ Admin users correctly denied category creation access")
+    else:
+        print("⚠️ Cannot test admin access - no admin token")
+    
+    # Test with user token (should fail)
+    if "user" in tokens:
+        user_category_data = {
+            "name": f"User Test Category {uuid.uuid4().hex[:8]}",
+            "description": "User should not be able to create this",
+            "icon": "user-icon",
+            "color": "#33FFFF"
+        }
+        
+        response = make_request("POST", "/api/superadmin/categories", user_category_data, token=tokens["user"], expected_status=403)
+        if response.status_code != 403:
+            print("❌ Regular users should NOT be able to create categories")
+            success = False
+        else:
+            print("✅ Regular users correctly denied category creation access")
+    else:
+        print("⚠️ Cannot test user access - no user token")
+    
+    # Test without authentication (should fail)
+    unauthenticated_category_data = {
+        "name": f"Unauthenticated Test Category {uuid.uuid4().hex[:8]}",
+        "description": "Unauthenticated request should fail",
+        "icon": "unauth-icon",
+        "color": "#FFFF33"
+    }
+    
+    response = make_request("POST", "/api/superadmin/categories", unauthenticated_category_data, expected_status=401)
+    if response.status_code != 401:
+        print("❌ Unauthenticated requests should be denied")
+        success = False
+    else:
+        print("✅ Unauthenticated requests correctly denied")
+    
+    # Test 7: Additional edge cases
+    print_test_header("Test 7: Additional Edge Cases")
+    
+    # Test with very long name
+    long_name_category_data = {
+        "name": "A" * 300,  # Very long name
+        "description": "Category with very long name",
+        "icon": "long-icon",
+        "color": "#FF33FF"
+    }
+    
+    response = make_request("POST", "/api/superadmin/categories", long_name_category_data, token=tokens["superadmin"], expected_status=[200, 422])
+    if response.status_code == 200:
+        print("✅ Long category names are accepted")
+        # Clean up if created
+        long_name_category = response.json()
+        print(f"ℹ️ Created category with long name: {long_name_category.get('id')}")
+    elif response.status_code == 422:
+        print("✅ Long category names are properly validated")
+    else:
+        print(f"⚠️ Unexpected response for long name: {response.status_code}")
+    
+    # Test with special characters in name
+    special_char_category_data = {
+        "name": "Test Category with Special Chars !@#$%^&*()",
+        "description": "Category with special characters",
+        "icon": "special-icon",
+        "color": "#FFAA33"
+    }
+    
+    response = make_request("POST", "/api/superadmin/categories", special_char_category_data, token=tokens["superadmin"], expected_status=[200, 422])
+    if response.status_code == 200:
+        print("✅ Special characters in category names are accepted")
+        # Clean up if created
+        special_char_category = response.json()
+        print(f"ℹ️ Created category with special chars: {special_char_category.get('id')}")
+    elif response.status_code == 422:
+        print("✅ Special characters in category names are properly validated")
+    else:
+        print(f"⚠️ Unexpected response for special characters: {response.status_code}")
+    
+    # Final summary
+    if success:
+        print("✅ CATEGORY CREATION FUNCTIONALITY TESTS PASSED - All requirements verified")
+        print("✅ 1. Superadmin can create categories ✓")
+        print("✅ 2. Required field validation works ✓")
+        print("✅ 3. Duplicate name prevention works ✓")
+        print("✅ 4. Database storage verified ✓")
+        print("✅ 5. Category retrieval works ✓")
+        print("✅ 6. Role-based access control works ✓")
+    else:
+        print("❌ CATEGORY CREATION FUNCTIONALITY TESTS FAILED - Issues found")
+    
+    return success
+
 def test_categories_route():
     """Test Categories Route - REVIEW REQUEST"""
     print_test_header("CATEGORIES ROUTE - REVIEW REQUEST")
