@@ -36,7 +36,10 @@ export const AuthProvider = ({ children }) => {
         console.log('✅ Backend connection established:', workingUrl);
         // Only show success toast on first connection, not on retries
         if (connectionAttempts === 0) {
-          toast.success('Backend connection established!', { duration: 3000 });
+          toast.success('Connected to backend', { 
+            duration: 2000,
+            id: 'connection-success',
+          });
         }
         
         // Try to load user from token
