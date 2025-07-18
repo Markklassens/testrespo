@@ -152,13 +152,93 @@ app.add_middleware(
 # Create database tables
 Base.metadata.create_all(bind=engine)
 
+# Test database connection on startup
+if test_database_connection():
+    logger.info("Database connection verified successfully")
+else:
+    logger.error("Database connection failed during startup")
+
 # Start the trending updater background task
 start_trending_updater()
 
-# Health check endpoint
+# Enhanced health check endpoint with database connectivity
 @app.get("/api/health")
 async def health_check():
-    return {"status": "healthy", "app": "MarketMindAI", "version": "2.0.0"}
+    health_status = {
+        "status": "healthy",
+        "app": "MarketMindAI",
+        "version": "2.0.0",
+        "timestamp": datetime.now().isoformat(),
+        "database": "disconnected",
+        "services": {
+            "api": "healthy",
+            "database": "disconnected",
+            "scheduler": "running"
+        }
+    }
+    
+    try:
+        # Test database connection
+        with engine.connect() as conn:
+            result = conn.execute(text("SELECT 1"))
+            if result.fetchone():
+                health_status["database"] = "connected"
+                health_status["services"]["database"] = "connected"
+                health_status["status"] = "healthy"
+    except Exception as e:
+        logger.error(f"Health check database error: {e}")
+        health_status["database"] = f"error: {str(e)}"
+        health_status["services"]["database"] = f"error: {str(e)}"
+        health_status["status"] = "unhealthy"
+    
+    return health_status
+
+# Debug endpoint for connectivity testing
+@app.get("/api/debug/connectivity")
+async def debug_connectivity():
+    debug_info = {
+        "timestamp": datetime.now().isoformat(),
+        "environment": {
+            "DATABASE_URL": bool(os.getenv("DATABASE_URL")),
+            "FRONTEND_URL": FRONTEND_URL,
+            "BACKEND_URL": BACKEND_URL,
+            "CODESPACE_NAME": CODESPACE_NAME or "Not set"
+        },
+        "cors_origins": allowed_origins,
+        "database_test": "failed",
+        "recent_logs": []
+    }
+    
+    # Test database connection
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(text("SELECT COUNT(*) FROM users"))
+            user_count = result.fetchone()[0]
+            debug_info["database_test"] = "success"
+            debug_info["database_info"] = {
+                "user_count": user_count,
+                "engine_pool_size": engine.pool.size(),
+                "engine_pool_checked_in": engine.pool.checkedin(),
+                "engine_pool_checked_out": engine.pool.checkedout()
+            }
+    except Exception as e:
+        debug_info["database_test"] = f"error: {str(e)}"
+        debug_info["database_error"] = str(e)
+    
+    return debug_info
+
+# CORS preflight endpoint
+@app.options("/api/{path:path}")
+async def cors_preflight(path: str):
+    return Response(
+        content="",
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization",
+            "Access-Control-Max-Age": "86400"
+        }
+    )
 
 # Include route modules
 app.include_router(superadmin_router, prefix="", tags=["superadmin"])
