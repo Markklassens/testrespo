@@ -593,3 +593,61 @@ async def download_sample_csv(
                 "Content-Type": "text/csv"
             }
         )
+
+# Initialize default admin settings
+@router.post("/initialize-settings")
+async def initialize_default_settings(
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db)
+):
+    """Initialize default admin settings (Super Admin only)"""
+    default_settings = [
+        {
+            "setting_key": "debug_widget_enabled",
+            "setting_value": "true",
+            "description": "Enable/disable debug widget for all users"
+        },
+        {
+            "setting_key": "production_mode",
+            "setting_value": "false",
+            "description": "Enable/disable production mode"
+        },
+        {
+            "setting_key": "connection_status_enabled",
+            "setting_value": "true",
+            "description": "Enable/disable connection status widget"
+        },
+        {
+            "setting_key": "backend_tester_enabled",
+            "setting_value": "true",
+            "description": "Enable/disable backend tester widget"
+        },
+        {
+            "setting_key": "auto_reconnect_enabled",
+            "setting_value": "true",
+            "description": "Enable/disable automatic reconnection"
+        }
+    ]
+    
+    created_settings = []
+    for setting_data in default_settings:
+        existing_setting = db.query(AdminSettings).filter(
+            AdminSettings.setting_key == setting_data["setting_key"]
+        ).first()
+        
+        if not existing_setting:
+            setting = AdminSettings(
+                id=str(uuid.uuid4()),
+                setting_key=setting_data["setting_key"],
+                setting_value=setting_data["setting_value"],
+                description=setting_data["description"]
+            )
+            db.add(setting)
+            created_settings.append(setting_data["setting_key"])
+    
+    db.commit()
+    
+    return {
+        "message": "Default admin settings initialized successfully",
+        "created_settings": created_settings
+    }
