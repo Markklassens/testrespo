@@ -103,6 +103,15 @@ const IntelligentConnectionStatus = () => {
           >
             <CogIcon className="h-4 w-4" />
           </button>
+          {isSuperAdmin && (
+            <button
+              onClick={() => setIsWidgetVisible(false)}
+              className="p-1 hover:bg-green-600 rounded"
+              title="Hide connection status widget"
+            >
+              <XCircleIcon className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </div>
     );
