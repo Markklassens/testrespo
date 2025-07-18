@@ -145,10 +145,9 @@ function AppContent() {
         </Routes>
       </main>
       
-      {/* Connection Status and Debug Panel */}
-      <ConnectionStatus />
+      {/* Intelligent Connection Status and Debug Panel */}
+      <IntelligentConnectionStatus />
       <DebugPanel />
-      <BackendTester />
       
       <Toaster
         position="top-right"
