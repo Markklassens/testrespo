@@ -34,7 +34,10 @@ export const AuthProvider = ({ children }) => {
         setConnectionAttempts(0);
         
         console.log('✅ Backend connection established:', workingUrl);
-        toast.success('Backend connection established!');
+        // Only show success toast on first connection, not on retries
+        if (connectionAttempts === 0) {
+          toast.success('Backend connection established!', { duration: 3000 });
+        }
         
         // Try to load user from token
         const token = localStorage.getItem('token');
@@ -54,35 +57,43 @@ export const AuthProvider = ({ children }) => {
         setConnectionStatus('disconnected');
         setConnectionAttempts(prev => prev + 1);
         
-        toast.error('Failed to connect to backend. Retrying...', {
-          duration: 5000,
-        });
+        // Only show error toast if we haven't exceeded retry limit
+        if (connectionAttempts < 3) {
+          toast.error(`Connection failed. Retrying... (${connectionAttempts + 1}/3)`, {
+            duration: 3000,
+          });
+        }
         
-        // Retry after delay
+        // Retry after delay, but with exponential backoff
         setTimeout(() => {
-          if (connectionAttempts < 5) {
+          if (connectionAttempts < 3) {
             initializeConnection();
           } else {
-            toast.error('Maximum connection attempts reached. Please refresh the page.');
+            toast.error('Connection failed. Please check your internet connection and refresh the page.', {
+              duration: 0, // Don't auto-dismiss
+            });
           }
-        }, 2000 + (connectionAttempts * 1000));
+        }, Math.min(2000 * Math.pow(2, connectionAttempts), 10000));
       } finally {
         setLoading(false);
       }
     };
 
-    initializeConnection();
+    // Only initialize if we don't have a connection or if we're retrying
+    if (connectionStatus !== 'connected' || connectionAttempts > 0) {
+      initializeConnection();
+    }
 
     // Listen for connection changes
     const handleConnectionChange = (isConnected, url, error) => {
       setConnectionStatus(isConnected ? 'connected' : 'disconnected');
       setBackendUrl(url);
       
-      if (isConnected) {
-        toast.success('Backend reconnected!');
+      if (isConnected && connectionStatus === 'disconnected') {
+        toast.success('Backend reconnected!', { duration: 3000 });
         setConnectionAttempts(0);
-      } else {
-        toast.error('Backend connection lost');
+      } else if (!isConnected && connectionStatus === 'connected') {
+        toast.error('Backend connection lost', { duration: 3000 });
       }
     };
 
@@ -92,7 +103,7 @@ export const AuthProvider = ({ children }) => {
     return () => {
       intelligentConnector.offConnectionChange(handleConnectionChange);
     };
-  }, [connectionAttempts]);
+  }, [connectionAttempts, connectionStatus]);
 
   const login = async (email, password) => {
     try {
