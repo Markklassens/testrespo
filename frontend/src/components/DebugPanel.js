@@ -13,13 +13,16 @@ const DebugPanel = () => {
   const [debugData, setDebugData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [expandedSections, setExpandedSections] = useState({});
-  const { debugConnectivity, testBackendConnection } = useAuth();
+  const { debugConnectivity, testBackendConnection, user } = useAuth();
 
-  // Only show debug panel in development
+  // Show debug panel in development OR for SuperAdmins
   const isDevelopment = process.env.NODE_ENV === 'development' || 
                        window.location.hostname === 'localhost' ||
                        window.location.hostname.includes('github.dev') ||
                        window.location.hostname.includes('emergentagent.com');
+  
+  const isSuperAdmin = user?.user_type === 'superadmin';
+  const shouldShowDebugPanel = isDevelopment || isSuperAdmin;
 
   const fetchDebugData = async () => {
     setLoading(true);
