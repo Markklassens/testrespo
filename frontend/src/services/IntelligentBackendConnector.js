@@ -56,6 +56,21 @@ class IntelligentBackendConnector {
     
     const urls = [];
     
+    // Add stored working URL if available (prioritize this)
+    const storedUrl = localStorage.getItem('workingBackendUrl');
+    if (storedUrl) {
+      urls.unshift(storedUrl);
+    }
+    
+    // Add environment variable if available
+    const envBackendUrl = process.env.REACT_APP_BACKEND_URL || window.REACT_APP_BACKEND_URL;
+    if (envBackendUrl) {
+      urls.unshift(envBackendUrl);
+    }
+    
+    // Add the current known working URL
+    urls.push('https://f6dcae08-03e5-4d2e-82d7-08764ea3bffa.preview.emergentagent.com');
+    
     // Extract base domain patterns
     if (currentHost.includes('github.dev')) {
       // GitHub Codespace patterns
@@ -77,21 +92,6 @@ class IntelligentBackendConnector {
       urls.push('https://localhost:8001');
       urls.push('http://127.0.0.1:8001');
     }
-    
-    // Add environment variable if available
-    const envBackendUrl = process.env.REACT_APP_BACKEND_URL || window.REACT_APP_BACKEND_URL;
-    if (envBackendUrl) {
-      urls.unshift(envBackendUrl);
-    }
-    
-    // Add stored working URL if available
-    const storedUrl = localStorage.getItem('workingBackendUrl');
-    if (storedUrl) {
-      urls.unshift(storedUrl);
-    }
-    
-    // Add common fallback patterns
-    urls.push('https://f6dcae08-03e5-4d2e-82d7-08764ea3bffa.preview.emergentagent.com');
     
     // Remove duplicates and return
     return [...new Set(urls)];
