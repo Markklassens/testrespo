@@ -5209,19 +5209,23 @@ def test_review_request_functionality():
     
     test_results = {}
     
-    # Test 1: Tools Comparison System
+    # Test 1: Category Creation Functionality - MAIN REVIEW REQUEST
+    print_test_header("TESTING: Category Creation Functionality - MAIN REVIEW REQUEST")
+    test_results["category_creation"] = test_category_creation_functionality()
+    
+    # Test 2: Tools Comparison System
     print_test_header("TESTING: Tools Comparison System")
     test_results["tools_comparison"] = test_tools_comparison()
     
-    # Test 2: Categories Route
+    # Test 3: Categories Route
     print_test_header("TESTING: Categories Route")
     test_results["categories_route"] = test_categories_route()
     
-    # Test 3: Tools CRUD Operations
+    # Test 4: Tools CRUD Operations
     print_test_header("TESTING: Tools CRUD Operations")
     test_results["tools_crud"] = test_tools_crud_operations()
     
-    # Test 4: Free Tools Admin Management
+    # Test 5: Free Tools Admin Management
     print_test_header("TESTING: Free Tools Admin Management")
     test_results["free_tools_admin"] = test_free_tools_admin_management()
     
