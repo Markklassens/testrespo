@@ -238,6 +238,9 @@ class IntelligentBackendConnector {
       this.isConnected = true;
       this.retryCount = 0;
       
+      // Start health checks only when connected
+      this.startHealthCheck();
+      
       // Notify all listeners
       this.connectionCallbacks.forEach(callback => callback(true, backendUrl));
       
@@ -245,6 +248,7 @@ class IntelligentBackendConnector {
     } catch (error) {
       console.error('❌ Failed to setup backend connection:', error);
       this.isConnected = false;
+      this.stopHealthCheck();
       
       // Notify all listeners
       this.connectionCallbacks.forEach(callback => callback(false, null, error));
