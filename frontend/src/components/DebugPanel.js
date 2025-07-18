@@ -90,7 +90,7 @@ const DebugPanel = () => {
     return <span className="text-sm text-gray-900">{value?.toString() || 'null'}</span>;
   };
 
-  if (!isDevelopment) {
+  if (!shouldShowDebugPanel) {
     return null;
   }
 
