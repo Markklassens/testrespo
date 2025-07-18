@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 
 const AuthContext = createContext();
 
@@ -13,34 +14,102 @@ export const useAuth = () => {
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
 
-// Configure axios defaults
+// Enhanced axios configuration with debugging
 axios.defaults.baseURL = API_URL;
+axios.defaults.timeout = 30000; // 30 second timeout
+axios.defaults.headers.common['Content-Type'] = 'application/json';
 
-// Add request interceptor to include token
+// Enhanced logging for debugging
+const logRequest = (config) => {
+  console.log('API Request:', {
+    url: config.url,
+    method: config.method,
+    baseURL: config.baseURL,
+    headers: config.headers,
+    data: config.data
+  });
+};
+
+const logResponse = (response) => {
+  console.log('API Response:', {
+    status: response.status,
+    statusText: response.statusText,
+    headers: response.headers,
+    data: response.data
+  });
+};
+
+const logError = (error) => {
+  console.error('API Error:', {
+    message: error.message,
+    code: error.code,
+    config: error.config,
+    response: error.response
+  });
+};
+
+// Add request interceptor with enhanced debugging
 axios.interceptors.request.use(
   (config) => {
+    logRequest(config);
+    
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // Add debug headers
+    config.headers['X-Frontend-Version'] = '2.0.0';
+    config.headers['X-Request-Time'] = new Date().toISOString();
+    
     return config;
   },
   (error) => {
+    logError(error);
     return Promise.reject(error);
   }
 );
 
-// Add response interceptor to handle token expiration
+// Add response interceptor with enhanced error handling
 axios.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    logResponse(response);
+    return response;
+  },
   (error) => {
+    logError(error);
+    
     if (error.response?.status === 401) {
+      toast.error('Session expired. Please login again.');
       localStorage.removeItem('token');
       window.location.href = '/login';
+    } else if (error.response?.status === 403) {
+      toast.error('Access denied. You don\'t have permission to perform this action.');
+    } else if (error.response?.status === 500) {
+      toast.error('Server error. Please try again later.');
+    } else if (error.code === 'NETWORK_ERROR' || error.code === 'ECONNABORTED') {
+      toast.error('Network error. Please check your connection and try again.');
+    } else if (error.code === 'TIMEOUT') {
+      toast.error('Request timeout. Please try again.');
+    } else if (!error.response) {
+      toast.error('Unable to connect to server. Please check your connection.');
     }
+    
     return Promise.reject(error);
   }
 );
+
+// Test backend connectivity
+const testBackendConnection = async () => {
+  try {
+    const response = await axios.get('/api/health');
+    console.log('Backend health check successful:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Backend health check failed:', error);
+    throw error;
+  }
+};
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
