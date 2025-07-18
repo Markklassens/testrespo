@@ -50,7 +50,7 @@ class IntelligentBackendConnector {
     }
     
     // Add common fallback patterns
-    urls.push('https://652511bd-95fd-487c-8258-e1c95dd730f8.preview.emergentagent.com');
+    urls.push('https://5968ae5a-1c00-4cd6-8443-01400a248c4a.preview.emergentagent.com');
     
     // Remove duplicates and return
     return [...new Set(urls)];

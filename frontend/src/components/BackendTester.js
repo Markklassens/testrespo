@@ -7,7 +7,7 @@ const BackendTester = () => {
 
   const possibleBackendUrls = [
     'https://psychic-space-potato-x54gpgwg9pw626rpp-8001.app.github.dev',
-    'https://652511bd-95fd-487c-8258-e1c95dd730f8.preview.emergentagent.com',
+    'https://5968ae5a-1c00-4cd6-8443-01400a248c4a.preview.emergentagent.com',
     'http://localhost:8001',
     'https://localhost:8001',
     // Add more possible URLs based on your environment
