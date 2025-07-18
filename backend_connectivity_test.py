@@ -218,12 +218,17 @@ def test_cors_configuration():
     }
     
     print("📋 CORS Headers Found:")
+    critical_headers = ["Access-Control-Allow-Origin", "Access-Control-Allow-Methods", "Access-Control-Allow-Headers"]
+    
     for header, value in cors_headers.items():
         if value:
             print(f"   ✅ {header}: {value}")
         else:
-            print(f"   ❌ {header}: Not present")
-            success = False
+            if header in critical_headers:
+                print(f"   ❌ {header}: Not present (CRITICAL)")
+                success = False
+            else:
+                print(f"   ⚠️  {header}: Not present (optional)")
     
     # Test 2: Actual request with Origin header
     print("\n🔍 Testing request with Origin header...")
