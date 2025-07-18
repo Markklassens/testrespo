@@ -10,6 +10,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { initializeFromStorage } from './store/slices/comparisonSlice';
 import Navbar from './components/Navbar';
 import IntelligentConnectionStatus from './components/IntelligentConnectionStatus';
+import IntelligentLoadingScreen from './components/IntelligentLoadingScreen';
 import DebugPanel from './components/DebugPanel';
 import Home from './pages/Home';
 import DiscoverPage from './pages/DiscoverPage';
