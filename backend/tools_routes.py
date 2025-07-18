@@ -168,6 +168,210 @@ async def get_category_analytics(db: Session = Depends(get_db)):
     
     return analytics
 
+# Tools CRUD Operations
+@router.post("", response_model=ToolResponse)
+async def create_tool(
+    tool: ToolCreate,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Create a new tool (Admin only)"""
+    
+    # Check if slug already exists
+    existing_tool = db.query(Tool).filter(Tool.slug == tool.slug).first()
+    if existing_tool:
+        raise HTTPException(status_code=400, detail="Slug already exists")
+    
+    # Check if category exists
+    category = db.query(Category).filter(Category.id == tool.category_id).first()
+    if not category:
+        raise HTTPException(status_code=400, detail="Category not found")
+    
+    # Check if subcategory exists (if provided)
+    if tool.subcategory_id:
+        subcategory = db.query(Subcategory).filter(Subcategory.id == tool.subcategory_id).first()
+        if not subcategory:
+            raise HTTPException(status_code=400, detail="Subcategory not found")
+    
+    # Create tool
+    db_tool = Tool(
+        id=str(uuid.uuid4()),
+        **tool.dict(),
+        created_at=datetime.utcnow(),
+        last_updated=datetime.utcnow()
+    )
+    
+    db.add(db_tool)
+    db.commit()
+    db.refresh(db_tool)
+    
+    return db_tool
+
+@router.put("/{tool_id}", response_model=ToolResponse)
+async def update_tool(
+    tool_id: str,
+    tool_update: ToolUpdate,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Update a tool (Admin only)"""
+    
+    db_tool = db.query(Tool).filter(Tool.id == tool_id).first()
+    if not db_tool:
+        raise HTTPException(status_code=404, detail="Tool not found")
+    
+    # Check if admin has access to this tool (if not superadmin)
+    if current_user.user_type != "superadmin":
+        from auth import check_tool_access
+        if not check_tool_access(current_user, tool_id, db):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You don't have access to this tool"
+            )
+    
+    update_data = tool_update.dict(exclude_unset=True)
+    
+    # Check if slug already exists (if being updated)
+    if 'slug' in update_data:
+        existing_tool = db.query(Tool).filter(
+            Tool.slug == update_data['slug'],
+            Tool.id != tool_id
+        ).first()
+        if existing_tool:
+            raise HTTPException(status_code=400, detail="Slug already exists")
+    
+    # Check if category exists (if being updated)
+    if 'category_id' in update_data:
+        category = db.query(Category).filter(Category.id == update_data['category_id']).first()
+        if not category:
+            raise HTTPException(status_code=400, detail="Category not found")
+    
+    # Check if subcategory exists (if being updated)
+    if 'subcategory_id' in update_data and update_data['subcategory_id']:
+        subcategory = db.query(Subcategory).filter(Subcategory.id == update_data['subcategory_id']).first()
+        if not subcategory:
+            raise HTTPException(status_code=400, detail="Subcategory not found")
+    
+    # Update tool
+    for field, value in update_data.items():
+        setattr(db_tool, field, value)
+    
+    db_tool.last_updated = datetime.utcnow()
+    db.commit()
+    db.refresh(db_tool)
+    
+    return db_tool
+
+@router.delete("/{tool_id}")
+async def delete_tool(
+    tool_id: str,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Delete a tool (Admin only)"""
+    
+    db_tool = db.query(Tool).filter(Tool.id == tool_id).first()
+    if not db_tool:
+        raise HTTPException(status_code=404, detail="Tool not found")
+    
+    # Check if admin has access to this tool (if not superadmin)
+    if current_user.user_type != "superadmin":
+        from auth import check_tool_access
+        if not check_tool_access(current_user, tool_id, db):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You don't have access to this tool"
+            )
+    
+    db.delete(db_tool)
+    db.commit()
+    return {"message": "Tool deleted successfully"}
+
+# Tools Comparison System
+@router.get("/compare")
+async def get_tools_comparison(
+    current_user: User = Depends(get_current_verified_user),
+    db: Session = Depends(get_db)
+):
+    """Get user's tools comparison list"""
+    
+    # Get user's comparison list
+    comparison_list = db.query(ToolComparison).filter(
+        ToolComparison.user_id == current_user.id
+    ).all()
+    
+    if not comparison_list:
+        return []
+    
+    # Get the actual tools
+    tool_ids = [comp.tool_id for comp in comparison_list]
+    tools = db.query(Tool).filter(Tool.id.in_(tool_ids)).all()
+    
+    return tools
+
+@router.post("/compare")
+async def add_tool_to_comparison(
+    request: ToolComparisonRequest,
+    current_user: User = Depends(get_current_verified_user),
+    db: Session = Depends(get_db)
+):
+    """Add a tool to user's comparison list"""
+    
+    # Check if tool exists
+    tool = db.query(Tool).filter(Tool.id == request.tool_id).first()
+    if not tool:
+        raise HTTPException(status_code=404, detail="Tool not found")
+    
+    # Check if already in comparison
+    existing_comparison = db.query(ToolComparison).filter(
+        ToolComparison.user_id == current_user.id,
+        ToolComparison.tool_id == request.tool_id
+    ).first()
+    
+    if existing_comparison:
+        return {"message": "Tool already in comparison list"}
+    
+    # Check comparison limit (max 5 tools)
+    comparison_count = db.query(ToolComparison).filter(
+        ToolComparison.user_id == current_user.id
+    ).count()
+    
+    if comparison_count >= 5:
+        raise HTTPException(status_code=400, detail="Maximum 5 tools can be compared")
+    
+    # Add to comparison
+    comparison = ToolComparison(
+        id=str(uuid.uuid4()),
+        user_id=current_user.id,
+        tool_id=request.tool_id
+    )
+    
+    db.add(comparison)
+    db.commit()
+    
+    return {"message": "Tool added to comparison list"}
+
+@router.delete("/compare/{tool_id}")
+async def remove_tool_from_comparison(
+    tool_id: str,
+    current_user: User = Depends(get_current_verified_user),
+    db: Session = Depends(get_db)
+):
+    """Remove a tool from user's comparison list"""
+    
+    comparison = db.query(ToolComparison).filter(
+        ToolComparison.user_id == current_user.id,
+        ToolComparison.tool_id == tool_id
+    ).first()
+    
+    if not comparison:
+        raise HTTPException(status_code=404, detail="Tool not found in comparison list")
+    
+    db.delete(comparison)
+    db.commit()
+    
+    return {"message": "Tool removed from comparison list"}
+
 @router.get("/{tool_id}", response_model=ToolResponse)
 async def get_tool_by_id(
     tool_id: str,
