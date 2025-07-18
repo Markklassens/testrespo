@@ -235,16 +235,20 @@ async def debug_connectivity():
     
     return debug_info
 
-# CORS preflight endpoint
+# Enhanced CORS preflight endpoint
 @app.options("/api/{path:path}")
-async def cors_preflight(path: str):
+async def cors_preflight(path: str, request: Request):
+    origin = request.headers.get('origin', '*')
+    
     return Response(
         content="",
         headers={
-            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Origin": origin,
             "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type, Authorization",
-            "Access-Control-Max-Age": "86400"
+            "Access-Control-Allow-Headers": "Content-Type, Authorization, Accept, Origin, X-Requested-With",
+            "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Max-Age": "86400",
+            "Vary": "Origin"
         }
     )
 
