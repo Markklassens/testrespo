@@ -113,7 +113,7 @@ if CODESPACE_NAME:
 allowed_origins.extend([
     "https://fictional-happiness-jjgp7p5p4gp4hq9rw-3000.app.github.dev",
     "https://fictional-happiness-jjgp7p5p4gp4hq9rw-8001.app.github.dev",
-    "https://e3d456ce-3f39-48c3-8e87-9ec49e80b2fd.preview.emergentagent.com",
+    "https://b0acf4e8-f33b-4f63-afd2-3bdfd26defbe.preview.emergentagent.com",
     "https://psychic-space-potato-x54gpgwg9pw626rpp-3000.app.github.dev",
     "https://psychic-space-potato-x54gpgwg9pw626rpp-8001.app.github.dev",
 ])
