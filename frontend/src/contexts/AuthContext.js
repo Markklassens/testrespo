@@ -28,7 +28,7 @@ export const AuthProvider = ({ children }) => {
         setConnectionStatus('checking');
         
         // Force use the known working URL
-        const workingUrl = 'https://1f8ac190-1d4e-4cfa-b71d-d091aca21669.preview.emergentagent.com';
+        const workingUrl = 'https://d4cdb168-c227-42ed-896b-c36071dd93fb.preview.emergentagent.com';
         
         // Configure axios directly
         axios.defaults.baseURL = workingUrl;
