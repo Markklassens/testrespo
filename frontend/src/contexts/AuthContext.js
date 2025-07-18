@@ -95,10 +95,16 @@ export const AuthProvider = ({ children }) => {
       setBackendUrl(url);
       
       if (isConnected && connectionStatus === 'disconnected') {
-        toast.success('Backend reconnected!', { duration: 3000 });
+        toast.success('Reconnected', { 
+          duration: 2000,
+          id: 'reconnection-success',
+        });
         setConnectionAttempts(0);
       } else if (!isConnected && connectionStatus === 'connected') {
-        toast.error('Backend connection lost', { duration: 3000 });
+        toast.error('Connection lost', { 
+          duration: 2000,
+          id: 'connection-lost',
+        });
       }
     };
 
