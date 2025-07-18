@@ -30,7 +30,7 @@ export const createCategory = createAsyncThunk(
 export const updateCategory = createAsyncThunk(
   'categories/updateCategory',
   async ({ id, data }) => {
-    const response = await api.put(`/api/categories/${id}`, data);
+    const response = await api.put(`/api/superadmin/categories/${id}`, data);
     return response.data;
   }
 );
@@ -38,7 +38,7 @@ export const updateCategory = createAsyncThunk(
 export const deleteCategory = createAsyncThunk(
   'categories/deleteCategory',
   async (categoryId) => {
-    await api.delete(`/api/categories/${categoryId}`);
+    await api.delete(`/api/superadmin/categories/${categoryId}`);
     return categoryId;
   }
 );
