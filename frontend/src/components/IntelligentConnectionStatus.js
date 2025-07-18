@@ -75,6 +75,21 @@ const IntelligentConnectionStatus = () => {
     }
   };
 
+  // If SuperAdmin has hidden the widget, don't show it
+  if (isSuperAdmin && !isWidgetVisible) {
+    return (
+      <div className="fixed bottom-4 right-4 z-50">
+        <button
+          onClick={() => setIsWidgetVisible(true)}
+          className="bg-gray-600 text-white px-3 py-2 rounded-lg shadow-lg hover:bg-gray-700 text-sm"
+          title="Show connection status widget"
+        >
+          Show Connection Status
+        </button>
+      </div>
+    );
+  }
+
   if (connectionStatus === 'connected' && !showDetails) {
     return (
       <div className="fixed bottom-4 right-4 z-50">
