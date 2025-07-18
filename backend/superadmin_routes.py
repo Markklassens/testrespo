@@ -579,7 +579,7 @@ async def create_tool(
         meta_description=db_tool.meta_description,
         slug=db_tool.slug,
         created_at=db_tool.created_at,
-        updated_at=db_tool.updated_at
+        last_updated=db_tool.last_updated
     )
 
 # Bulk Upload Tools
