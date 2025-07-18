@@ -1,10 +1,15 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import create_engine
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from sqlalchemy import create_engine, text
 from database import get_db, engine
 from models import Base
 from scheduler import start_trending_updater
 import os
+import logging
+import traceback
+import time
+from datetime import datetime
 from dotenv import load_dotenv
 
 # Import route modules
