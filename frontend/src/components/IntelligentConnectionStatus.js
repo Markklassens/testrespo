@@ -232,14 +232,22 @@ const IntelligentConnectionStatus = () => {
                 </button>
                 
                 <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setShowConnectionConfig(true)}
+                    className="px-2 py-1 bg-white bg-opacity-20 rounded text-xs hover:bg-opacity-30 flex items-center space-x-1"
+                    title="Manual Backend Configuration"
+                  >
+                    <CogIcon className="h-3 w-3" />
+                    <span>Manual Config</span>
+                  </button>
                   {isSuperAdmin && (
                     <button
                       onClick={() => setShowConnectionConfig(true)}
                       className="px-2 py-1 bg-white bg-opacity-20 rounded text-xs hover:bg-opacity-30 flex items-center space-x-1"
-                      title="Connection Configuration"
+                      title="Advanced Configuration"
                     >
                       <ServerIcon className="h-3 w-3" />
-                      <span>Config</span>
+                      <span>Advanced</span>
                     </button>
                   )}
                   <button
