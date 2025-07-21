@@ -14,7 +14,7 @@ import SuperAdminConnectionConfig from './SuperAdminConnectionConfig';
 import ManualBackendConfig from './ManualBackendConfig';
 
 const IntelligentConnectionStatus = () => {
-  const { connectionStatus, backendUrl, testBackendConnection, getConnectionStatus, user } = useAuth();
+  const { connectionStatus, backendUrl, testBackendConnection, getConnectionStatus, user, setManualBackendUrl } = useAuth();
   const [showDetails, setShowDetails] = useState(false);
   const [connectionDetails, setConnectionDetails] = useState(null);
   const [isRetrying, setIsRetrying] = useState(false);
@@ -25,6 +25,7 @@ const IntelligentConnectionStatus = () => {
 
   const isSuperAdmin = user?.user_type === 'superadmin';
   const isDev = process.env.NODE_ENV === 'development';
+  const isManuallyConfigured = localStorage.getItem('manualBackendUrl') !== null;
 
   // Auto-hide the widget when connected (only in production)
   useEffect(() => {
