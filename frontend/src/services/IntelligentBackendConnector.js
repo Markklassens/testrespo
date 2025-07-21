@@ -56,23 +56,34 @@ class IntelligentBackendConnector {
     
     const urls = [];
     
-    // Add stored working URL if available (prioritize this)
+    // Add manually configured URL with highest priority
+    const manualUrl = localStorage.getItem('manualBackendUrl');
+    if (manualUrl) {
+      urls.unshift(manualUrl);
+      console.log('📌 Using manually configured URL:', manualUrl);
+    }
+    
+    // Add stored working URL if available (second priority)
     const storedUrl = localStorage.getItem('workingBackendUrl');
-    if (storedUrl) {
-      urls.unshift(storedUrl);
+    if (storedUrl && storedUrl !== manualUrl) {
+      urls.push(storedUrl);
     }
     
     // Add environment variable if available
     const envBackendUrl = process.env.REACT_APP_BACKEND_URL || window.REACT_APP_BACKEND_URL;
-    if (envBackendUrl) {
-      urls.unshift(envBackendUrl);
+    if (envBackendUrl && !urls.includes(envBackendUrl)) {
+      urls.push(envBackendUrl);
     }
     
     // Add the current known working URL
-    urls.push('https://b24f0f70-3cff-4336-bd34-a47d0519e41a.preview.emergentagent.com');
+    if (!urls.includes('https://b24f0f70-3cff-4336-bd34-a47d0519e41a.preview.emergentagent.com')) {
+      urls.push('https://b24f0f70-3cff-4336-bd34-a47d0519e41a.preview.emergentagent.com');
+    }
     
     // Also add the localhost option (current backend)
-    urls.push('http://localhost:8001');
+    if (!urls.includes('http://localhost:8001')) {
+      urls.push('http://localhost:8001');
+    }
     
     // Extract base domain patterns
     if (currentHost.includes('github.dev')) {
@@ -91,9 +102,9 @@ class IntelligentBackendConnector {
     
     if (currentHost.includes('localhost') || currentHost.includes('127.0.0.1')) {
       // Local development
-      urls.push('http://localhost:8001');
-      urls.push('https://localhost:8001');
-      urls.push('http://127.0.0.1:8001');
+      if (!urls.includes('http://localhost:8001')) urls.push('http://localhost:8001');
+      if (!urls.includes('https://localhost:8001')) urls.push('https://localhost:8001');
+      if (!urls.includes('http://127.0.0.1:8001')) urls.push('http://127.0.0.1:8001');
     }
     
     // Remove duplicates and return
