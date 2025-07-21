@@ -27,17 +27,8 @@ export const AuthProvider = ({ children }) => {
         console.log('🚀 Initializing intelligent backend connection...');
         setConnectionStatus('checking');
         
-        // Force use the known working URL
-        const workingUrl = 'https://4e6b1652-6fb6-470a-8338-54576f181f56.preview.emergentagent.com';
-        
-        // Configure axios directly
-        axios.defaults.baseURL = workingUrl;
-        axios.defaults.timeout = 30000;
-        axios.defaults.headers.common['Content-Type'] = 'application/json';
-        
-        // Test the connection
-        const testResponse = await axios.get('/api/health');
-        console.log('✅ Direct connection test successful:', testResponse.status);
+        // Use the intelligent connector to find the best backend URL
+        const workingUrl = await intelligentConnector.setupAxiosConfig();
         
         setBackendUrl(workingUrl);
         setConnectionStatus('connected');
@@ -99,9 +90,23 @@ export const AuthProvider = ({ children }) => {
       initializeConnection();
     }
 
-    // Cleanup - remove the intelligent connector listener for now
+    // Setup connection status listener
+    const handleConnectionChange = (isConnected, url, error) => {
+      setConnectionStatus(isConnected ? 'connected' : 'disconnected');
+      setBackendUrl(url);
+      
+      if (!isConnected && error) {
+        console.error('Connection lost:', error);
+        setConnectionAttempts(prev => prev + 1);
+      } else if (isConnected) {
+        setConnectionAttempts(0);
+      }
+    };
+    
+    intelligentConnector.onConnectionChange(handleConnectionChange);
+    
     return () => {
-      // Empty cleanup
+      intelligentConnector.offConnectionChange(handleConnectionChange);
     };
   }, [connectionAttempts, connectionStatus]);
 
