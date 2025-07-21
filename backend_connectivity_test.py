@@ -233,7 +233,7 @@ def test_cors_configuration():
     # Test 2: Actual request with Origin header
     print("\n🔍 Testing request with Origin header...")
     test_origins = [
-        "https://d4cdb168-c227-42ed-896b-c36071dd93fb.preview.emergentagent.com",
+        "https://4e6b1652-6fb6-470a-8338-54576f181f56.preview.emergentagent.com",
         "http://localhost:3000",
         "https://localhost:3000"
     ]
