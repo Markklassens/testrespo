@@ -651,6 +651,21 @@ frontend:
         agent: "testing"
         comment: "Discover page functionality works correctly. Successfully tested: 1) Page loads with 'Discover Amazing B2B Tools' header and proper hero section, 2) Tool cards render correctly with 8+ tool elements found, 3) Search functionality works properly with search input and results display, 4) Carousel sections are present and functional (Trending Now, Top Rated, Most Viewed, Featured, New Arrivals, Hot Picks), 5) Tools display with proper categories, ratings, pricing information, and view counts, 6) Filter functionality is available, 7) Page shows comprehensive tool directory with proper pagination. The discover page successfully displays tools uploaded through the admin panel and provides a fully functional tool discovery experience."
 
+  - task: "Super Admin Connection Configuration"
+    implemented: true
+    working: false
+    file: "/app/frontend/src/components/IntelligentConnectionStatus.js"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Initial testing of Super Admin connection configuration feature as requested in review request"
+      - working: false
+        agent: "testing"
+        comment: "SUPER ADMIN CONNECTION CONFIGURATION FEATURE PARTIALLY WORKING: Comprehensive testing revealed that while the core components are implemented, the feature is not fully accessible to Super Admin users. WORKING COMPONENTS: 1) ✅ Super Admin login successful with proper authentication, 2) ✅ Connection widget visible in bottom-right corner showing 'Connected' status, 3) ✅ Widget expansion works and shows connection details, 4) ✅ Backend connectivity confirmed with health endpoint responding, 5) ✅ SuperAdminConnectionConfig component exists in codebase with full functionality (add URLs, test connections, configuration settings). NOT WORKING: 1) ❌ Super Admin 'Config' button with ServerIcon not appearing in expanded widget details despite isSuperAdmin check in code, 2) ❌ Cannot access 'Super Admin Connection Configuration' modal - wrong modal (API Key Management) opens instead, 3) ❌ Session stability issues causing logout during testing. ROOT CAUSE: The isSuperAdmin boolean check in IntelligentConnectionStatus.js (line 234) appears to not be working correctly, preventing the Config button from being displayed for Super Admin users. The authentication context may not be properly detecting Super Admin status in the connection widget component."
+
 metadata:
   created_by: "testing_agent"
   version: "1.0"
