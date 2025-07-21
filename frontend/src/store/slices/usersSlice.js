@@ -12,7 +12,7 @@ export const fetchUsers = createAsyncThunk(
     if (user_type) params.append('user_type', user_type);
     if (is_active !== null) params.append('is_active', is_active);
     
-    const response = await api.get(`/api/admin/users?${params}`);
+    const response = await api.get(`/api/superadmin/users?${params}`);
     return response.data;
   }
 );
