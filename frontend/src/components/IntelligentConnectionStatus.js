@@ -275,6 +275,16 @@ const IntelligentConnectionStatus = () => {
         isOpen={showConnectionConfig}
         onClose={() => setShowConnectionConfig(false)}
       />
+      
+      {/* Manual Backend Configuration Modal */}
+      <ManualBackendConfig
+        isOpen={showManualConfig}
+        onClose={() => setShowManualConfig(false)}
+        onUrlChange={(newUrl) => {
+          // Update the auth context or force refresh
+          window.location.reload();
+        }}
+      />
     </div>
   );
 };
