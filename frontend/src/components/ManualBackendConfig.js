@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { XMarkIcon, CheckCircleIcon, XCircleIcon, CogIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
-import axios from 'axios';
+import { useAuth } from '../contexts/AuthContext';
 
 const ManualBackendConfig = ({ isOpen, onClose, onUrlChange }) => {
   const [customUrl, setCustomUrl] = useState('');
@@ -9,6 +9,8 @@ const ManualBackendConfig = ({ isOpen, onClose, onUrlChange }) => {
   const [testResults, setTestResults] = useState({});
   const [currentUrl, setCurrentUrl] = useState('');
   const [savedUrls, setSavedUrls] = useState([]);
+
+  const { setManualBackendUrl, backendUrl } = useAuth();
 
   // Only allow in development environment
   const isDev = process.env.NODE_ENV === 'development';
