@@ -20,34 +20,72 @@ export const AuthProvider = ({ children }) => {
   const [backendUrl, setBackendUrl] = useState(null);
   const [connectionAttempts, setConnectionAttempts] = useState(0);
 
-  // Initialize intelligent connection
+  // Initialize intelligent connection using IntelligentBackendConnector
   useEffect(() => {
     const initializeConnection = async () => {
       try {
-        console.log('🚀 Initializing backend connection...');
+        console.log('🚀 Initializing intelligent backend connection...');
         setConnectionStatus('checking');
         
-        // Use the environment variable backend URL
-        const backendUrl = process.env.REACT_APP_BACKEND_URL || 'https://b24f0f70-3cff-4336-bd34-a47d0519e41a.preview.emergentagent.com';
+        // Set up connection status listener
+        const connectionCallback = (isConnected, url, error) => {
+          if (isConnected) {
+            setConnectionStatus('connected');
+            setBackendUrl(url);
+            setConnectionAttempts(0);
+            console.log('✅ Backend connection established:', url);
+            toast.success('Connected to backend', { 
+              duration: 2000,
+              id: 'connection-success',
+            });
+          } else {
+            setConnectionStatus('disconnected');
+            setConnectionAttempts(prev => prev + 1);
+            console.error('❌ Backend connection lost:', error?.message || 'Unknown error');
+          }
+        };
+
+        // Add connection listener
+        intelligentConnector.onConnectionChange(connectionCallback);
         
-        // Configure axios directly
-        axios.defaults.baseURL = backendUrl;
-        axios.defaults.timeout = 30000;
-        axios.defaults.headers.common['Content-Type'] = 'application/json';
+        // Check if there's a manually configured URL in localStorage
+        const manualUrl = localStorage.getItem('manualBackendUrl');
+        let backendUrl;
         
-        // Test the connection
-        const testResponse = await axios.get('/api/health');
-        console.log('✅ Backend connection test successful:', testResponse.status);
-        
-        setBackendUrl(backendUrl);
-        setConnectionStatus('connected');
-        setConnectionAttempts(0);
-        
-        console.log('✅ Backend connection established:', backendUrl);
-        toast.success('Connected to backend', { 
-          duration: 2000,
-          id: 'connection-success',
-        });
+        if (manualUrl) {
+          console.log('📌 Using manually configured URL:', manualUrl);
+          backendUrl = manualUrl;
+          
+          // Test the manual URL first
+          const testResult = await intelligentConnector.testBackendUrl(manualUrl);
+          if (testResult.success) {
+            // Configure axios directly with manual URL
+            axios.defaults.baseURL = manualUrl;
+            axios.defaults.timeout = 30000;
+            axios.defaults.headers.common['Content-Type'] = 'application/json';
+            
+            intelligentConnector.currentUrl = manualUrl;
+            intelligentConnector.isConnected = true;
+            intelligentConnector.startHealthCheck();
+            
+            setBackendUrl(manualUrl);
+            setConnectionStatus('connected');
+            setConnectionAttempts(0);
+            
+            console.log('✅ Manual backend URL connection successful:', manualUrl);
+            toast.success('Connected to backend (manual config)', { 
+              duration: 2000,
+              id: 'connection-success',
+            });
+          } else {
+            console.warn('⚠️  Manual URL failed, falling back to intelligent detection');
+            localStorage.removeItem('manualBackendUrl');
+            backendUrl = await intelligentConnector.setupAxiosConfig();
+          }
+        } else {
+          // Use intelligent connector for automatic detection
+          backendUrl = await intelligentConnector.setupAxiosConfig();
+        }
         
         // Try to load user from token
         const token = localStorage.getItem('token');
@@ -62,6 +100,7 @@ export const AuthProvider = ({ children }) => {
             localStorage.removeItem('token');
           }
         }
+        
       } catch (error) {
         console.error('❌ Failed to establish backend connection:', error);
         setConnectionStatus('disconnected');
