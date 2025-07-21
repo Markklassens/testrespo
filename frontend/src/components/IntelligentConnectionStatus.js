@@ -290,9 +290,9 @@ const IntelligentConnectionStatus = () => {
       <ManualBackendConfig
         isOpen={showManualConfig}
         onClose={() => setShowManualConfig(false)}
-        onUrlChange={(newUrl) => {
-          // Update the auth context or force refresh
-          window.location.reload();
+        onUrlChange={async (newUrl) => {
+          // The setManualBackendUrl function will handle the connection
+          console.log('Manual URL changed to:', newUrl);
         }}
       />
     </div>
