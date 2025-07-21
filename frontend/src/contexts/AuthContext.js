@@ -329,6 +329,7 @@ export const AuthProvider = ({ children }) => {
     forgotPassword,
     resetPassword,
     testBackendConnection,
+    setManualBackendUrl,
     debugConnectivity,
     // Additional utility functions
     refreshConnection: () => intelligentConnector.refreshConnection(),
