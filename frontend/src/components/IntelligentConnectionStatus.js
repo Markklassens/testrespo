@@ -7,8 +7,10 @@ import {
   ArrowPathIcon,
   CogIcon,
   WifiIcon,
-  SignalIcon
+  SignalIcon,
+  ServerIcon
 } from '@heroicons/react/24/outline';
+import SuperAdminConnectionConfig from './SuperAdminConnectionConfig';
 
 const IntelligentConnectionStatus = () => {
   const { connectionStatus, backendUrl, testBackendConnection, getConnectionStatus, user } = useAuth();
