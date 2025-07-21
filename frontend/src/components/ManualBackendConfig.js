@@ -10,6 +10,9 @@ const ManualBackendConfig = ({ isOpen, onClose, onUrlChange }) => {
   const [currentUrl, setCurrentUrl] = useState('');
   const [savedUrls, setSavedUrls] = useState([]);
 
+  // Only allow in development environment
+  const isDev = process.env.NODE_ENV === 'development';
+
   useEffect(() => {
     // Load saved URLs and current URL from localStorage
     const saved = JSON.parse(localStorage.getItem('savedBackendUrls') || '[]');
