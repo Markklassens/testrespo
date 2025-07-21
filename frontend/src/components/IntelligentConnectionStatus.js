@@ -234,7 +234,7 @@ const IntelligentConnectionStatus = () => {
                 
                 <div className="flex items-center space-x-2">
                   <button
-                    onClick={() => setShowConnectionConfig(true)}
+                    onClick={() => setShowManualConfig(true)}
                     className="px-2 py-1 bg-white bg-opacity-20 rounded text-xs hover:bg-opacity-30 flex items-center space-x-1"
                     title="Manual Backend Configuration"
                   >
