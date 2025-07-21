@@ -71,6 +71,9 @@ class IntelligentBackendConnector {
     // Add the current known working URL
     urls.push('https://4e6b1652-6fb6-470a-8338-54576f181f56.preview.emergentagent.com');
     
+    // Also add the localhost option (current backend)
+    urls.push('http://localhost:8001');
+    
     // Extract base domain patterns
     if (currentHost.includes('github.dev')) {
       // GitHub Codespace patterns
