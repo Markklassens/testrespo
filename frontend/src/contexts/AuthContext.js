@@ -24,24 +24,30 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const initializeConnection = async () => {
       try {
-        console.log('🚀 Initializing intelligent backend connection...');
+        console.log('🚀 Initializing backend connection...');
         setConnectionStatus('checking');
         
-        // Use the intelligent connector to find the best backend URL
-        const workingUrl = await intelligentConnector.setupAxiosConfig();
+        // Use the environment variable backend URL
+        const backendUrl = process.env.REACT_APP_BACKEND_URL || 'https://4e6b1652-6fb6-470a-8338-54576f181f56.preview.emergentagent.com';
         
-        setBackendUrl(workingUrl);
+        // Configure axios directly
+        axios.defaults.baseURL = backendUrl;
+        axios.defaults.timeout = 30000;
+        axios.defaults.headers.common['Content-Type'] = 'application/json';
+        
+        // Test the connection
+        const testResponse = await axios.get('/api/health');
+        console.log('✅ Backend connection test successful:', testResponse.status);
+        
+        setBackendUrl(backendUrl);
         setConnectionStatus('connected');
         setConnectionAttempts(0);
         
-        console.log('✅ Backend connection established:', workingUrl);
-        // Only show success toast on first connection, not on retries
-        if (connectionAttempts === 0) {
-          toast.success('Connected to backend', { 
-            duration: 2000,
-            id: 'connection-success',
-          });
-        }
+        console.log('✅ Backend connection established:', backendUrl);
+        toast.success('Connected to backend', { 
+          duration: 2000,
+          id: 'connection-success',
+        });
         
         // Try to load user from token
         const token = localStorage.getItem('token');
@@ -61,54 +67,33 @@ export const AuthProvider = ({ children }) => {
         setConnectionStatus('disconnected');
         setConnectionAttempts(prev => prev + 1);
         
-        // Only show error toast if we haven't exceeded retry limit and it's not a repeated failure
-        if (connectionAttempts < 3 && connectionStatus !== 'disconnected') {
+        // Only show error toast if we haven't exceeded retry limit
+        if (connectionAttempts < 3) {
           toast.error(`Connection failed. Retrying... (${connectionAttempts + 1}/3)`, {
-            duration: 2000,
-            id: 'connection-error', // Prevents duplicate toasts
+            duration: 3000,
+            id: 'connection-error',
+          });
+          
+          // Retry after delay
+          setTimeout(() => {
+            initializeConnection();
+          }, Math.min(2000 * Math.pow(2, connectionAttempts), 10000));
+        } else {
+          toast.error('Unable to connect to backend. Please refresh the page.', {
+            duration: 8000,
+            id: 'connection-max-retries',
           });
         }
-        
-        // Retry after delay, but with exponential backoff
-        setTimeout(() => {
-          if (connectionAttempts < 3) {
-            initializeConnection();
-          } else {
-            toast.error('Unable to connect to backend. Please refresh the page if issues persist.', {
-              duration: 5000,
-              id: 'connection-max-retries',
-            });
-          }
-        }, Math.min(2000 * Math.pow(2, connectionAttempts), 10000));
       } finally {
         setLoading(false);
       }
     };
 
-    // Only initialize if we don't have a connection or if we're retrying
-    if (connectionStatus !== 'connected' || connectionAttempts > 0) {
+    // Only initialize if we don't have a connection
+    if (connectionStatus !== 'connected') {
       initializeConnection();
     }
-
-    // Setup connection status listener
-    const handleConnectionChange = (isConnected, url, error) => {
-      setConnectionStatus(isConnected ? 'connected' : 'disconnected');
-      setBackendUrl(url);
-      
-      if (!isConnected && error) {
-        console.error('Connection lost:', error);
-        setConnectionAttempts(prev => prev + 1);
-      } else if (isConnected) {
-        setConnectionAttempts(0);
-      }
-    };
-    
-    intelligentConnector.onConnectionChange(handleConnectionChange);
-    
-    return () => {
-      intelligentConnector.offConnectionChange(handleConnectionChange);
-    };
-  }, [connectionAttempts, connectionStatus]);
+  }, [connectionAttempts]);
 
   const login = async (email, password) => {
     try {
