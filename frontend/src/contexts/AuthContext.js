@@ -28,7 +28,7 @@ export const AuthProvider = ({ children }) => {
         setConnectionStatus('checking');
         
         // Use the environment variable backend URL
-        const backendUrl = process.env.REACT_APP_BACKEND_URL || 'https://96c19268-7ccd-42f7-9fb8-40015993c1c5.preview.emergentagent.com';
+        const backendUrl = process.env.REACT_APP_BACKEND_URL || 'https://03976995-874b-47f5-a63f-6dca0c4ba837.preview.emergentagent.com';
         
         // Configure axios directly
         axios.defaults.baseURL = backendUrl;
