@@ -20,7 +20,7 @@ export const fetchUsers = createAsyncThunk(
 export const fetchUser = createAsyncThunk(
   'users/fetchUser',
   async (userId) => {
-    const response = await api.get(`/api/admin/users/${userId}`);
+    const response = await api.get(`/api/superadmin/users/${userId}`);
     return response.data;
   }
 );
