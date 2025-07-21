@@ -259,6 +259,12 @@ const IntelligentConnectionStatus = () => {
           </div>
         )}
       </div>
+      
+      {/* Super Admin Connection Configuration Modal */}
+      <SuperAdminConnectionConfig
+        isOpen={showConnectionConfig}
+        onClose={() => setShowConnectionConfig(false)}
+      />
     </div>
   );
 };
