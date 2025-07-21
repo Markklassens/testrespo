@@ -18,12 +18,13 @@ const ManualBackendConfig = ({ isOpen, onClose, onUrlChange }) => {
   useEffect(() => {
     // Load saved URLs and current URL from localStorage
     const saved = JSON.parse(localStorage.getItem('savedBackendUrls') || '[]');
-    const current = localStorage.getItem('currentBackendUrl') || process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+    const manualUrl = localStorage.getItem('manualBackendUrl');
+    const current = manualUrl || backendUrl || process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
     
     setSavedUrls(saved);
     setCurrentUrl(current);
     setCustomUrl(current);
-  }, [isOpen]);
+  }, [isOpen, backendUrl]);
 
   const testBackendUrl = async (url) => {
     if (!url.trim()) {
