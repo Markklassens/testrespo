@@ -199,9 +199,16 @@ const IntelligentConnectionStatus = () => {
             <div className="space-y-2 text-xs">
               <div className="flex items-center justify-between">
                 <span>Backend URL:</span>
-                <span className="font-mono text-xs break-all max-w-48">
-                  {backendUrl || 'Not set'}
-                </span>
+                <div className="flex flex-col items-end">
+                  <span className="font-mono text-xs break-all max-w-48">
+                    {backendUrl || 'Not set'}
+                  </span>
+                  {isManuallyConfigured && (
+                    <span className="text-xs text-purple-300 font-medium">
+                      (Manual Config)
+                    </span>
+                  )}
+                </div>
               </div>
               
               {connectionDetails && (
