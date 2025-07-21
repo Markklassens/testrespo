@@ -21,6 +21,7 @@ const IntelligentConnectionStatus = () => {
   const [isWidgetVisible, setIsWidgetVisible] = useState(true);
   const [autoHideTimeout, setAutoHideTimeout] = useState(null);
   const [showConnectionConfig, setShowConnectionConfig] = useState(false);
+  const [showManualConfig, setShowManualConfig] = useState(false);
 
   const isSuperAdmin = user?.user_type === 'superadmin';
   const isDev = process.env.NODE_ENV === 'development';
