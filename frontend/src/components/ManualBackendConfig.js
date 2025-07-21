@@ -115,30 +115,29 @@ const ManualBackendConfig = ({ isOpen, onClose, onUrlChange }) => {
     if (testResult.success) {
       const { url } = testResult;
       
-      // Save to localStorage
-      localStorage.setItem('currentBackendUrl', url);
+      // Use the integrated auth context method
+      const success = await setManualBackendUrl(url);
       
-      // Add to saved URLs if not already present
-      const saved = JSON.parse(localStorage.getItem('savedBackendUrls') || '[]');
-      if (!saved.includes(url)) {
-        saved.unshift(url); // Add to beginning
-        if (saved.length > 5) saved.pop(); // Keep only 5 recent URLs
-        localStorage.setItem('savedBackendUrls', JSON.stringify(saved));
-        setSavedUrls(saved);
+      if (success) {
+        // Add to saved URLs if not already present
+        const saved = JSON.parse(localStorage.getItem('savedBackendUrls') || '[]');
+        if (!saved.includes(url)) {
+          saved.unshift(url); // Add to beginning
+          if (saved.length > 5) saved.pop(); // Keep only 5 recent URLs
+          localStorage.setItem('savedBackendUrls', JSON.stringify(saved));
+          setSavedUrls(saved);
+        }
+        
+        setCurrentUrl(url);
+        
+        // Notify parent component
+        if (onUrlChange) {
+          onUrlChange(url);
+        }
+        
+        toast.success('✅ Backend URL saved and applied!');
+        onClose();
       }
-      
-      // Configure axios with new URL
-      axios.defaults.baseURL = url;
-      
-      setCurrentUrl(url);
-      
-      // Notify parent component
-      if (onUrlChange) {
-        onUrlChange(url);
-      }
-      
-      toast.success('✅ Backend URL saved and applied!');
-      onClose();
     }
   };
 
@@ -147,16 +146,18 @@ const ManualBackendConfig = ({ isOpen, onClose, onUrlChange }) => {
     const testResult = await testBackendUrl(url);
     
     if (testResult.success) {
-      localStorage.setItem('currentBackendUrl', url);
-      axios.defaults.baseURL = url;
-      setCurrentUrl(url);
+      const success = await setManualBackendUrl(url);
       
-      if (onUrlChange) {
-        onUrlChange(url);
+      if (success) {
+        setCurrentUrl(url);
+        
+        if (onUrlChange) {
+          onUrlChange(url);
+        }
+        
+        toast.success('✅ Backend URL applied!');
+        onClose();
       }
-      
-      toast.success('✅ Backend URL applied!');
-      onClose();
     }
   };
 
