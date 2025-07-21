@@ -69,7 +69,7 @@ class IntelligentBackendConnector {
     }
     
     // Add the current known working URL
-    urls.push('https://c6069ed4-660b-4e82-ac07-634cd9a68a6f.preview.emergentagent.com');
+    urls.push('https://ead17737-3aad-4c63-83bd-251d24940a74.preview.emergentagent.com');
     
     // Also add the localhost option (current backend)
     urls.push('http://localhost:8001');
