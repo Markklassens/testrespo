@@ -191,6 +191,22 @@ const ManualBackendConfig = ({ isOpen, onClose, onUrlChange }) => {
         </div>
 
         <div className="p-6 space-y-6">
+          {/* Development Environment Warning */}
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4 border border-yellow-200 dark:border-yellow-800">
+            <div className="flex items-center space-x-2">
+              <div className="bg-yellow-500 text-white px-2 py-1 rounded text-xs font-bold">
+                DEV
+              </div>
+              <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                Development Environment Only
+              </h3>
+            </div>
+            <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-2">
+              This manual backend configuration feature is only available in development mode. 
+              In production, the backend URL is fixed for security and stability.
+            </p>
+          </div>
+
           {/* Current URL Status */}
           <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
             <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
