@@ -231,6 +231,16 @@ const IntelligentConnectionStatus = () => {
                 </button>
                 
                 <div className="flex items-center space-x-2">
+                  {isSuperAdmin && (
+                    <button
+                      onClick={() => setShowConnectionConfig(true)}
+                      className="px-2 py-1 bg-white bg-opacity-20 rounded text-xs hover:bg-opacity-30 flex items-center space-x-1"
+                      title="Connection Configuration"
+                    >
+                      <ServerIcon className="h-3 w-3" />
+                      <span>Config</span>
+                    </button>
+                  )}
                   <button
                     onClick={() => setIsWidgetVisible(false)}
                     className="px-2 py-1 bg-white bg-opacity-20 rounded text-xs hover:bg-opacity-30"
