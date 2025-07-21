@@ -36,7 +36,7 @@ export const createUser = createAsyncThunk(
 export const updateUser = createAsyncThunk(
   'users/updateUser',
   async ({ id, data }) => {
-    const response = await api.put(`/api/admin/users/${id}`, data);
+    const response = await api.put(`/api/superadmin/users/${id}`, data);
     return response.data;
   }
 );
