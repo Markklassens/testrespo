@@ -126,7 +126,7 @@ const IntelligentConnectionStatus = () => {
     return null;
   }
 
-  // Simple connected status (minimized) - Always show manual config option
+  // Simple connected status (minimized) - Manual config only in dev environment
   if (connectionStatus === 'connected' && !showDetails) {
     return (
       <div className="fixed bottom-4 right-4 z-50">
@@ -140,13 +140,15 @@ const IntelligentConnectionStatus = () => {
           >
             <CogIcon className="h-3 w-3" />
           </button>
-          <button
-            onClick={() => setShowManualConfig(true)}
-            className="p-1 hover:bg-green-600 rounded-full"
-            title="Manual Backend Configuration"
-          >
-            <ServerIcon className="h-3 w-3" />
-          </button>
+          {isDev && (
+            <button
+              onClick={() => setShowManualConfig(true)}
+              className="p-1 hover:bg-green-600 rounded-full"
+              title="Manual Backend Configuration (Dev Only)"
+            >
+              <ServerIcon className="h-3 w-3" />
+            </button>
+          )}
           {(isSuperAdmin || isDev) && (
             <button
               onClick={() => setIsWidgetVisible(false)}
