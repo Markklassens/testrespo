@@ -28,7 +28,7 @@ export const fetchUser = createAsyncThunk(
 export const createUser = createAsyncThunk(
   'users/createUser',
   async (userData) => {
-    const response = await api.post('/api/admin/users', userData);
+    const response = await api.post('/api/superadmin/users', userData);
     return response.data;
   }
 );
