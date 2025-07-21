@@ -126,30 +126,35 @@ const IntelligentConnectionStatus = () => {
     return null;
   }
 
-  // Simple connected status (minimized)
+  // Simple connected status (minimized) - Always show manual config option
   if (connectionStatus === 'connected' && !showDetails) {
     return (
       <div className="fixed bottom-4 right-4 z-50">
         <div className="bg-green-500 text-white px-3 py-1 rounded-full shadow-lg flex items-center space-x-2 text-sm">
           <CheckCircleIcon className="h-4 w-4" />
           <span>Connected</span>
+          <button
+            onClick={() => setShowDetails(true)}
+            className="p-1 hover:bg-green-600 rounded-full"
+            title="Show connection details"
+          >
+            <CogIcon className="h-3 w-3" />
+          </button>
+          <button
+            onClick={() => setShowManualConfig(true)}
+            className="p-1 hover:bg-green-600 rounded-full"
+            title="Manual Backend Configuration"
+          >
+            <ServerIcon className="h-3 w-3" />
+          </button>
           {(isSuperAdmin || isDev) && (
-            <>
-              <button
-                onClick={() => setShowDetails(true)}
-                className="p-1 hover:bg-green-600 rounded-full"
-                title="Show connection details"
-              >
-                <CogIcon className="h-3 w-3" />
-              </button>
-              <button
-                onClick={() => setIsWidgetVisible(false)}
-                className="p-1 hover:bg-green-600 rounded-full"
-                title="Hide connection status widget"
-              >
-                <XCircleIcon className="h-3 w-3" />
-              </button>
-            </>
+            <button
+              onClick={() => setIsWidgetVisible(false)}
+              className="p-1 hover:bg-green-600 rounded-full"
+              title="Hide connection status widget"
+            >
+              <XCircleIcon className="h-3 w-3" />
+            </button>
           )}
         </div>
       </div>
