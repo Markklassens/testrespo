@@ -258,6 +258,20 @@ const IntelligentConnectionStatus = () => {
                       <span>Manual Config</span>
                     </button>
                   )}
+                  {isManuallyConfigured && isDev && (
+                    <button
+                      onClick={async () => {
+                        localStorage.removeItem('manualBackendUrl');
+                        await testBackendConnection();
+                        toast.success('Manual configuration cleared');
+                      }}
+                      className="px-2 py-1 bg-white bg-opacity-20 rounded text-xs hover:bg-opacity-30 flex items-center space-x-1"
+                      title="Clear Manual Configuration"
+                    >
+                      <XCircleIcon className="h-3 w-3" />
+                      <span>Clear Manual</span>
+                    </button>
+                  )}
                   {isSuperAdmin && (
                     <button
                       onClick={() => setShowConnectionConfig(true)}
