@@ -219,12 +219,71 @@ export const AuthProvider = ({ children }) => {
   const testBackendConnection = async () => {
     try {
       setConnectionStatus('checking');
+      
+      // Check if there's a manually configured URL
+      const manualUrl = localStorage.getItem('manualBackendUrl');
+      if (manualUrl) {
+        // Test the manual URL
+        const testResult = await intelligentConnector.testBackendUrl(manualUrl);
+        if (testResult.success) {
+          axios.defaults.baseURL = manualUrl;
+          intelligentConnector.currentUrl = manualUrl;
+          intelligentConnector.isConnected = true;
+          intelligentConnector.startHealthCheck();
+          setBackendUrl(manualUrl);
+          setConnectionStatus('connected');
+          toast.success('Manual backend connection successful!');
+          return;
+        } else {
+          console.warn('Manual URL failed, removing from storage');
+          localStorage.removeItem('manualBackendUrl');
+        }
+      }
+      
+      // Fall back to intelligent connector
       await intelligentConnector.refreshConnection();
       setConnectionStatus('connected');
       toast.success('Connection test successful!');
     } catch (error) {
       setConnectionStatus('disconnected');
       toast.error('Connection test failed');
+      throw error;
+    }
+  };
+
+  const setManualBackendUrl = async (url) => {
+    try {
+      setConnectionStatus('checking');
+      
+      // Test the URL first
+      const testResult = await intelligentConnector.testBackendUrl(url);
+      if (testResult.success) {
+        // Store as manual URL
+        localStorage.setItem('manualBackendUrl', url);
+        
+        // Configure axios
+        axios.defaults.baseURL = url;
+        axios.defaults.timeout = 30000;
+        axios.defaults.headers.common['Content-Type'] = 'application/json';
+        
+        // Update intelligent connector
+        intelligentConnector.currentUrl = url;
+        intelligentConnector.isConnected = true;
+        intelligentConnector.startHealthCheck();
+        
+        setBackendUrl(url);
+        setConnectionStatus('connected');
+        
+        toast.success('Manual backend URL configured successfully!');
+        return true;
+      } else {
+        setConnectionStatus('disconnected');
+        toast.error(`Failed to connect to ${url}: ${testResult.error}`);
+        return false;
+      }
+    } catch (error) {
+      setConnectionStatus('disconnected');
+      toast.error('Failed to configure backend URL');
       throw error;
     }
   };
