@@ -869,3 +869,212 @@ async def initialize_default_settings(
         "message": "Default admin settings initialized successfully",
         "created_settings": created_settings
     }
+
+# Connection Testing Endpoints for Super Admin Configuration
+@router.post("/test-database")
+async def test_database_connection(
+    database_config: dict,
+    current_user: User = Depends(require_superadmin)
+):
+    """Test database connection with provided URL (Super Admin only)"""
+    
+    database_url = database_config.get('database_url')
+    if not database_url:
+        raise HTTPException(status_code=400, detail="Database URL is required")
+    
+    try:
+        # Parse the database URL
+        parsed_url = urlparse(database_url)
+        
+        if not parsed_url.scheme.startswith('postgresql'):
+            raise HTTPException(
+                status_code=400, 
+                detail="Only PostgreSQL databases are supported"
+            )
+        
+        # Test connection using SQLAlchemy
+        test_engine = create_engine(database_url, pool_pre_ping=True)
+        
+        with test_engine.connect() as conn:
+            # Execute a simple query to test the connection
+            result = conn.execute(text("SELECT version()"))
+            version_info = result.fetchone()[0]
+            
+            # Test if we can access basic tables (if they exist)
+            table_check = conn.execute(text("""
+                SELECT table_name 
+                FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                LIMIT 5
+            """))
+            tables = [row[0] for row in table_check.fetchall()]
+            
+        test_engine.dispose()
+        
+        return {
+            "success": True,
+            "message": "Database connection successful",
+            "database_info": {
+                "version": version_info,
+                "host": parsed_url.hostname,
+                "port": parsed_url.port,
+                "database": parsed_url.path.lstrip('/') if parsed_url.path else None,
+                "username": parsed_url.username,
+                "available_tables": tables
+            }
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "message": "Database connection failed"
+        }
+
+@router.post("/update-database-config")
+async def update_database_configuration(
+    config_data: dict,
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db)
+):
+    """Update database configuration (Super Admin only)"""
+    
+    database_url = config_data.get('database_url')
+    if not database_url:
+        raise HTTPException(status_code=400, detail="Database URL is required")
+    
+    try:
+        # First test the new database connection
+        test_result = await test_database_connection(
+            {"database_url": database_url}, 
+            current_user
+        )
+        
+        if not test_result["success"]:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Database connection test failed: {test_result['error']}"
+            )
+        
+        # Store the configuration in admin settings
+        setting_key = "database_url"
+        existing_setting = db.query(AdminSettings).filter(
+            AdminSettings.setting_key == setting_key
+        ).first()
+        
+        if existing_setting:
+            existing_setting.setting_value = database_url
+            existing_setting.updated_at = datetime.utcnow()
+        else:
+            new_setting = AdminSettings(
+                id=str(uuid.uuid4()),
+                setting_key=setting_key,
+                setting_value=database_url,
+                description="Database connection URL configured by Super Admin"
+            )
+            db.add(new_setting)
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "Database configuration updated successfully",
+            "database_info": test_result["database_info"]
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Failed to update database configuration: {str(e)}"
+        )
+
+@router.get("/connection-config")
+async def get_connection_configuration(
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db)
+):
+    """Get current connection configuration (Super Admin only)"""
+    
+    # Get stored configuration from admin settings
+    config_settings = db.query(AdminSettings).filter(
+        AdminSettings.setting_key.in_([
+            'database_url', 
+            'backend_url', 
+            'connection_timeout',
+            'max_retry_attempts'
+        ])
+    ).all()
+    
+    config = {}
+    for setting in config_settings:
+        config[setting.setting_key] = setting.setting_value
+    
+    # Get current environment information
+    current_config = {
+        "stored_config": config,
+        "environment_variables": {
+            "DATABASE_URL": os.getenv("DATABASE_URL", "Not set"),
+            "APP_URL": os.getenv("APP_URL", "Not set"),
+            "API_URL": os.getenv("API_URL", "Not set"),
+            "CODESPACE_NAME": os.getenv("CODESPACE_NAME", "Not set")
+        },
+        "current_database_status": "connected" if test_database_connection else "disconnected",
+        "last_updated": max(
+            (setting.updated_at or setting.created_at for setting in config_settings),
+            default=None
+        )
+    }
+    
+    return current_config
+
+@router.post("/test-backend-url")
+async def test_backend_url_connection(
+    backend_config: dict,
+    current_user: User = Depends(require_superadmin)
+):
+    """Test backend URL connection (Super Admin only)"""
+    
+    backend_url = backend_config.get('backend_url')
+    if not backend_url:
+        raise HTTPException(status_code=400, detail="Backend URL is required")
+    
+    try:
+        import httpx
+        
+        # Test the backend URL
+        async with httpx.AsyncClient() as client:
+            response = await client.get(f"{backend_url}/api/health", timeout=10.0)
+            
+            if response.status_code == 200:
+                health_data = response.json()
+                return {
+                    "success": True,
+                    "message": "Backend connection successful",
+                    "backend_info": {
+                        "url": backend_url,
+                        "status": response.status_code,
+                        "response_time_ms": response.elapsed.total_seconds() * 1000,
+                        "app_info": health_data
+                    }
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": f"HTTP {response.status_code}: {response.text}",
+                    "message": "Backend connection failed"
+                }
+                
+    except httpx.TimeoutException:
+        return {
+            "success": False,
+            "error": "Connection timeout",
+            "message": "Backend connection timed out"
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "message": "Backend connection failed"
+        }
