@@ -89,7 +89,7 @@ export const AuthProvider = ({ children }) => {
           }
         } else {
           // Use intelligent connector for automatic detection
-          backendUrl = await intelligentConnector.setupAxiosConfig();
+          await intelligentConnector.setupAxiosConfig();
         }
         
         // Try to load user from token
