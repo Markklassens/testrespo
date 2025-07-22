@@ -196,22 +196,48 @@ class IntelligentBackendConnector {
     try {
       const backendUrl = await this.findWorkingBackendUrl();
       
-      // Configure axios
-      const axios = require('axios');
+      // Import axios dynamically for browser compatibility
+      let axios;
+      try {
+        // Try to get axios from the global scope (already imported in React app)
+        axios = window.axios || require('axios');
+      } catch (e) {
+        // If require fails, axios should be available globally in React app
+        if (typeof window !== 'undefined' && window.axios) {
+          axios = window.axios;
+        } else {
+          throw new Error('Axios not available');
+        }
+      }
+      
+      // Make sure axios is available
+      if (!axios) {
+        throw new Error('Axios not found - make sure it is imported in your React app');
+      }
       
       // Clear any existing configuration
-      delete axios.defaults.baseURL;
-      delete axios.defaults.headers.common['Authorization'];
+      if (axios.defaults) {
+        delete axios.defaults.baseURL;
+        if (axios.defaults.headers && axios.defaults.headers.common) {
+          delete axios.defaults.headers.common['Authorization'];
+        }
+      }
       
       // Set new configuration
       axios.defaults.baseURL = backendUrl;
       axios.defaults.timeout = 30000;
+      if (!axios.defaults.headers) axios.defaults.headers = {};
+      if (!axios.defaults.headers.common) axios.defaults.headers.common = {};
       axios.defaults.headers.common['Content-Type'] = 'application/json';
       
       // Test the configuration immediately
       console.log('🧪 Testing axios configuration with:', backendUrl);
       const testResponse = await axios.get('/api/health');
       console.log('✅ Axios test successful:', testResponse.status);
+      
+      // Clear existing interceptors to avoid duplicates
+      axios.interceptors.request.clear();
+      axios.interceptors.response.clear();
       
       // Add request interceptor for logging
       axios.interceptors.request.use(
