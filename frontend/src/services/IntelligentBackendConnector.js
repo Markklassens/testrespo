@@ -8,6 +8,12 @@ class IntelligentBackendConnector {
     this.connectionCallbacks = [];
     this.healthCheckInterval = null;
     this.healthCheckEnabled = false;
+    this.axiosInstance = null;
+  }
+
+  // Set the axios instance to use
+  setAxiosInstance(axiosInstance) {
+    this.axiosInstance = axiosInstance;
   }
 
   // Start periodic health checks (only when connected)
