@@ -302,6 +302,21 @@ class SearchHistory(Base):
     tool = relationship("FreeTool", back_populates="search_history")
     user = relationship("User", backref="search_history")
 
+class ToolComparison(Base):
+    __tablename__ = "tool_comparison"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    tool_id = Column(String, ForeignKey("tools.id"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    # Ensure one comparison entry per user per tool
+    __table_args__ = (UniqueConstraint('user_id', 'tool_id', name='unique_user_tool_comparison'),)
+    
+    # Relationships
+    user = relationship("User", backref="tool_comparisons")
+    tool = relationship("Tool", backref="comparisons")
+
 class ToolAccessRequest(Base):
     __tablename__ = "tool_access_requests"
     
