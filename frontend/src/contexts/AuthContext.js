@@ -30,6 +30,11 @@ export const AuthProvider = ({ children }) => {
         // Set up connection status listener
         const connectionCallback = (isConnected, url, error) => {
           if (isConnected) {
+            // Configure axios with the working URL
+            axios.defaults.baseURL = url;
+            axios.defaults.timeout = 30000;
+            axios.defaults.headers.common['Content-Type'] = 'application/json';
+            
             setConnectionStatus('connected');
             setBackendUrl(url);
             setConnectionAttempts(0);
