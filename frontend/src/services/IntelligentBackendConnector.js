@@ -202,95 +202,7 @@ class IntelligentBackendConnector {
     try {
       const backendUrl = await this.findWorkingBackendUrl();
       
-      // Import axios dynamically for browser compatibility
-      let axios;
-      try {
-        // Try to get axios from the global scope (already imported in React app)
-        axios = window.axios || require('axios');
-      } catch (e) {
-        // If require fails, axios should be available globally in React app
-        if (typeof window !== 'undefined' && window.axios) {
-          axios = window.axios;
-        } else {
-          throw new Error('Axios not available');
-        }
-      }
-      
-      // Make sure axios is available
-      if (!axios) {
-        throw new Error('Axios not found - make sure it is imported in your React app');
-      }
-      
-      // Clear any existing configuration
-      if (axios.defaults) {
-        delete axios.defaults.baseURL;
-        if (axios.defaults.headers && axios.defaults.headers.common) {
-          delete axios.defaults.headers.common['Authorization'];
-        }
-      }
-      
-      // Set new configuration
-      axios.defaults.baseURL = backendUrl;
-      axios.defaults.timeout = 30000;
-      if (!axios.defaults.headers) axios.defaults.headers = {};
-      if (!axios.defaults.headers.common) axios.defaults.headers.common = {};
-      axios.defaults.headers.common['Content-Type'] = 'application/json';
-      
-      // Test the configuration immediately
-      console.log('🧪 Testing axios configuration with:', backendUrl);
-      const testResponse = await axios.get('/api/health');
-      console.log('✅ Axios test successful:', testResponse.status);
-      
-      // Clear existing interceptors to avoid duplicates
-      axios.interceptors.request.clear();
-      axios.interceptors.response.clear();
-      
-      // Add request interceptor for logging
-      axios.interceptors.request.use(
-        (config) => {
-          console.log('📤 API Request:', config.method?.toUpperCase(), config.url);
-          return config;
-        },
-        (error) => {
-          console.error('📤 Request Error:', error);
-          return Promise.reject(error);
-        }
-      );
-      
-      // Add response interceptor for logging and error handling
-      axios.interceptors.response.use(
-        (response) => {
-          console.log('📥 API Response:', response.status, response.config.url);
-          return response;
-        },
-        async (error) => {
-          console.error('📥 Response Error:', error);
-          
-          // Only attempt reconnection for actual network errors (not 401, 403, etc.)
-          const isNetworkError = error.code === 'NETWORK_ERROR' || 
-                                error.code === 'ECONNREFUSED' || 
-                                !error.response;
-          
-          if (isNetworkError && this.isConnected) {
-            console.log('🔄 Network error detected, attempting to reconnect...');
-            this.isConnected = false;
-            
-            // Notify listeners about disconnection
-            this.connectionCallbacks.forEach(callback => callback(false, this.currentUrl, error));
-            
-            // Attempt to reconnect after a delay
-            setTimeout(async () => {
-              try {
-                await this.reconnect();
-              } catch (reconnectError) {
-                console.error('❌ Reconnection failed:', reconnectError);
-              }
-            }, 3000);
-          }
-          
-          return Promise.reject(error);
-        }
-      );
+      console.log('✅ Found working backend URL:', backendUrl);
       
       this.currentUrl = backendUrl;
       this.isConnected = true;
@@ -299,7 +211,7 @@ class IntelligentBackendConnector {
       // Start health checks only when connected
       this.startHealthCheck();
       
-      // Notify all listeners
+      // Notify all listeners with the working URL
       this.connectionCallbacks.forEach(callback => callback(true, backendUrl));
       
       return backendUrl;
