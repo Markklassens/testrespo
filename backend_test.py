@@ -74,14 +74,14 @@ class BackendTester:
             try:
                 # Test login
                 login_data = {
-                    "username": credentials["email"],
+                    "email": credentials["email"],
                     "password": credentials["password"]
                 }
                 
                 response = self.session.post(
                     f"{API_BASE}/auth/login",
-                    data=login_data,
-                    headers={"Content-Type": "application/x-www-form-urlencoded"},
+                    json=login_data,
+                    headers={"Content-Type": "application/json"},
                     timeout=10
                 )
                 
