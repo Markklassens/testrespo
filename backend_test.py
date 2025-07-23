@@ -12,7 +12,7 @@ import time
 from datetime import datetime
 
 # Test configuration
-BACKEND_URL = "https://be762b26-c6b5-4876-ab28-fd4e09b08bf8.preview.emergentagent.com"
+BACKEND_URL = "https://f02388c6-521c-4c08-a2f9-869f56db4d75.preview.emergentagent.com"
 API_BASE = f"{BACKEND_URL}/api"
 
 # Test credentials as specified in review request
