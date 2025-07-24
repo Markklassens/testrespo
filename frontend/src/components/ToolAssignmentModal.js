@@ -47,7 +47,12 @@ const ToolAssignmentModal = ({ isOpen, onClose, tool, onSuccess }) => {
       onSuccess();
       onClose();
     } catch (error) {
-      toast.error(error || 'Failed to assign tool');
+      // Extract error message properly to avoid rendering error objects
+      const errorMessage = typeof error === 'string' ? error : 
+                          error?.message || 
+                          error?.detail || 
+                          'Failed to assign tool';
+      toast.error(errorMessage);
     } finally {
       setIsAssigning(false);
     }
@@ -61,7 +66,12 @@ const ToolAssignmentModal = ({ isOpen, onClose, tool, onSuccess }) => {
       onSuccess();
       onClose();
     } catch (error) {
-      toast.error(error || 'Failed to unassign tool');
+      // Extract error message properly to avoid rendering error objects
+      const errorMessage = typeof error === 'string' ? error : 
+                          error?.message || 
+                          error?.detail || 
+                          'Failed to unassign tool';
+      toast.error(errorMessage);
     } finally {
       setIsAssigning(false);
     }
