@@ -1,7 +1,74 @@
 /* Enhanced Editor Styles */
 .enhanced-image-container {
   position: relative;
-  overflow: hidden;
+  overflow: visible;
+  margin: 16px 0;
+}
+
+.resizable-image-wrapper {
+  position: relative;
+  display: inline-block;
+  cursor: move;
+}
+
+.resizable-image-wrapper:hover .image-controls {
+  opacity: 1 !important;
+}
+
+.resizable-image {
+  transition: transform 0.3s ease, filter 0.3s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.resizable-image:hover {
+  transform: scale(1.02);
+  filter: brightness(1.1);
+}
+
+.image-controls {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 10;
+}
+
+.image-controls button {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 50%;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  transition: all 0.3s ease;
+}
+
+.image-controls button:hover {
+  transform: scale(1.1);
+}
+
+.resize-handle {
+  background: #3b82f6 !important;
+}
+
+.resize-handle:hover {
+  background: #2563eb !important;
+}
+
+.settings-handle {
+  background: #6b7280 !important;
+}
+
+.settings-handle:hover {
+  background: #4b5563 !important;
 }
 
 .enhanced-image {
