@@ -776,7 +776,14 @@ async def download_sample_csv(
         )
         
     except FileNotFoundError:
-        # Fallback to programmatic generation
+        # Generate CSV content with category names
+        import io
+        import csv
+        
+        # Get all categories for reference
+        all_categories = db.query(Category).all()
+        
+        # Sample data with category names
         sample_data = [
             {
                 "name": "Example Tool 1",
@@ -790,7 +797,7 @@ async def download_sample_csv(
                 "company_size": "SMB",
                 "integrations": "Slack, Google Drive, Dropbox, GitHub",
                 "logo_url": "https://example.com/logo1.png",
-                "category_id": sample_categories[0].id if sample_categories else "CREATE_CATEGORIES_FIRST",
+                "category_name": all_categories[0].name if all_categories else "Technology",
                 "industry": "Technology",
                 "employee_size": "11-50",
                 "revenue_range": "1M-10M",
@@ -804,13 +811,16 @@ async def download_sample_csv(
         ]
         
         # Generate CSV content
-        import io
-        import csv
-        
         output = io.StringIO()
         writer = csv.DictWriter(output, fieldnames=sample_data[0].keys())
         writer.writeheader()
         writer.writerows(sample_data)
+        
+        # Add categories reference at the end
+        output.write("\n\n# Available Categories:\n")
+        for cat in all_categories:
+            output.write(f"# - {cat.name}\n")
+        
         csv_content = output.getvalue()
         
         from fastapi.responses import Response
