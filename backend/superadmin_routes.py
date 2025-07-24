@@ -595,19 +595,31 @@ async def bulk_upload_tools(
         
         for row_num, row in enumerate(csv_reader, start=2):  # Start from row 2 (after header)
             try:
-                # Validate required fields
-                required_fields = ['name', 'description', 'website_url', 'pricing_model', 'category_id']
+                # Validate required fields - now accepting either category_id OR category_name
+                required_fields = ['name', 'description', 'website_url', 'pricing_model']
                 missing_fields = [field for field in required_fields if not row.get(field)]
                 
                 if missing_fields:
                     errors.append(f"Row {row_num}: Missing required fields: {', '.join(missing_fields)}")
                     continue
                 
-                # Check if category exists
-                category = db.query(Category).filter(Category.id == row['category_id']).first()
-                if not category:
-                    errors.append(f"Row {row_num}: Category not found: {row['category_id']}")
+                # Check if category is provided (either by ID or name)
+                if not row.get('category_id') and not row.get('category_name'):
+                    errors.append(f"Row {row_num}: Either 'category_id' or 'category_name' is required")
                     continue
+                
+                # Handle category lookup by ID or name
+                category = None
+                if row.get('category_id'):
+                    category = db.query(Category).filter(Category.id == row['category_id']).first()
+                    if not category:
+                        errors.append(f"Row {row_num}: Category ID not found: {row['category_id']}")
+                        continue
+                elif row.get('category_name'):
+                    category = db.query(Category).filter(Category.name.ilike(row['category_name'].strip())).first()
+                    if not category:
+                        errors.append(f"Row {row_num}: Category name not found: {row['category_name']}")
+                        continue
                 
                 # Auto-generate slug if not provided
                 if not row.get('slug'):
