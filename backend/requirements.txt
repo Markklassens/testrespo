@@ -24,3 +24,4 @@ propcache
 aiohappyeyeballs
 aiosignal
 frozenlist
+groq
