@@ -163,14 +163,17 @@ const EnhancedRichTextEditor = ({
       // Insert into editor with advanced styling
       const quill = quillRef.current.getEditor();
       const range = quill.getSelection();
-      const index = range ? range.index : 0;
+      const index = range ? range.index : quill.getLength();
       
       if (file.type.startsWith('image/')) {
         const imageHtml = createEnhancedImageHtml(fileUrl, imageSettings);
+        // Insert at cursor position and move cursor after the image
         quill.clipboard.dangerouslyPasteHTML(index, imageHtml);
+        quill.setSelection(index + 1, 0);
       } else if (file.type.startsWith('video/')) {
         const videoHtml = createEnhancedVideoHtml(fileUrl, videoSettings);
         quill.clipboard.dangerouslyPasteHTML(index, videoHtml);
+        quill.setSelection(index + 1, 0);
       }
 
       toast.success('File uploaded successfully!');
