@@ -22,6 +22,7 @@ import Tools from './pages/Tools';
 import ToolDetail from './pages/ToolDetail';
 import Blogs from './pages/Blogs';
 import BlogDetail from './pages/BlogDetail';
+import BlogEditor from './pages/BlogEditor';
 import AdminPanel from './pages/AdminPanel';
 import MyBlogs from './pages/MyBlogs';
 import Compare from './pages/Compare';
