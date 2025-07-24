@@ -82,8 +82,8 @@ class IntelligentBackendConnector {
     }
     
     // Add the current known working URL
-    if (!urls.includes('https://c5cec6ed-4aa4-4115-8585-fa2848c78be1.preview.emergentagent.com')) {
-      urls.push('https://c5cec6ed-4aa4-4115-8585-fa2848c78be1.preview.emergentagent.com');
+    if (!urls.includes('https://1c2f5008-053c-4e4f-936f-86d3d0f39ea0.preview.emergentagent.com')) {
+      urls.push('https://1c2f5008-053c-4e4f-936f-86d3d0f39ea0.preview.emergentagent.com');
     }
     
     // Also add the localhost option (current backend)
