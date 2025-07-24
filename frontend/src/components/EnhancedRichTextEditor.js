@@ -482,10 +482,12 @@ const EnhancedRichTextEditor = ({
   const insertCodeBlock = () => {
     const quill = quillRef.current.getEditor();
     const range = quill.getSelection();
+    const index = range ? range.index : quill.getLength();
     
     const codeHtml = createEnhancedCodeBlockHtml(codeContent, codeLanguage, codeBlockSettings);
     
-    quill.clipboard.dangerouslyPasteHTML(range ? range.index : 0, codeHtml);
+    quill.clipboard.dangerouslyPasteHTML(index, codeHtml);
+    quill.setSelection(index + 1, 0);
     setShowCodeBlock(false);
     setCodeContent('');
     setCodeTitle('');
