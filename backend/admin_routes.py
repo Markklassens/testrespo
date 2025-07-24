@@ -365,6 +365,112 @@ async def get_tool_search_history(
     
     return history
 
+# Tool Assignment Routes (Super Admin only)
+@router.post("/tools/{tool_id}/assign", response_model=ToolAssignmentResponse)
+async def assign_tool_to_admin(
+    tool_id: str,
+    assignment_request: ToolAssignmentRequest,
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db)
+):
+    """Assign a tool to an admin (Super Admin only)"""
+    
+    # Check if tool exists
+    tool = db.query(Tool).filter(Tool.id == tool_id).first()
+    if not tool:
+        raise HTTPException(status_code=404, detail="Tool not found")
+    
+    # Check if admin exists and is actually an admin
+    admin = db.query(User).filter(User.id == assignment_request.admin_id).first()
+    if not admin:
+        raise HTTPException(status_code=404, detail="Admin not found")
+    
+    if admin.user_type not in ["admin", "superadmin"]:
+        raise HTTPException(status_code=400, detail="User is not an admin")
+    
+    # Assign the tool to the admin
+    tool.assigned_admin_id = assignment_request.admin_id
+    db.commit()
+    db.refresh(tool)
+    
+    return ToolAssignmentResponse(
+        message="Tool assigned successfully",
+        tool_id=tool.id,
+        tool_name=tool.name,
+        admin_id=admin.id,
+        admin_name=admin.full_name
+    )
+
+@router.delete("/tools/{tool_id}/assign")
+async def unassign_tool_from_admin(
+    tool_id: str,
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db)
+):
+    """Unassign a tool from admin (Super Admin only)"""
+    
+    # Check if tool exists
+    tool = db.query(Tool).filter(Tool.id == tool_id).first()
+    if not tool:
+        raise HTTPException(status_code=404, detail="Tool not found")
+    
+    # Check if tool is currently assigned
+    if not tool.assigned_admin_id:
+        raise HTTPException(status_code=400, detail="Tool is not assigned to any admin")
+    
+    # Get current admin name for response
+    admin = db.query(User).filter(User.id == tool.assigned_admin_id).first()
+    admin_name = admin.full_name if admin else "Unknown Admin"
+    
+    # Unassign the tool
+    tool.assigned_admin_id = None
+    db.commit()
+    db.refresh(tool)
+    
+    return {
+        "message": "Tool unassigned successfully",
+        "tool_id": tool.id,
+        "tool_name": tool.name,
+        "previously_assigned_admin": admin_name
+    }
+
+@router.get("/tools/assignments", response_model=List[dict])
+async def get_tool_assignments(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Get tool assignments (Admin only)"""
+    
+    if current_user.user_type == "superadmin":
+        # Superadmins can see all assignments
+        tools = db.query(Tool).filter(Tool.assigned_admin_id.isnot(None)).all()
+    else:
+        # Regular admins can only see their own assignments
+        tools = db.query(Tool).filter(Tool.assigned_admin_id == current_user.id).all()
+    
+    assignments = []
+    for tool in tools:
+        admin = db.query(User).filter(User.id == tool.assigned_admin_id).first()
+        assignments.append({
+            "tool_id": tool.id,
+            "tool_name": tool.name,
+            "admin_id": tool.assigned_admin_id,
+            "admin_name": admin.full_name if admin else "Unknown Admin",
+            "assigned_at": tool.last_updated
+        })
+    
+    return assignments
+
+@router.get("/tools/assigned", response_model=List[ToolResponse])
+async def get_assigned_tools(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Get tools assigned to current admin"""
+    
+    tools = db.query(Tool).filter(Tool.assigned_admin_id == current_user.id).all()
+    return tools
+
 # SEO Management Routes
 @router.post("/seo/optimize")
 async def optimize_tool_seo(
