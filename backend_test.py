@@ -657,6 +657,239 @@ class BackendTester:
             except Exception as e:
                 self.log_test("Error Handling - Invalid Blog Data", "FAIL", f"Error: {str(e)}")
     
+    def test_bulk_upload_functionality(self):
+        """Test the updated bulk upload functionality for SuperAdmin tools as requested in review request"""
+        if not self.tokens.get("superadmin"):
+            self.log_test("Bulk Upload", "SKIP", "No superadmin token available")
+            return
+            
+        superadmin_headers = {"Authorization": f"Bearer {self.tokens['superadmin']}"}
+        
+        # Test 1: CSV Template Download - should show category names and list available categories
+        try:
+            response = self.session.get(
+                f"{API_BASE}/superadmin/tools/sample-csv",
+                headers=superadmin_headers,
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                csv_content = response.text
+                
+                # Check if response is CSV format
+                if response.headers.get("content-type") == "text/csv":
+                    # Check if CSV contains category_name field (not category_id)
+                    if "category_name" in csv_content and "category_id" not in csv_content:
+                        # Check if available categories are listed at the end
+                        if "# Available Categories" in csv_content and "# -" in csv_content:
+                            self.log_test("CSV Template - Category Names", "PASS", 
+                                        "CSV template correctly shows category names and lists available categories")
+                        else:
+                            self.log_test("CSV Template - Category Names", "FAIL", 
+                                        "CSV template missing available categories list")
+                    else:
+                        self.log_test("CSV Template - Category Names", "FAIL", 
+                                    "CSV template still uses category_id instead of category_name")
+                else:
+                    self.log_test("CSV Template - Category Names", "FAIL", 
+                                f"Wrong content type: {response.headers.get('content-type')}")
+            else:
+                self.log_test("CSV Template - Category Names", "FAIL", 
+                            f"HTTP {response.status_code}: {response.text}")
+                
+        except Exception as e:
+            self.log_test("CSV Template - Category Names", "FAIL", f"Error: {str(e)}")
+        
+        # Get available categories for testing
+        try:
+            cat_response = self.session.get(f"{API_BASE}/categories", timeout=10)
+            if cat_response.status_code != 200:
+                self.log_test("Bulk Upload - Setup", "FAIL", "Could not retrieve categories for testing")
+                return
+            
+            categories = cat_response.json()
+            if not categories:
+                self.log_test("Bulk Upload - Setup", "FAIL", "No categories available for testing")
+                return
+                
+            test_category_name = categories[0]["name"]
+            test_category_id = categories[0]["id"]
+            
+        except Exception as e:
+            self.log_test("Bulk Upload - Setup", "FAIL", f"Setup error: {str(e)}")
+            return
+        
+        # Test 2: Bulk upload with category names (not IDs) - should work correctly
+        try:
+            # Create CSV content with category name
+            csv_content_with_name = f"""name,description,website_url,pricing_model,category_name,features,integrations
+Test Tool Category Name,Test tool uploaded with category name,https://testtool-name.com,Freemium,{test_category_name},"Task management,Collaboration","Slack,Google Drive"
+"""
+            
+            # Create file-like object
+            import io
+            csv_file = io.BytesIO(csv_content_with_name.encode('utf-8'))
+            
+            files = {"file": ("test_category_name.csv", csv_file, "text/csv")}
+            
+            response = self.session.post(
+                f"{API_BASE}/superadmin/tools/bulk-upload",
+                files=files,
+                headers=superadmin_headers,
+                timeout=15
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                if result.get("total_processed", 0) > 0 and result.get("total_errors", 0) == 0:
+                    self.log_test("Bulk Upload - Category Name", "PASS", 
+                                f"Successfully uploaded tool using category name '{test_category_name}'")
+                else:
+                    self.log_test("Bulk Upload - Category Name", "FAIL", 
+                                f"Upload failed with errors: {result.get('errors', [])}")
+            else:
+                self.log_test("Bulk Upload - Category Name", "FAIL", 
+                            f"HTTP {response.status_code}: {response.text}")
+                
+        except Exception as e:
+            self.log_test("Bulk Upload - Category Name", "FAIL", f"Error: {str(e)}")
+        
+        # Test 3: Bulk upload with category IDs (for backward compatibility) - should still work
+        try:
+            # Create CSV content with category ID
+            csv_content_with_id = f"""name,description,website_url,pricing_model,category_id,features,integrations
+Test Tool Category ID,Test tool uploaded with category ID,https://testtool-id.com,Paid,{test_category_id},"Project management,Analytics","Zoom,Dropbox"
+"""
+            
+            # Create file-like object
+            csv_file = io.BytesIO(csv_content_with_id.encode('utf-8'))
+            
+            files = {"file": ("test_category_id.csv", csv_file, "text/csv")}
+            
+            response = self.session.post(
+                f"{API_BASE}/superadmin/tools/bulk-upload",
+                files=files,
+                headers=superadmin_headers,
+                timeout=15
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                if result.get("total_processed", 0) > 0 and result.get("total_errors", 0) == 0:
+                    self.log_test("Bulk Upload - Category ID (Backward Compatibility)", "PASS", 
+                                f"Successfully uploaded tool using category ID '{test_category_id}'")
+                else:
+                    self.log_test("Bulk Upload - Category ID (Backward Compatibility)", "FAIL", 
+                                f"Upload failed with errors: {result.get('errors', [])}")
+            else:
+                self.log_test("Bulk Upload - Category ID (Backward Compatibility)", "FAIL", 
+                            f"HTTP {response.status_code}: {response.text}")
+                
+        except Exception as e:
+            self.log_test("Bulk Upload - Category ID (Backward Compatibility)", "FAIL", f"Error: {str(e)}")
+        
+        # Test 4: Error handling for invalid category names
+        try:
+            # Create CSV content with invalid category name
+            csv_content_invalid_name = """name,description,website_url,pricing_model,category_name,features,integrations
+Test Tool Invalid Category,Test tool with invalid category name,https://testtool-invalid.com,Free,NonExistentCategory,"Testing,Validation","API,Database"
+"""
+            
+            # Create file-like object
+            csv_file = io.BytesIO(csv_content_invalid_name.encode('utf-8'))
+            
+            files = {"file": ("test_invalid_category.csv", csv_file, "text/csv")}
+            
+            response = self.session.post(
+                f"{API_BASE}/superadmin/tools/bulk-upload",
+                files=files,
+                headers=superadmin_headers,
+                timeout=15
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                if result.get("total_errors", 0) > 0 and "Category name not found" in str(result.get("errors", [])):
+                    self.log_test("Bulk Upload - Invalid Category Name", "PASS", 
+                                "Correctly rejected upload with invalid category name")
+                else:
+                    self.log_test("Bulk Upload - Invalid Category Name", "FAIL", 
+                                f"Should have rejected invalid category name: {result}")
+            else:
+                self.log_test("Bulk Upload - Invalid Category Name", "FAIL", 
+                            f"HTTP {response.status_code}: {response.text}")
+                
+        except Exception as e:
+            self.log_test("Bulk Upload - Invalid Category Name", "FAIL", f"Error: {str(e)}")
+        
+        # Test 5: Error handling for missing category information
+        try:
+            # Create CSV content without category information
+            csv_content_no_category = """name,description,website_url,pricing_model,features,integrations
+Test Tool No Category,Test tool without category info,https://testtool-nocategory.com,Enterprise,"Advanced features,Support","Custom integrations"
+"""
+            
+            # Create file-like object
+            csv_file = io.BytesIO(csv_content_no_category.encode('utf-8'))
+            
+            files = {"file": ("test_no_category.csv", csv_file, "text/csv")}
+            
+            response = self.session.post(
+                f"{API_BASE}/superadmin/tools/bulk-upload",
+                files=files,
+                headers=superadmin_headers,
+                timeout=15
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                if result.get("total_errors", 0) > 0 and ("category_id" in str(result.get("errors", [])) or "category_name" in str(result.get("errors", []))):
+                    self.log_test("Bulk Upload - Missing Category", "PASS", 
+                                "Correctly rejected upload with missing category information")
+                else:
+                    self.log_test("Bulk Upload - Missing Category", "FAIL", 
+                                f"Should have rejected missing category: {result}")
+            else:
+                self.log_test("Bulk Upload - Missing Category", "FAIL", 
+                            f"HTTP {response.status_code}: {response.text}")
+                
+        except Exception as e:
+            self.log_test("Bulk Upload - Missing Category", "FAIL", f"Error: {str(e)}")
+        
+        # Test 6: Test case-insensitive category name matching
+        try:
+            # Create CSV content with different case category name
+            csv_content_case_test = f"""name,description,website_url,pricing_model,category_name,features,integrations
+Test Tool Case Insensitive,Test tool with different case category name,https://testtool-case.com,Subscription,{test_category_name.upper()},"Case testing,Validation","Testing tools"
+"""
+            
+            # Create file-like object
+            csv_file = io.BytesIO(csv_content_case_test.encode('utf-8'))
+            
+            files = {"file": ("test_case_insensitive.csv", csv_file, "text/csv")}
+            
+            response = self.session.post(
+                f"{API_BASE}/superadmin/tools/bulk-upload",
+                files=files,
+                headers=superadmin_headers,
+                timeout=15
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                if result.get("total_processed", 0) > 0 and result.get("total_errors", 0) == 0:
+                    self.log_test("Bulk Upload - Case Insensitive Category", "PASS", 
+                                f"Successfully uploaded tool using uppercase category name '{test_category_name.upper()}'")
+                else:
+                    self.log_test("Bulk Upload - Case Insensitive Category", "FAIL", 
+                                f"Case insensitive matching failed: {result.get('errors', [])}")
+            else:
+                self.log_test("Bulk Upload - Case Insensitive Category", "FAIL", 
+                            f"HTTP {response.status_code}: {response.text}")
+                
+        except Exception as e:
+            self.log_test("Bulk Upload - Case Insensitive Category", "FAIL", f"Error: {str(e)}")
+
     def run_all_tests(self):
         """Run all backend tests"""
         print("🚀 Starting MarketMindAI Backend Testing Suite")
@@ -672,6 +905,7 @@ class BackendTester:
         self.test_file_upload_system()
         self.test_core_api_endpoints()
         self.test_tool_assignment_endpoints()  # New test for tool assignment endpoints
+        self.test_bulk_upload_functionality()  # New test for bulk upload functionality
         self.test_error_handling()
         
         # Summary
