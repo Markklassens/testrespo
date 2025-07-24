@@ -359,12 +359,12 @@ const Blogs = () => {
               {user ? 'Be the first to write a blog post!' : 'Check back later for new content.'}
             </p>
             {user && (
-              <button
-                onClick={() => setShowCreateModal(true)}
+              <Link
+                to="/blog/create"
                 className="text-purple-600 hover:text-purple-700 font-medium"
               >
                 Write Your First Blog
-              </button>
+              </Link>
             )}
           </div>
         )}
