@@ -246,12 +246,20 @@ const toolsSlice = createSlice({
         state.assignments.error = action.error.message;
       })
       // Unassign tool
+      .addCase(unassignToolFromAdmin.pending, (state) => {
+        state.assignments.loading = true;
+      })
       .addCase(unassignToolFromAdmin.fulfilled, (state, action) => {
+        state.assignments.loading = false;
         // Find the tool and remove assignment
         const toolIndex = state.tools.findIndex(tool => tool.id === action.meta.arg);
         if (toolIndex !== -1) {
           state.tools[toolIndex].assigned_admin_id = null;
         }
+      })
+      .addCase(unassignToolFromAdmin.rejected, (state, action) => {
+        state.assignments.loading = false;
+        state.assignments.error = action.error.message;
       })
       // Get tool assignments
       .addCase(getToolAssignments.pending, (state) => {
