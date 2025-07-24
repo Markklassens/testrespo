@@ -383,6 +383,236 @@ class BackendTester:
         except Exception as e:
             self.log_test("Core API - Tools Search", "FAIL", f"Error: {str(e)}")
     
+    def test_tool_assignment_endpoints(self):
+        """Test new tool assignment endpoints as requested in review request"""
+        if not self.tokens.get("superadmin"):
+            self.log_test("Tool Assignment", "SKIP", "No superadmin token available")
+            return
+            
+        superadmin_headers = {"Authorization": f"Bearer {self.tokens['superadmin']}"}
+        
+        # First, get available tools and admins for testing
+        try:
+            # Get tools
+            tools_response = self.session.get(f"{API_BASE}/tools", timeout=10)
+            if tools_response.status_code != 200:
+                self.log_test("Tool Assignment - Setup", "FAIL", "Could not retrieve tools for testing")
+                return
+            
+            tools = tools_response.json()
+            if not tools:
+                self.log_test("Tool Assignment - Setup", "FAIL", "No tools available for testing")
+                return
+            
+            test_tool_id = tools[0]["id"]
+            test_tool_name = tools[0]["name"]
+            
+            # Get admin user ID (we know admin exists from authentication test)
+            admin_id = None
+            if self.tokens.get("admin"):
+                admin_me_response = self.session.get(
+                    f"{API_BASE}/auth/me", 
+                    headers={"Authorization": f"Bearer {self.tokens['admin']}"},
+                    timeout=10
+                )
+                if admin_me_response.status_code == 200:
+                    admin_data = admin_me_response.json()
+                    admin_id = admin_data.get("id")
+            
+            if not admin_id:
+                self.log_test("Tool Assignment - Setup", "FAIL", "Could not get admin ID for testing")
+                return
+                
+            self.log_test("Tool Assignment - Setup", "PASS", 
+                        f"Using tool '{test_tool_name}' and admin ID '{admin_id}' for testing")
+            
+        except Exception as e:
+            self.log_test("Tool Assignment - Setup", "FAIL", f"Setup error: {str(e)}")
+            return
+        
+        # Test 1: POST /api/admin/tools/{tool_id}/assign - Assign tool to admin (Super Admin only)
+        try:
+            assignment_data = {"admin_id": admin_id}
+            
+            response = self.session.post(
+                f"{API_BASE}/admin/tools/{test_tool_id}/assign",
+                json=assignment_data,
+                headers=superadmin_headers,
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                assignment_result = response.json()
+                if (assignment_result.get("message") == "Tool assigned successfully" and
+                    assignment_result.get("tool_id") == test_tool_id and
+                    assignment_result.get("admin_id") == admin_id):
+                    self.log_test("Tool Assignment - Assign Tool", "PASS", 
+                                f"Tool '{test_tool_name}' successfully assigned to admin")
+                else:
+                    self.log_test("Tool Assignment - Assign Tool", "FAIL", 
+                                f"Invalid response format: {assignment_result}")
+            else:
+                self.log_test("Tool Assignment - Assign Tool", "FAIL", 
+                            f"HTTP {response.status_code}: {response.text}")
+                
+        except Exception as e:
+            self.log_test("Tool Assignment - Assign Tool", "FAIL", f"Error: {str(e)}")
+        
+        # Test 2: GET /api/admin/tools/assignments - Get tool assignments
+        try:
+            response = self.session.get(
+                f"{API_BASE}/admin/tools/assignments",
+                headers=superadmin_headers,
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                assignments = response.json()
+                if isinstance(assignments, list):
+                    # Check if our assignment is in the list
+                    found_assignment = any(
+                        assignment.get("tool_id") == test_tool_id and 
+                        assignment.get("admin_id") == admin_id
+                        for assignment in assignments
+                    )
+                    if found_assignment:
+                        self.log_test("Tool Assignment - Get Assignments", "PASS", 
+                                    f"Retrieved {len(assignments)} assignments, including our test assignment")
+                    else:
+                        self.log_test("Tool Assignment - Get Assignments", "FAIL", 
+                                    "Test assignment not found in assignments list")
+                else:
+                    self.log_test("Tool Assignment - Get Assignments", "FAIL", 
+                                "Response is not a list")
+            else:
+                self.log_test("Tool Assignment - Get Assignments", "FAIL", 
+                            f"HTTP {response.status_code}: {response.text}")
+                
+        except Exception as e:
+            self.log_test("Tool Assignment - Get Assignments", "FAIL", f"Error: {str(e)}")
+        
+        # Test 3: GET /api/admin/tools/assigned - Get tools assigned to current admin (test with admin token)
+        if self.tokens.get("admin"):
+            admin_headers = {"Authorization": f"Bearer {self.tokens['admin']}"}
+            try:
+                response = self.session.get(
+                    f"{API_BASE}/admin/tools/assigned",
+                    headers=admin_headers,
+                    timeout=10
+                )
+                
+                if response.status_code == 200:
+                    assigned_tools = response.json()
+                    if isinstance(assigned_tools, list):
+                        # Check if our assigned tool is in the list
+                        found_tool = any(tool.get("id") == test_tool_id for tool in assigned_tools)
+                        if found_tool:
+                            self.log_test("Tool Assignment - Get Assigned Tools", "PASS", 
+                                        f"Admin can see {len(assigned_tools)} assigned tools, including test tool")
+                        else:
+                            self.log_test("Tool Assignment - Get Assigned Tools", "FAIL", 
+                                        "Test tool not found in admin's assigned tools")
+                    else:
+                        self.log_test("Tool Assignment - Get Assigned Tools", "FAIL", 
+                                    "Response is not a list")
+                else:
+                    self.log_test("Tool Assignment - Get Assigned Tools", "FAIL", 
+                                f"HTTP {response.status_code}: {response.text}")
+                    
+            except Exception as e:
+                self.log_test("Tool Assignment - Get Assigned Tools", "FAIL", f"Error: {str(e)}")
+        
+        # Test 4: DELETE /api/admin/tools/{tool_id}/assign - Unassign tool from admin (Super Admin only)
+        try:
+            response = self.session.delete(
+                f"{API_BASE}/admin/tools/{test_tool_id}/assign",
+                headers=superadmin_headers,
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                unassign_result = response.json()
+                if (unassign_result.get("message") == "Tool unassigned successfully" and
+                    unassign_result.get("tool_id") == test_tool_id):
+                    self.log_test("Tool Assignment - Unassign Tool", "PASS", 
+                                f"Tool '{test_tool_name}' successfully unassigned from admin")
+                else:
+                    self.log_test("Tool Assignment - Unassign Tool", "FAIL", 
+                                f"Invalid response format: {unassign_result}")
+            else:
+                self.log_test("Tool Assignment - Unassign Tool", "FAIL", 
+                            f"HTTP {response.status_code}: {response.text}")
+                
+        except Exception as e:
+            self.log_test("Tool Assignment - Unassign Tool", "FAIL", f"Error: {str(e)}")
+        
+        # Test 5: Error cases - Try to assign as regular admin (should fail)
+        if self.tokens.get("admin"):
+            admin_headers = {"Authorization": f"Bearer {self.tokens['admin']}"}
+            try:
+                assignment_data = {"admin_id": admin_id}
+                
+                response = self.session.post(
+                    f"{API_BASE}/admin/tools/{test_tool_id}/assign",
+                    json=assignment_data,
+                    headers=admin_headers,
+                    timeout=10
+                )
+                
+                if response.status_code == 403:
+                    self.log_test("Tool Assignment - Admin Access Denied", "PASS", 
+                                "Regular admin correctly denied access to assignment endpoint")
+                else:
+                    self.log_test("Tool Assignment - Admin Access Denied", "FAIL", 
+                                f"Expected 403, got HTTP {response.status_code}")
+                    
+            except Exception as e:
+                self.log_test("Tool Assignment - Admin Access Denied", "FAIL", f"Error: {str(e)}")
+        
+        # Test 6: Error cases - Try to assign to non-existent admin
+        try:
+            fake_admin_id = "00000000-0000-0000-0000-000000000000"
+            assignment_data = {"admin_id": fake_admin_id}
+            
+            response = self.session.post(
+                f"{API_BASE}/admin/tools/{test_tool_id}/assign",
+                json=assignment_data,
+                headers=superadmin_headers,
+                timeout=10
+            )
+            
+            if response.status_code == 404:
+                self.log_test("Tool Assignment - Non-existent Admin", "PASS", 
+                            "Assignment to non-existent admin correctly rejected with 404")
+            else:
+                self.log_test("Tool Assignment - Non-existent Admin", "FAIL", 
+                            f"Expected 404, got HTTP {response.status_code}")
+                
+        except Exception as e:
+            self.log_test("Tool Assignment - Non-existent Admin", "FAIL", f"Error: {str(e)}")
+        
+        # Test 7: Error cases - Try to assign non-existent tool
+        try:
+            fake_tool_id = "00000000-0000-0000-0000-000000000000"
+            assignment_data = {"admin_id": admin_id}
+            
+            response = self.session.post(
+                f"{API_BASE}/admin/tools/{fake_tool_id}/assign",
+                json=assignment_data,
+                headers=superadmin_headers,
+                timeout=10
+            )
+            
+            if response.status_code == 404:
+                self.log_test("Tool Assignment - Non-existent Tool", "PASS", 
+                            "Assignment of non-existent tool correctly rejected with 404")
+            else:
+                self.log_test("Tool Assignment - Non-existent Tool", "FAIL", 
+                            f"Expected 404, got HTTP {response.status_code}")
+                
+        except Exception as e:
+            self.log_test("Tool Assignment - Non-existent Tool", "FAIL", f"Error: {str(e)}")
+
     def test_error_handling(self):
         """Test error handling scenarios"""
         # Test invalid authentication
