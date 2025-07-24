@@ -124,6 +124,16 @@ function AppContent() {
               <Blogs />
             </ProtectedRoute>
           } />
+          <Route path="/blog/create" element={
+            <ProtectedRoute>
+              <BlogEditor />
+            </ProtectedRoute>
+          } />
+          <Route path="/blog/edit/:blogId" element={
+            <ProtectedRoute>
+              <BlogEditor />
+            </ProtectedRoute>
+          } />
           <Route path="/my-blogs" element={
             <ProtectedRoute>
               <MyBlogs />
