@@ -393,13 +393,14 @@ class BackendTester:
         
         # First, get available tools and admins for testing
         try:
-            # Get tools
-            tools_response = self.session.get(f"{API_BASE}/tools", timeout=10)
+            # Get tools using search endpoint
+            tools_response = self.session.get(f"{API_BASE}/tools/search?limit=10", timeout=10)
             if tools_response.status_code != 200:
                 self.log_test("Tool Assignment - Setup", "FAIL", "Could not retrieve tools for testing")
                 return
             
-            tools = tools_response.json()
+            tools_data = tools_response.json()
+            tools = tools_data.get("tools", [])
             if not tools:
                 self.log_test("Tool Assignment - Setup", "FAIL", "No tools available for testing")
                 return
