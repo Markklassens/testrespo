@@ -67,19 +67,37 @@ export const downloadCsvTemplate = createAsyncThunk(
 
 export const assignToolToAdmin = createAsyncThunk(
   'tools/assignToolToAdmin',
-  async ({ toolId, adminId }) => {
-    const response = await api.post(`/api/admin/tools/${toolId}/assign`, {
-      admin_id: adminId
-    });
-    return response.data;
+  async ({ toolId, adminId }, { rejectWithValue }) => {
+    try {
+      const response = await api.post(`/api/admin/tools/${toolId}/assign`, {
+        admin_id: adminId
+      });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.detail || 
+        error.response?.data?.message || 
+        error.message || 
+        'Assignment failed'
+      );
+    }
   }
 );
 
 export const unassignToolFromAdmin = createAsyncThunk(
   'tools/unassignToolFromAdmin',
-  async (toolId) => {
-    const response = await api.delete(`/api/admin/tools/${toolId}/assign`);
-    return response.data;
+  async (toolId, { rejectWithValue }) => {
+    try {
+      const response = await api.delete(`/api/admin/tools/${toolId}/assign`);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.detail || 
+        error.response?.data?.message || 
+        error.message || 
+        'Unassignment failed'
+      );
+    }
   }
 );
 
