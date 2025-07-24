@@ -237,10 +237,11 @@ class BackendTester:
                             f"Retrieved comparison list with {len(comparison_list)} tools")
                 
                 # Test adding a tool to comparison
-                # First get available tools
-                tools_response = self.session.get(f"{API_BASE}/tools", timeout=10)
+                # First get available tools using search endpoint
+                tools_response = self.session.get(f"{API_BASE}/tools/search?limit=10", timeout=10)
                 if tools_response.status_code == 200:
-                    tools = tools_response.json()
+                    tools_data = tools_response.json()
+                    tools = tools_data.get("tools", [])
                     if tools:
                         tool_id = tools[0]["id"]
                         
