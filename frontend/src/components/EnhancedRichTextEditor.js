@@ -608,10 +608,12 @@ const EnhancedRichTextEditor = ({
   const insertVideoEmbed = (url) => {
     const quill = quillRef.current.getEditor();
     const range = quill.getSelection();
+    const index = range ? range.index : quill.getLength();
     
     const embedHtml = createEmbeddedVideoHtml(url, videoSettings);
     
-    quill.clipboard.dangerouslyPasteHTML(range ? range.index : 0, embedHtml);
+    quill.clipboard.dangerouslyPasteHTML(index, embedHtml);
+    quill.setSelection(index + 1, 0);
     setShowVideoUpload(false);
     setVideoUrl('');
     resetVideoSettings();
