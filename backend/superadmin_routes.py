@@ -659,7 +659,7 @@ async def bulk_upload_tools(
                     company_size=row.get('company_size', ''),
                     integrations=integrations,
                     logo_url=row.get('logo_url', ''),
-                    category_id=row['category_id'],
+                    category_id=category.id,
                     subcategory_id=row.get('subcategory_id') or None,
                     industry=row.get('industry', ''),
                     employee_size=row.get('employee_size', ''),
