@@ -261,7 +261,7 @@ const toolsSlice = createSlice({
       })
       .addCase(assignToolToAdmin.rejected, (state, action) => {
         state.assignments.loading = false;
-        state.assignments.error = action.error.message;
+        state.assignments.error = action.payload || action.error.message;
       })
       // Unassign tool
       .addCase(unassignToolFromAdmin.pending, (state) => {
@@ -277,7 +277,7 @@ const toolsSlice = createSlice({
       })
       .addCase(unassignToolFromAdmin.rejected, (state, action) => {
         state.assignments.loading = false;
-        state.assignments.error = action.error.message;
+        state.assignments.error = action.payload || action.error.message;
       })
       // Get tool assignments
       .addCase(getToolAssignments.pending, (state) => {
