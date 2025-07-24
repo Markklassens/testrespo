@@ -12,8 +12,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
 import LoadingSpinner from '../components/LoadingSpinner';
-import EnhancedRichTextEditor from '../components/EnhancedRichTextEditor';
-import { fetchBlogs, createBlog, likeBlog } from '../store/slices/blogsSlice';
+import { fetchBlogs, likeBlog } from '../store/slices/blogsSlice';
 import { fetchCategories } from '../store/slices/categoriesSlice';
 import { useAuth } from '../contexts/AuthContext';
 
