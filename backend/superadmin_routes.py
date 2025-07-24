@@ -738,101 +738,64 @@ async def download_sample_csv(
     current_user: User = Depends(require_superadmin),
     db: Session = Depends(get_db)
 ):
-    """Download sample CSV file for bulk tool upload"""
+    """Download sample CSV file for bulk tool upload with category names"""
     
-    # Get sample categories for reference
-    sample_categories = db.query(Category).limit(3).all()
+    # Get all categories for reference
+    all_categories = db.query(Category).all()
     
-    # Read the sample CSV file
-    import os
-    csv_file_path = os.path.join(os.path.dirname(__file__), "static", "tools_sample.csv")
+    # Sample data with category names instead of IDs
+    sample_data = [
+        {
+            "name": "Example Tool 1",
+            "description": "This is a comprehensive project management tool designed for teams",
+            "short_description": "Project management made easy",
+            "website_url": "https://example-tool1.com",
+            "pricing_model": "Freemium",
+            "pricing_details": "Free tier available, Pro starts at $10/month",
+            "features": "Task management, Team collaboration, Time tracking, Reporting",
+            "target_audience": "Small to medium businesses",
+            "company_size": "SMB",
+            "integrations": "Slack, Google Drive, Dropbox, GitHub",
+            "logo_url": "https://example.com/logo1.png",
+            "category_name": all_categories[0].name if all_categories else "Technology",
+            "industry": "Technology",
+            "employee_size": "11-50",
+            "revenue_range": "1M-10M",
+            "location": "San Francisco, CA",
+            "is_hot": "true",
+            "is_featured": "false",
+            "meta_title": "Example Tool 1 - Project Management Solution",
+            "meta_description": "Streamline your project management with Example Tool 1",
+            "slug": "example-tool-1"
+        }
+    ]
     
-    try:
-        with open(csv_file_path, 'r') as file:
-            csv_content = file.read()
-        
-        # Replace placeholder category IDs with actual ones
-        if sample_categories:
-            csv_content = csv_content.replace(
-                "REPLACE_WITH_ACTUAL_CATEGORY_ID", 
-                sample_categories[0].id
-            )
-        else:
-            csv_content = csv_content.replace(
-                "REPLACE_WITH_ACTUAL_CATEGORY_ID", 
-                "CREATE_CATEGORIES_FIRST"
-            )
-        
-        # Return as downloadable file
-        from fastapi.responses import Response
-        
-        return Response(
-            content=csv_content,
-            media_type="text/csv",
-            headers={
-                "Content-Disposition": "attachment; filename=tools_sample.csv",
-                "Content-Type": "text/csv"
-            }
-        )
-        
-    except FileNotFoundError:
-        # Generate CSV content with category names
-        import io
-        import csv
-        
-        # Get all categories for reference
-        all_categories = db.query(Category).all()
-        
-        # Sample data with category names
-        sample_data = [
-            {
-                "name": "Example Tool 1",
-                "description": "This is a comprehensive project management tool designed for teams",
-                "short_description": "Project management made easy",
-                "website_url": "https://example-tool1.com",
-                "pricing_model": "Freemium",
-                "pricing_details": "Free tier available, Pro starts at $10/month",
-                "features": "Task management, Team collaboration, Time tracking, Reporting",
-                "target_audience": "Small to medium businesses",
-                "company_size": "SMB",
-                "integrations": "Slack, Google Drive, Dropbox, GitHub",
-                "logo_url": "https://example.com/logo1.png",
-                "category_name": all_categories[0].name if all_categories else "Technology",
-                "industry": "Technology",
-                "employee_size": "11-50",
-                "revenue_range": "1M-10M",
-                "location": "San Francisco, CA",
-                "is_hot": "true",
-                "is_featured": "false",
-                "meta_title": "Example Tool 1 - Project Management Solution",
-                "meta_description": "Streamline your project management with Example Tool 1",
-                "slug": "example-tool-1"
-            }
-        ]
-        
-        # Generate CSV content
-        output = io.StringIO()
-        writer = csv.DictWriter(output, fieldnames=sample_data[0].keys())
-        writer.writeheader()
-        writer.writerows(sample_data)
-        
-        # Add categories reference at the end
-        output.write("\n\n# Available Categories:\n")
-        for cat in all_categories:
-            output.write(f"# - {cat.name}\n")
-        
-        csv_content = output.getvalue()
-        
-        from fastapi.responses import Response
-        
-        return Response(
-            content=csv_content,
-            media_type="text/csv",
-            headers={
-                "Content-Disposition": "attachment; filename=tools_sample.csv",
-                "Content-Type": "text/csv"
-            }
-        )
+    # Generate CSV content
+    import io
+    import csv
+    
+    output = io.StringIO()
+    writer = csv.DictWriter(output, fieldnames=sample_data[0].keys())
+    writer.writeheader()
+    writer.writerows(sample_data)
+    
+    # Add categories reference at the end as comments
+    output.write("\n\n# Available Categories (use any of these names in category_name field):\n")
+    for cat in all_categories:
+        output.write(f"# - {cat.name}\n")
+    
+    csv_content = output.getvalue()
+    
+    from fastapi.responses import Response
+    
+    return Response(
+        content=csv_content,
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": "attachment; filename=tools_template.csv",
+            "Content-Type": "text/csv"
+        }
+    )
 
 # Initialize default admin settings
 @router.post("/initialize-settings")
