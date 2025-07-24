@@ -23,17 +23,6 @@ const Blogs = () => {
   const { categories } = useSelector(state => state.categories);
   
   const [searchInput, setSearchInput] = useState(filters.search);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newBlog, setNewBlog] = useState({
-    title: '',
-    content: '',
-    excerpt: '',
-    status: 'draft',
-    category_id: '',
-    slug: '',
-    meta_title: '',
-    meta_description: ''
-  });
 
   useEffect(() => {
     dispatch(fetchBlogs(filters));
@@ -47,35 +36,6 @@ const Blogs = () => {
   const handleSearch = (e) => {
     if (e.key === 'Enter') {
       dispatch(fetchBlogs({ ...filters, search: searchInput, skip: 0 }));
-    }
-  };
-
-  const handleCreateBlog = async () => {
-    if (!newBlog.title || !newBlog.content) {
-      toast.error('Title and content are required');
-      return;
-    }
-
-    if (!newBlog.slug) {
-      newBlog.slug = newBlog.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    }
-
-    try {
-      await dispatch(createBlog(newBlog)).unwrap();
-      toast.success('Blog created successfully!');
-      setShowCreateModal(false);
-      setNewBlog({
-        title: '',
-        content: '',
-        excerpt: '',
-        status: 'draft',
-        category_id: '',
-        slug: '',
-        meta_title: '',
-        meta_description: ''
-      });
-    } catch (error) {
-      toast.error('Failed to create blog: ' + error.message);
     }
   };
 
