@@ -19,6 +19,7 @@ from admin_routes import router as admin_router
 from user_routes import get_user_routes
 from tools_routes import get_tools_routes
 from blogs_routes import router as blogs_router
+from ai_blog_routes import router as ai_blog_router
 
 # Configure logging
 import os
