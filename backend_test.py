@@ -669,6 +669,7 @@ class BackendTester:
         self.test_tool_comparison_system()
         self.test_file_upload_system()
         self.test_core_api_endpoints()
+        self.test_tool_assignment_endpoints()  # New test for tool assignment endpoints
         self.test_error_handling()
         
         # Summary
