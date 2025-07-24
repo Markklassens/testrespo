@@ -206,7 +206,8 @@ const EnhancedRichTextEditor = ({
       `text-align: ${settings.alignment}`,
       settings.float !== 'none' ? `float: ${settings.float}` : '',
       settings.float !== 'none' ? `margin: ${settings.margin}px` : '',
-      'clear: both'
+      'clear: both',
+      'position: relative'
     ].filter(Boolean).join('; ');
 
     const imageStyles = [
@@ -217,19 +218,116 @@ const EnhancedRichTextEditor = ({
       settings.border ? 'border: 2px solid #e5e7eb' : '',
       settings.shadow ? 'box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1)' : '',
       'max-width: 100%',
-      'transition: all 0.3s ease'
+      'transition: all 0.3s ease',
+      'cursor: grab'
     ].filter(Boolean).join('; ');
 
+    // Create unique ID for this image
+    const imageId = `resizable-image-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
     return `
-      <div style="${containerStyles}" class="enhanced-image-container">
+      <div style="${containerStyles}" class="enhanced-image-container resizable-image-wrapper" data-image-id="${imageId}">
         ${settings.title ? `<h4 style="margin: 0 0 10px 0; font-size: 16px; font-weight: 600; color: #374151;">${settings.title}</h4>` : ''}
-        <img src="${src}" 
-             alt="${settings.alt || 'Uploaded image'}" 
-             title="${settings.title || ''}"
-             style="${imageStyles}" 
-             class="enhanced-image" />
+        <div class="resizable-image-container" style="position: relative; display: inline-block;">
+          <img src="${src}" 
+               alt="${settings.alt || 'Uploaded image'}" 
+               title="${settings.title || ''}"
+               style="${imageStyles}" 
+               class="enhanced-image resizable-image" 
+               data-width="${width}"
+               data-height="${height}"
+               data-settings='${JSON.stringify(settings)}' />
+          <div class="image-controls" style="position: absolute; top: 8px; right: 8px; opacity: 0; transition: opacity 0.3s ease;">
+            <button class="resize-handle" style="background: #3b82f6; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: nw-resize; margin-left: 4px;" title="Resize">⤡</button>
+            <button class="settings-handle" style="background: #6b7280; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; margin-left: 4px;" title="Settings">⚙</button>
+          </div>
+        </div>
         ${settings.caption ? `<p style="margin: 10px 0 0 0; font-size: 14px; color: #6b7280; font-style: italic; text-align: ${settings.alignment};">${settings.caption}</p>` : ''}
       </div>
+      <script>
+        (function() {
+          const container = document.querySelector('[data-image-id="${imageId}"]');
+          if (!container) return;
+          
+          const img = container.querySelector('.resizable-image');
+          const controls = container.querySelector('.image-controls');
+          const resizeHandle = container.querySelector('.resize-handle');
+          
+          // Show/hide controls on hover
+          container.addEventListener('mouseenter', () => {
+            controls.style.opacity = '1';
+          });
+          
+          container.addEventListener('mouseleave', () => {
+            controls.style.opacity = '0';
+          });
+          
+          // Make image draggable
+          let isDragging = false;
+          let startX, startY, startLeft, startTop;
+          
+          img.addEventListener('mousedown', (e) => {
+            if (e.target.classList.contains('resize-handle') || e.target.classList.contains('settings-handle')) return;
+            
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            
+            const rect = container.getBoundingClientRect();
+            startLeft = rect.left;
+            startTop = rect.top;
+            
+            img.style.cursor = 'grabbing';
+            e.preventDefault();
+          });
+          
+          document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            
+            const deltaX = e.clientX - startX;
+            const deltaY = e.clientY - startY;
+            
+            container.style.transform = \`translate(\${deltaX}px, \${deltaY}px)\`;
+          });
+          
+          document.addEventListener('mouseup', () => {
+            if (isDragging) {
+              isDragging = false;
+              img.style.cursor = 'grab';
+            }
+          });
+          
+          // Handle resize
+          let isResizing = false;
+          let startWidth, startHeight;
+          
+          resizeHandle.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            startWidth = img.offsetWidth;
+            startHeight = img.offsetHeight;
+            e.preventDefault();
+            e.stopPropagation();
+          });
+          
+          document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+            
+            const deltaX = e.clientX - startX;
+            const newWidth = Math.max(100, startWidth + deltaX);
+            const aspectRatio = startHeight / startWidth;
+            const newHeight = newWidth * aspectRatio;
+            
+            img.style.width = newWidth + 'px';
+            img.style.height = newHeight + 'px';
+          });
+          
+          document.addEventListener('mouseup', () => {
+            isResizing = false;
+          });
+        })();
+      </script>
     `;
   };
 
