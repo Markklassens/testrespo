@@ -1271,15 +1271,26 @@ Test Tool Case Insensitive,Test tool with different case category name,https://t
 
     def run_all_tests(self):
         """Run all backend tests"""
-        print("🚀 Starting MarketMindAI Backend Testing Suite")
+        print("🚀 Starting MarketMindAI Backend Testing Suite - Review Request Focus")
         print(f"📡 Testing backend at: {BACKEND_URL}")
+        print("🎯 Focus: Blog CRUD, Blog Likes, Review System for all user types")
         print("=" * 60)
         
-        # Run tests in order
+        # Run tests in order - prioritizing review request items
         self.test_health_endpoint()
         self.test_authentication()
         self.test_protected_routes()
-        self.test_blog_crud_operations()
+        
+        # Review request specific tests
+        print("\n🔍 REVIEW REQUEST SPECIFIC TESTS:")
+        print("-" * 40)
+        self.test_blog_crud_all_users()  # Test blog CRUD for all user types
+        self.test_blog_like_system()     # Test blog like system
+        self.test_review_system()        # Test review system
+        
+        # Additional comprehensive tests
+        print("\n📋 ADDITIONAL COMPREHENSIVE TESTS:")
+        print("-" * 40)
         self.test_tool_comparison_system()
         self.test_file_upload_system()
         self.test_core_api_endpoints()
