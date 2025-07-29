@@ -934,6 +934,7 @@ class BackendTester:
             # Test creating a review
             try:
                 review_data = {
+                    "tool_id": test_tool_id,  # Add the missing tool_id field
                     "rating": 5,
                     "title": f"Great tool! - Review by {user_type}",
                     "content": f"This tool works perfectly. Testing review system with {user_type} account.",
