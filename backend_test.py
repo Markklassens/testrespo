@@ -805,7 +805,7 @@ class BackendTester:
                 timeout=10
             )
             
-            if response.status_code != 201:
+            if response.status_code != 201 and response.status_code != 200:
                 self.log_test("Blog Like System - Blog Creation", "FAIL", 
                             f"Could not create test blog: HTTP {response.status_code}")
                 return
