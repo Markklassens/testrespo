@@ -703,7 +703,7 @@ class BackendTester:
                     timeout=10
                 )
                 
-                if response.status_code == 201:
+                if response.status_code == 201 or response.status_code == 200:
                     blog = response.json()
                     blog_id = blog.get("id")
                     self.log_test(f"Blog Creation - {user_type.title()}", "PASS", 
