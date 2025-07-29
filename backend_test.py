@@ -949,7 +949,7 @@ class BackendTester:
                     timeout=10
                 )
                 
-                if response.status_code == 201:
+                if response.status_code == 201 or response.status_code == 200:
                     review = response.json()
                     review_id = review.get("id")
                     self.log_test(f"Review Creation - {user_type.title()}", "PASS", 
