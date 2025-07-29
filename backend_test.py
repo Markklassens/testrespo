@@ -657,6 +657,385 @@ class BackendTester:
             except Exception as e:
                 self.log_test("Error Handling - Invalid Blog Data", "FAIL", f"Error: {str(e)}")
     
+    def test_blog_crud_all_users(self):
+        """Test blog CRUD operations for all user types as requested in review request"""
+        # Test with all user types
+        for user_type in ["user", "admin", "superadmin"]:
+            if not self.tokens.get(user_type):
+                self.log_test(f"Blog CRUD - {user_type.title()}", "SKIP", f"No {user_type} token available")
+                continue
+                
+            headers = {"Authorization": f"Bearer {self.tokens[user_type]}"}
+            
+            # Get categories for blog creation
+            try:
+                cat_response = self.session.get(f"{API_BASE}/categories", timeout=10)
+                if cat_response.status_code != 200:
+                    self.log_test(f"Blog CRUD - {user_type.title()} Setup", "FAIL", "Could not retrieve categories")
+                    continue
+                
+                categories = cat_response.json()
+                if not categories:
+                    self.log_test(f"Blog CRUD - {user_type.title()} Setup", "FAIL", "No categories available")
+                    continue
+                    
+                category_id = categories[0]["id"]
+                
+            except Exception as e:
+                self.log_test(f"Blog CRUD - {user_type.title()} Setup", "FAIL", f"Setup error: {str(e)}")
+                continue
+            
+            # Test blog creation
+            try:
+                blog_data = {
+                    "title": f"Test Blog by {user_type.title()} - {int(time.time())}",
+                    "content": f"This is test content for debugging blog functionality by {user_type} user type. Testing comprehensive CRUD operations.",
+                    "category_id": category_id,
+                    "slug": f"test-blog-{user_type}-{int(time.time())}",
+                    "status": "published",
+                    "meta_description": f"Test blog created by {user_type} for API testing"
+                }
+                
+                response = self.session.post(
+                    f"{API_BASE}/blogs",
+                    json=blog_data,
+                    headers=headers,
+                    timeout=10
+                )
+                
+                if response.status_code == 201:
+                    blog = response.json()
+                    blog_id = blog.get("id")
+                    self.log_test(f"Blog Creation - {user_type.title()}", "PASS", 
+                                f"Blog created successfully with ID: {blog_id}")
+                    
+                    # Test blog update
+                    if blog_id:
+                        try:
+                            update_data = {
+                                "title": f"Updated Test Blog by {user_type.title()}",
+                                "content": f"Updated content by {user_type} user - testing update functionality"
+                            }
+                            
+                            update_response = self.session.put(
+                                f"{API_BASE}/blogs/{blog_id}",
+                                json=update_data,
+                                headers=headers,
+                                timeout=10
+                            )
+                            
+                            if update_response.status_code == 200:
+                                updated_blog = update_response.json()
+                                if updated_blog.get("title") == update_data["title"]:
+                                    self.log_test(f"Blog Update - {user_type.title()}", "PASS", 
+                                                "Blog updated successfully")
+                                else:
+                                    self.log_test(f"Blog Update - {user_type.title()}", "FAIL", 
+                                                "Blog update data mismatch")
+                            else:
+                                self.log_test(f"Blog Update - {user_type.title()}", "FAIL", 
+                                            f"HTTP {update_response.status_code}: {update_response.text}")
+                        except Exception as e:
+                            self.log_test(f"Blog Update - {user_type.title()}", "FAIL", f"Error: {str(e)}")
+                        
+                        # Test blog deletion
+                        try:
+                            delete_response = self.session.delete(
+                                f"{API_BASE}/blogs/{blog_id}",
+                                headers=headers,
+                                timeout=10
+                            )
+                            
+                            if delete_response.status_code == 200:
+                                self.log_test(f"Blog Delete - {user_type.title()}", "PASS", 
+                                            "Blog deleted successfully")
+                            else:
+                                self.log_test(f"Blog Delete - {user_type.title()}", "FAIL", 
+                                            f"HTTP {delete_response.status_code}: {delete_response.text}")
+                        except Exception as e:
+                            self.log_test(f"Blog Delete - {user_type.title()}", "FAIL", f"Error: {str(e)}")
+                else:
+                    self.log_test(f"Blog Creation - {user_type.title()}", "FAIL", 
+                                f"HTTP {response.status_code}: {response.text}")
+                    
+            except Exception as e:
+                self.log_test(f"Blog Creation - {user_type.title()}", "FAIL", f"Error: {str(e)}")
+
+    def test_blog_like_system(self):
+        """Test blog like system functionality as requested in review request"""
+        # First create a test blog to like
+        if not self.tokens.get("admin"):
+            self.log_test("Blog Like System", "SKIP", "No admin token available")
+            return
+            
+        admin_headers = {"Authorization": f"Bearer {self.tokens['admin']}"}
+        
+        # Get categories for blog creation
+        try:
+            cat_response = self.session.get(f"{API_BASE}/categories", timeout=10)
+            if cat_response.status_code != 200:
+                self.log_test("Blog Like System - Setup", "FAIL", "Could not retrieve categories")
+                return
+            
+            categories = cat_response.json()
+            if not categories:
+                self.log_test("Blog Like System - Setup", "FAIL", "No categories available")
+                return
+                
+            category_id = categories[0]["id"]
+            
+        except Exception as e:
+            self.log_test("Blog Like System - Setup", "FAIL", f"Setup error: {str(e)}")
+            return
+        
+        # Create test blog
+        try:
+            blog_data = {
+                "title": f"Test Blog for Like System - {int(time.time())}",
+                "content": "This blog is created specifically for testing the like system functionality.",
+                "category_id": category_id,
+                "slug": f"test-blog-likes-{int(time.time())}",
+                "status": "published"
+            }
+            
+            response = self.session.post(
+                f"{API_BASE}/blogs",
+                json=blog_data,
+                headers=admin_headers,
+                timeout=10
+            )
+            
+            if response.status_code != 201:
+                self.log_test("Blog Like System - Blog Creation", "FAIL", 
+                            f"Could not create test blog: HTTP {response.status_code}")
+                return
+            
+            blog = response.json()
+            blog_id = blog.get("id")
+            
+            if not blog_id:
+                self.log_test("Blog Like System - Blog Creation", "FAIL", "No blog ID returned")
+                return
+                
+            self.log_test("Blog Like System - Blog Creation", "PASS", f"Test blog created with ID: {blog_id}")
+            
+        except Exception as e:
+            self.log_test("Blog Like System - Blog Creation", "FAIL", f"Error: {str(e)}")
+            return
+        
+        # Test like functionality with different user types
+        for user_type in ["user", "admin", "superadmin"]:
+            if not self.tokens.get(user_type):
+                continue
+                
+            headers = {"Authorization": f"Bearer {self.tokens[user_type]}"}
+            
+            # Test liking a blog
+            try:
+                like_response = self.session.post(
+                    f"{API_BASE}/blogs/{blog_id}/like",
+                    headers=headers,
+                    timeout=10
+                )
+                
+                if like_response.status_code == 200:
+                    like_data = like_response.json()
+                    if "action" in like_data and "likes" in like_data and "user_liked" in like_data:
+                        action = like_data.get("action")
+                        likes_count = like_data.get("likes")
+                        user_liked = like_data.get("user_liked")
+                        
+                        self.log_test(f"Blog Like - {user_type.title()}", "PASS", 
+                                    f"Like action: {action}, Total likes: {likes_count}, User liked: {user_liked}")
+                        
+                        # Test like status check
+                        try:
+                            status_response = self.session.get(
+                                f"{API_BASE}/blogs/{blog_id}/like-status",
+                                headers=headers,
+                                timeout=10
+                            )
+                            
+                            if status_response.status_code == 200:
+                                status_data = status_response.json()
+                                if "user_liked" in status_data and "total_likes" in status_data:
+                                    self.log_test(f"Blog Like Status - {user_type.title()}", "PASS", 
+                                                f"Status check successful: User liked: {status_data.get('user_liked')}, Total: {status_data.get('total_likes')}")
+                                else:
+                                    self.log_test(f"Blog Like Status - {user_type.title()}", "FAIL", 
+                                                "Missing required fields in status response")
+                            else:
+                                self.log_test(f"Blog Like Status - {user_type.title()}", "FAIL", 
+                                            f"HTTP {status_response.status_code}: {status_response.text}")
+                        except Exception as e:
+                            self.log_test(f"Blog Like Status - {user_type.title()}", "FAIL", f"Error: {str(e)}")
+                        
+                        # Test unliking (toggle functionality)
+                        try:
+                            unlike_response = self.session.post(
+                                f"{API_BASE}/blogs/{blog_id}/like",
+                                headers=headers,
+                                timeout=10
+                            )
+                            
+                            if unlike_response.status_code == 200:
+                                unlike_data = unlike_response.json()
+                                unlike_action = unlike_data.get("action")
+                                if unlike_action == "unliked":
+                                    self.log_test(f"Blog Unlike - {user_type.title()}", "PASS", 
+                                                f"Unlike successful: {unlike_action}")
+                                else:
+                                    self.log_test(f"Blog Unlike - {user_type.title()}", "FAIL", 
+                                                f"Expected 'unliked', got: {unlike_action}")
+                            else:
+                                self.log_test(f"Blog Unlike - {user_type.title()}", "FAIL", 
+                                            f"HTTP {unlike_response.status_code}: {unlike_response.text}")
+                        except Exception as e:
+                            self.log_test(f"Blog Unlike - {user_type.title()}", "FAIL", f"Error: {str(e)}")
+                    else:
+                        self.log_test(f"Blog Like - {user_type.title()}", "FAIL", 
+                                    "Missing required fields in like response")
+                else:
+                    self.log_test(f"Blog Like - {user_type.title()}", "FAIL", 
+                                f"HTTP {like_response.status_code}: {like_response.text}")
+                    
+            except Exception as e:
+                self.log_test(f"Blog Like - {user_type.title()}", "FAIL", f"Error: {str(e)}")
+
+    def test_review_system(self):
+        """Test review system functionality as requested in review request"""
+        # Get available tools for testing
+        try:
+            tools_response = self.session.get(f"{API_BASE}/tools/search?limit=10", timeout=10)
+            if tools_response.status_code != 200:
+                self.log_test("Review System - Setup", "FAIL", "Could not retrieve tools")
+                return
+            
+            tools_data = tools_response.json()
+            tools = tools_data.get("tools", [])
+            if not tools:
+                self.log_test("Review System - Setup", "FAIL", "No tools available for testing")
+                return
+                
+            test_tool_id = tools[0]["id"]
+            test_tool_name = tools[0]["name"]
+            
+        except Exception as e:
+            self.log_test("Review System - Setup", "FAIL", f"Setup error: {str(e)}")
+            return
+        
+        # Test review functionality with different user types
+        for user_type in ["user", "admin", "superadmin"]:
+            if not self.tokens.get(user_type):
+                continue
+                
+            headers = {"Authorization": f"Bearer {self.tokens[user_type]}"}
+            
+            # Test creating a review
+            try:
+                review_data = {
+                    "rating": 5,
+                    "title": f"Great tool! - Review by {user_type}",
+                    "content": f"This tool works perfectly. Testing review system with {user_type} account.",
+                    "pros": "Easy to use, great features",
+                    "cons": "None found during testing"
+                }
+                
+                response = self.session.post(
+                    f"{API_BASE}/tools/{test_tool_id}/reviews",
+                    json=review_data,
+                    headers=headers,
+                    timeout=10
+                )
+                
+                if response.status_code == 201:
+                    review = response.json()
+                    review_id = review.get("id")
+                    self.log_test(f"Review Creation - {user_type.title()}", "PASS", 
+                                f"Review created successfully for tool '{test_tool_name}' with ID: {review_id}")
+                    
+                    # Test review status check
+                    try:
+                        status_response = self.session.get(
+                            f"{API_BASE}/tools/{test_tool_id}/review-status",
+                            headers=headers,
+                            timeout=10
+                        )
+                        
+                        if status_response.status_code == 200:
+                            status_data = status_response.json()
+                            required_fields = ["has_reviewed", "total_reviews", "average_rating"]
+                            if all(field in status_data for field in required_fields):
+                                self.log_test(f"Review Status - {user_type.title()}", "PASS", 
+                                            f"Status check successful: Has reviewed: {status_data.get('has_reviewed')}, Total: {status_data.get('total_reviews')}, Avg: {status_data.get('average_rating')}")
+                            else:
+                                self.log_test(f"Review Status - {user_type.title()}", "FAIL", 
+                                            "Missing required fields in status response")
+                        else:
+                            self.log_test(f"Review Status - {user_type.title()}", "FAIL", 
+                                        f"HTTP {status_response.status_code}: {status_response.text}")
+                    except Exception as e:
+                        self.log_test(f"Review Status - {user_type.title()}", "FAIL", f"Error: {str(e)}")
+                    
+                    # Test review update
+                    if review_id:
+                        try:
+                            update_data = {
+                                "rating": 4,
+                                "title": f"Updated review by {user_type}",
+                                "content": f"Updated review content by {user_type} user",
+                                "pros": "Still great features",
+                                "cons": "Minor issues found"
+                            }
+                            
+                            update_response = self.session.put(
+                                f"{API_BASE}/tools/reviews/{review_id}",
+                                json=update_data,
+                                headers=headers,
+                                timeout=10
+                            )
+                            
+                            if update_response.status_code == 200:
+                                updated_review = update_response.json()
+                                if updated_review.get("title") == update_data["title"]:
+                                    self.log_test(f"Review Update - {user_type.title()}", "PASS", 
+                                                "Review updated successfully")
+                                else:
+                                    self.log_test(f"Review Update - {user_type.title()}", "FAIL", 
+                                                "Review update data mismatch")
+                            else:
+                                self.log_test(f"Review Update - {user_type.title()}", "FAIL", 
+                                            f"HTTP {update_response.status_code}: {update_response.text}")
+                        except Exception as e:
+                            self.log_test(f"Review Update - {user_type.title()}", "FAIL", f"Error: {str(e)}")
+                        
+                        # Test review deletion
+                        try:
+                            delete_response = self.session.delete(
+                                f"{API_BASE}/tools/reviews/{review_id}",
+                                headers=headers,
+                                timeout=10
+                            )
+                            
+                            if delete_response.status_code == 200:
+                                self.log_test(f"Review Delete - {user_type.title()}", "PASS", 
+                                            "Review deleted successfully")
+                            else:
+                                self.log_test(f"Review Delete - {user_type.title()}", "FAIL", 
+                                            f"HTTP {delete_response.status_code}: {delete_response.text}")
+                        except Exception as e:
+                            self.log_test(f"Review Delete - {user_type.title()}", "FAIL", f"Error: {str(e)}")
+                elif response.status_code == 400 and "already reviewed" in response.text.lower():
+                    # User already has a review for this tool, which is expected behavior
+                    self.log_test(f"Review Creation - {user_type.title()}", "PASS", 
+                                "Duplicate review correctly prevented (user already reviewed this tool)")
+                else:
+                    self.log_test(f"Review Creation - {user_type.title()}", "FAIL", 
+                                f"HTTP {response.status_code}: {response.text}")
+                    
+            except Exception as e:
+                self.log_test(f"Review Creation - {user_type.title()}", "FAIL", f"Error: {str(e)}")
+
     def test_bulk_upload_functionality(self):
         """Test the updated bulk upload functionality for SuperAdmin tools as requested in review request"""
         if not self.tokens.get("superadmin"):
