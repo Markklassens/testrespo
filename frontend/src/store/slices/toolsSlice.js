@@ -58,7 +58,7 @@ export const bulkUploadTools = createAsyncThunk(
 export const downloadCsvTemplate = createAsyncThunk(
   'tools/downloadCsvTemplate',
   async () => {
-    const response = await api.get('/api/admin/tools/sample-csv', {
+    const response = await api.get('/api/superadmin/tools/sample-csv', {
       responseType: 'blob'
     });
     return response.data;
