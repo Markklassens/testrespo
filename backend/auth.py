@@ -136,7 +136,7 @@ def check_tool_access(current_user: User, tool_id: str, db: Session):
     """Check if current user has access to a specific tool"""
     from models import Tool, ToolAccessRequest
     
-    # Superadmins have access to all tools
+    # Superadmins ALWAYS have access to all tools regardless of assignment
     if current_user.user_type == "superadmin":
         return True
     

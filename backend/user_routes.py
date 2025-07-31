@@ -126,14 +126,17 @@ async def verify_email(verification: EmailVerification, db: Session = Depends(ge
 async def request_password_reset(reset_request: PasswordResetRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == reset_request.email).first()
     if not user:
-        # Don't reveal that the user doesn't exist
-        return {"message": "If your email is registered, you will receive a password reset link"}
+        raise HTTPException(
+            status_code=404,
+            detail="Email not found"
+        )
     
+    # Generate reset token
     reset_token = str(uuid.uuid4())
     user.reset_token = reset_token
     db.commit()
     
-    # Send password reset email
+    # Send reset email
     if send_password_reset_email(user.email, user.full_name, reset_token):
         return {"message": "Password reset email sent"}
     else:
@@ -151,6 +154,7 @@ async def reset_password(reset_data: PasswordReset, db: Session = Depends(get_db
             detail="Invalid or expired reset token"
         )
     
+    # Update password
     user.hashed_password = get_password_hash(reset_data.new_password)
     user.reset_token = None
     db.commit()
@@ -158,50 +162,67 @@ async def reset_password(reset_data: PasswordReset, db: Session = Depends(get_db
     return {"message": "Password reset successfully"}
 
 @router.get("/me", response_model=UserResponse)
-async def get_current_user_info(current_user: User = Depends(get_current_verified_user)):
+async def get_current_user_profile(current_user: User = Depends(get_current_verified_user)):
+    """Get current user profile"""
     return current_user
 
-# User Profile and Settings Routes
-user_router = APIRouter(prefix="/api/user", tags=["user"])
-
-@user_router.put("/api-keys")
-async def update_api_keys(
-    keys: UserUpdate,
+@router.put("/me", response_model=UserResponse)
+async def update_profile(
+    user_update: UserUpdate,
     current_user: User = Depends(get_current_verified_user),
     db: Session = Depends(get_db)
 ):
-    """Update user's API keys"""
-    if keys.groq_api_key is not None:
-        current_user.groq_api_key = keys.groq_api_key
-    if keys.claude_api_key is not None:
-        current_user.claude_api_key = keys.claude_api_key
+    """Update current user profile"""
     
-    db.commit()
-    return {"message": "API keys updated successfully"}
-
-@user_router.put("/profile")
-async def update_user_profile(
-    profile_update: UserUpdate,
-    current_user: User = Depends(get_current_verified_user),
-    db: Session = Depends(get_db)
-):
-    """Update user profile"""
-    update_data = profile_update.dict(exclude_unset=True)
-    
-    # Remove fields that users shouldn't be able to update themselves
-    restricted_fields = ['user_type', 'is_active', 'is_verified']
-    for field in restricted_fields:
-        update_data.pop(field, None)
-    
-    for field, value in update_data.items():
-        setattr(current_user, field, value)
+    # Check if email is being changed and if it's already taken
+    if user_update.full_name:
+        current_user.full_name = user_update.full_name
     
     db.commit()
     db.refresh(current_user)
-    return {"message": "Profile updated successfully"}
+    return current_user
+
+# NEW: API Keys Management Routes
+@router.put("/api-keys")
+async def update_api_keys(
+    api_keys: APIKeysUpdate,
+    current_user: User = Depends(get_current_verified_user),
+    db: Session = Depends(get_db)
+):
+    """Update user's AI API keys"""
+    
+    # Update API keys
+    if api_keys.groq_api_key is not None:
+        current_user.groq_api_key = api_keys.groq_api_key if api_keys.groq_api_key.strip() else None
+    
+    if api_keys.claude_api_key is not None:
+        current_user.claude_api_key = api_keys.claude_api_key if api_keys.claude_api_key.strip() else None
+    
+    db.commit()
+    db.refresh(current_user)
+    
+    return {"message": "API keys updated successfully"}
+
+@router.get("/api-keys")
+async def get_api_keys(current_user: User = Depends(get_current_verified_user)):
+    """Get user's API keys status (masked for security)"""
+    
+    def mask_key(key):
+        if not key:
+            return None
+        if len(key) <= 8:
+            return key
+        return key[:4] + "*" * (len(key) - 8) + key[-4:]
+    
+    return {
+        "groq_api_key": mask_key(current_user.groq_api_key),
+        "claude_api_key": mask_key(current_user.claude_api_key),
+        "groq_configured": bool(current_user.groq_api_key),
+        "claude_configured": bool(current_user.claude_api_key)
+    }
 
 # AI Content Generation Routes
-@user_router.post("/ai/generate-content")
+@router.post("/generate-content", response_model=AIContentResponse)
 async def generate_ai_content(
     request: AIContentRequest,
     current_user: User = Depends(get_current_verified_user),
@@ -209,17 +230,25 @@ async def generate_ai_content(
 ):
     """Generate AI content using user's API keys"""
     
-    # Set up AI manager with user's keys
-    ai_manager.set_user_keys(current_user.groq_api_key, current_user.claude_api_key)
+    # Check if user has at least one API key configured
+    if not current_user.groq_api_key and not current_user.claude_api_key:
+        raise HTTPException(
+            status_code=400,
+            detail="No AI API keys configured. Please add your Groq or Claude API key in profile settings."
+        )
     
     try:
+        # Use AI manager to generate content
         result = await ai_manager.generate_content(
             prompt=request.prompt,
             content_type=request.content_type,
-            provider=request.provider
+            user_id=current_user.id,
+            groq_key=current_user.groq_api_key,
+            claude_key=current_user.claude_api_key,
+            preferred_provider=request.provider
         )
         
-        # Save to database
+        # Save generation history
         ai_content = AIGeneratedContent(
             id=str(uuid.uuid4()),
             user_id=current_user.id,
@@ -242,110 +271,36 @@ async def generate_ai_content(
         )
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to generate content: {str(e)}"
+        )
 
-@user_router.get("/ai/content-history")
-async def get_ai_content_history(
-    current_user: User = Depends(get_current_verified_user),
-    db: Session = Depends(get_db),
-    skip: int = 0,
-    limit: int = 20
-):
-    """Get user's AI content generation history"""
-    from sqlalchemy import desc
-    
-    content_history = db.query(AIGeneratedContent).filter(
-        AIGeneratedContent.user_id == current_user.id
-    ).order_by(desc(AIGeneratedContent.created_at)).offset(skip).limit(limit).all()
-    
-    return content_history
-
-@user_router.get("/dashboard-stats")
-async def get_user_dashboard_stats(
+@router.get("/ai-usage")
+async def get_ai_usage_stats(
     current_user: User = Depends(get_current_verified_user),
     db: Session = Depends(get_db)
 ):
-    """Get dashboard statistics for user"""
-    from models import Blog, Review, Comment
-    from sqlalchemy import func
+    """Get user's AI usage statistics"""
     
-    # User's content statistics
-    user_blogs = db.query(Blog).filter(Blog.author_id == current_user.id).count()
-    user_reviews = db.query(Review).filter(Review.user_id == current_user.id).count()
-    user_comments = db.query(Comment).filter(Comment.user_id == current_user.id).count()
-    
-    # AI content statistics
-    ai_content_count = db.query(AIGeneratedContent).filter(
+    # Get usage statistics
+    total_generations = db.query(AIGeneratedContent).filter(
         AIGeneratedContent.user_id == current_user.id
     ).count()
     
-    # Recent activity
-    recent_blogs = db.query(Blog).filter(Blog.author_id == current_user.id).order_by(
-        desc(Blog.created_at)
-    ).limit(5).all()
-    
-    recent_reviews = db.query(Review).filter(Review.user_id == current_user.id).order_by(
-        desc(Review.created_at)
-    ).limit(5).all()
+    recent_generations = db.query(AIGeneratedContent).filter(
+        AIGeneratedContent.user_id == current_user.id
+    ).order_by(desc(AIGeneratedContent.created_at)).limit(10).all()
     
     return {
-        "content_stats": {
-            "blogs": user_blogs,
-            "reviews": user_reviews,
-            "comments": user_comments,
-            "ai_content": ai_content_count
-        },
-        "recent_activity": {
-            "blogs": recent_blogs,
-            "reviews": recent_reviews
+        "total_generations": total_generations,
+        "recent_generations": recent_generations,
+        "api_keys_configured": {
+            "groq": bool(current_user.groq_api_key),
+            "claude": bool(current_user.claude_api_key)
         }
     }
 
-# File Upload Route
-@user_router.post("/upload")
-async def upload_file(
-    file: UploadFile = File(...),
-    current_user: User = Depends(get_current_verified_user)
-):
-    """Upload file and return base64 encoded data"""
-    try:
-        # Check file size (max 10MB)
-        file_size = 0
-        content = await file.read()
-        file_size = len(content)
-        
-        if file_size > 10 * 1024 * 1024:  # 10MB limit
-            raise HTTPException(status_code=400, detail="File too large. Maximum size is 10MB")
-        
-        # Check file type
-        allowed_types = [
-            'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
-            'video/mp4', 'video/avi', 'video/mov', 'video/wmv'
-        ]
-        
-        if file.content_type not in allowed_types:
-            raise HTTPException(status_code=400, detail="File type not allowed")
-        
-        # Convert to base64
-        base64_content = base64.b64encode(content).decode('utf-8')
-        
-        # Create data URL
-        data_url = f"data:{file.content_type};base64,{base64_content}"
-        
-        return {
-            "file_url": data_url,
-            "filename": file.filename,
-            "content_type": file.content_type,
-            "size": file_size
-        }
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
-
-# Include both routers
 def get_user_routes():
-    """Return combined user routes"""
-    main_router = APIRouter()
-    main_router.include_router(router)
-    main_router.include_router(user_router)
-    return main_router
+    """Return user routes router"""
+    return router
