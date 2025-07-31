@@ -27,7 +27,7 @@ const APIKeyManager = ({ isOpen, onClose }) => {
 
   const fetchUserKeys = async () => {
     try {
-      const response = await api.get('/api/auth/me');
+      const response = await api.get('/api/auth/api-keys');
       const { groq_api_key, claude_api_key } = response.data;
       
       setGroqKey(groq_api_key || '');
