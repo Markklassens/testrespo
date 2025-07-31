@@ -522,3 +522,14 @@ class ToolAccessRequestResponse(BaseModel):
     
     class Config:
         from_attributes = True
+
+# API Keys Management Schemas
+class APIKeysUpdate(BaseModel):
+    groq_api_key: Optional[str] = None
+    claude_api_key: Optional[str] = None
+
+class APIKeysResponse(BaseModel):
+    groq_api_key: Optional[str] = None
+    claude_api_key: Optional[str] = None
+    groq_configured: bool = False
+    claude_configured: bool = False
