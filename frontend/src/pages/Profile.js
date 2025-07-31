@@ -376,6 +376,95 @@ const Profile = () => {
                 </div>
               </div>
             )}
+
+            {/* AI Keys Tab */}
+            {activeTab === 'ai-keys' && (
+              <div>
+                <div className="mb-6">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                    AI API Keys
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Configure your AI API keys to enable AI-powered content generation features.
+                  </p>
+                </div>
+
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
+                  <div className="flex items-start">
+                    <KeyIcon className="h-5 w-5 text-blue-600 mt-0.5 mr-2 flex-shrink-0" />
+                    <div className="text-sm text-blue-800 dark:text-blue-200">
+                      <p className="font-medium mb-1">API Keys Enable:</p>
+                      <ul className="list-disc list-inside space-y-1">
+                        <li>AI-powered blog post generation</li>
+                        <li>Tool description creation</li>
+                        <li>SEO content optimization</li>
+                        <li>Meta title and description generation</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-900 dark:text-white">
+                        Groq API Key
+                      </h4>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                        Ultra-fast AI generation with Llama models
+                      </p>
+                      <div className="flex items-center mt-1">
+                        <div className={`w-2 h-2 rounded-full mr-2 ${
+                          user?.groq_api_key ? 'bg-green-500' : 'bg-gray-400'
+                        }`}></div>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          {user?.groq_api_key ? 'Configured' : 'Not configured'}
+                        </span>
+                      </div>
+                    </div>
+                    {user?.groq_api_key && (
+                      <span className="text-xs font-mono text-gray-500 dark:text-gray-400">
+                        {user.groq_api_key.substring(0, 4)}...{user.groq_api_key.substring(user.groq_api_key.length - 4)}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-900 dark:text-white">
+                        Claude API Key
+                      </h4>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                        High-quality AI content with Anthropic's Claude
+                      </p>
+                      <div className="flex items-center mt-1">
+                        <div className={`w-2 h-2 rounded-full mr-2 ${
+                          user?.claude_api_key ? 'bg-green-500' : 'bg-gray-400'
+                        }`}></div>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          {user?.claude_api_key ? 'Configured' : 'Not configured'}
+                        </span>
+                      </div>
+                    </div>
+                    {user?.claude_api_key && (
+                      <span className="text-xs font-mono text-gray-500 dark:text-gray-400">
+                        {user.claude_api_key.substring(0, 4)}...{user.claude_api_key.substring(user.claude_api_key.length - 4)}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex justify-center pt-4">
+                    <button
+                      onClick={() => setShowAPIKeyManager(true)}
+                      className="bg-primary-600 hover:bg-primary-700 text-white px-6 py-2 rounded-md font-medium transition-colors duration-200 flex items-center"
+                    >
+                      <KeyIcon className="h-4 w-4 mr-2" />
+                      Manage API Keys
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
