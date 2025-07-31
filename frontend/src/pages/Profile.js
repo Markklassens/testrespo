@@ -3,11 +3,13 @@ import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'react-hot-toast';
 import { UserIcon, KeyIcon, BellIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
 import LoadingSpinner from '../components/LoadingSpinner';
+import APIKeyManager from '../components/APIKeyManager';
 
 const Profile = () => {
   const { user, fetchUser } = useAuth();
   const [activeTab, setActiveTab] = useState('profile');
   const [loading, setLoading] = useState(false);
+  const [showAPIKeyManager, setShowAPIKeyManager] = useState(false);
 
   const [profileData, setProfileData] = useState({
     full_name: user?.full_name || '',
@@ -24,6 +26,7 @@ const Profile = () => {
   const tabs = [
     { id: 'profile', label: 'Profile', icon: UserIcon },
     { id: 'security', label: 'Security', icon: ShieldCheckIcon },
+    { id: 'ai-keys', label: 'AI Keys', icon: KeyIcon },
     { id: 'notifications', label: 'Notifications', icon: BellIcon },
   ];
 
