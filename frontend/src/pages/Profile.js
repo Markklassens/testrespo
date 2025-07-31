@@ -468,6 +468,12 @@ const Profile = () => {
           </div>
         </div>
       </div>
+      
+      {/* API Key Manager Modal */}
+      <APIKeyManager
+        isOpen={showAPIKeyManager}
+        onClose={() => setShowAPIKeyManager(false)}
+      />
     </div>
   );
 };
