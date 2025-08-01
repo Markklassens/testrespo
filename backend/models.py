@@ -199,6 +199,29 @@ class Review(Base):
     user = relationship("User", back_populates="reviews")
     tool = relationship("Tool", back_populates="reviews")
 
+class BlogReview(Base):
+    __tablename__ = "blog_reviews"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    rating = Column(Integer, nullable=False)  # 1-5 stars
+    title = Column(String, nullable=False)
+    content = Column(Text, nullable=False)
+    pros = Column(Text, nullable=True)
+    cons = Column(Text, nullable=True)
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    blog_id = Column(String, ForeignKey("blogs.id"), nullable=False)
+    is_verified = Column(Boolean, default=False)
+    helpful_count = Column(Integer, default=0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Ensure one review per user per blog
+    __table_args__ = (UniqueConstraint('user_id', 'blog_id', name='unique_user_blog_review'),)
+    
+    # Relationships
+    user = relationship("User", backref="blog_reviews")
+    blog = relationship("Blog", back_populates="reviews")
+
 class Comment(Base):
     __tablename__ = "comments"
     
