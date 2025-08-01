@@ -310,6 +310,37 @@ class ReviewStatusResponse(BaseModel):
     total_reviews: int
     average_rating: float
 
+# Blog Review Schemas
+class BlogReviewBase(BaseModel):
+    rating: int  # 1-5 stars
+    title: str
+    content: str
+    pros: Optional[str] = None
+    cons: Optional[str] = None
+
+class BlogReviewCreate(BlogReviewBase):
+    pass
+
+class BlogReviewResponse(BlogReviewBase):
+    id: str
+    user_id: str
+    blog_id: str
+    is_verified: bool
+    helpful_count: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    is_own_review: Optional[bool] = False
+    
+    class Config:
+        from_attributes = True
+
+class BlogReviewStatusResponse(BaseModel):
+    has_reviewed: bool
+    review_id: Optional[str] = None
+    user_rating: Optional[int] = None
+    total_reviews: int
+    average_rating: float
+
 class BlogLikeResponse(BaseModel):
     action: str
     likes: int
