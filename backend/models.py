@@ -152,6 +152,8 @@ class Blog(Base):
     subcategory_id = Column(String, ForeignKey("subcategories.id"), nullable=True)
     views = Column(Integer, default=0)
     likes = Column(Integer, default=0)
+    rating = Column(Float, default=0.0)
+    total_reviews = Column(Integer, default=0)
     reading_time = Column(Integer, default=0)  # in minutes
     published_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -171,6 +173,7 @@ class Blog(Base):
     category = relationship("Category", back_populates="blogs")
     subcategory = relationship("Subcategory", back_populates="blogs")
     comments = relationship("Comment", back_populates="blog")
+    reviews = relationship("BlogReview", back_populates="blog")
     liked_by_users = relationship("User", secondary=user_blog_likes, back_populates="liked_blogs")
 
 class Review(Base):
