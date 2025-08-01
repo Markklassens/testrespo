@@ -18,6 +18,7 @@ import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 import { toast } from 'react-hot-toast';
 import { Helmet } from 'react-helmet-async';
 import LoadingSpinner from '../components/LoadingSpinner';
+import ReviewSection from '../components/ReviewSection';
 import api from '../utils/api';
 
 const ToolDetail = () => {
