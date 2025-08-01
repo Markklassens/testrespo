@@ -248,6 +248,13 @@ const BlogDetail = () => {
           />
         </div>
 
+        {/* Reviews Section */}
+        <ReviewSection 
+          itemId={currentBlog.id} 
+          itemType="blog" 
+          title="Blog Reviews" 
+        />
+
         {/* Tags */}
         {currentBlog.tags && currentBlog.tags.length > 0 && (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mt-6">
