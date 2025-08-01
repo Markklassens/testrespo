@@ -404,6 +404,13 @@ const ToolDetail = () => {
             </div>
           </div>
 
+          {/* Reviews Section */}
+          <ReviewSection 
+            itemId={tool.id} 
+            itemType="tool" 
+            title="Tool Reviews" 
+          />
+
           {/* Related Tools */}
           {relatedTools.length > 0 && (
             <div className="mt-12">
