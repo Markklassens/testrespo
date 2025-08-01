@@ -4,7 +4,7 @@ from sqlalchemy import desc, asc
 from database import get_db
 from models import Blog, Comment, User, Category, user_blog_likes, BlogReview
 from schemas import *
-from auth import get_current_verified_user
+from auth import get_current_verified_user, get_current_user_optional
 from typing import Optional, List
 import uuid
 from datetime import datetime
