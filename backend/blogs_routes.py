@@ -227,6 +227,194 @@ async def get_blog_like_status(
         "total_likes": blog.likes
     }
 
+# Blog Review Routes
+@router.post("/{blog_id}/reviews", response_model=BlogReviewResponse)
+async def create_blog_review(
+    blog_id: str,
+    review: BlogReviewCreate,
+    current_user: User = Depends(get_current_verified_user),
+    db: Session = Depends(get_db)
+):
+    """Create a review for a blog"""
+    # Check if blog exists
+    blog = db.query(Blog).filter(Blog.id == blog_id).first()
+    if not blog:
+        raise HTTPException(status_code=404, detail="Blog not found")
+    
+    # Check if user already reviewed this blog
+    existing_review = db.query(BlogReview).filter(
+        BlogReview.blog_id == blog_id,
+        BlogReview.user_id == current_user.id
+    ).first()
+    
+    if existing_review:
+        raise HTTPException(
+            status_code=400, 
+            detail="You have already reviewed this blog. Use the edit option to update your review."
+        )
+    
+    # Create review
+    db_review = BlogReview(
+        id=str(uuid.uuid4()),
+        user_id=current_user.id,
+        blog_id=blog_id,
+        rating=review.rating,
+        title=review.title,
+        content=review.content,
+        pros=review.pros,
+        cons=review.cons
+    )
+    
+    db.add(db_review)
+    
+    # Update blog rating statistics
+    reviews = db.query(BlogReview).filter(BlogReview.blog_id == blog_id).all()
+    total_reviews = len(reviews) + 1  # Include the new review
+    avg_rating = (sum(r.rating for r in reviews) + review.rating) / total_reviews
+    
+    blog.rating = avg_rating
+    blog.total_reviews = total_reviews
+    
+    db.commit()
+    db.refresh(db_review)
+    
+    return db_review
+
+@router.get("/{blog_id}/reviews", response_model=List[BlogReviewResponse])
+async def get_blog_reviews(
+    blog_id: str,
+    skip: int = 0,
+    limit: int = 20,
+    current_user: User = Depends(get_current_user_optional),
+    db: Session = Depends(get_db)
+):
+    """Get reviews for a blog with user's review status"""
+    from auth import get_current_user_optional
+    
+    reviews = db.query(BlogReview).filter(BlogReview.blog_id == blog_id).offset(skip).limit(limit).all()
+    
+    # Add user's review status to each review
+    for review in reviews:
+        if current_user and review.user_id == current_user.id:
+            review.is_own_review = True
+        else:
+            review.is_own_review = False
+    
+    return reviews
+
+@router.get("/{blog_id}/review-status")
+async def get_blog_review_status(
+    blog_id: str,
+    current_user: User = Depends(get_current_verified_user),
+    db: Session = Depends(get_db)
+):
+    """Get user's review status for a blog"""
+    blog = db.query(Blog).filter(Blog.id == blog_id).first()
+    if not blog:
+        raise HTTPException(status_code=404, detail="Blog not found")
+    
+    # Check if user has reviewed this blog
+    user_review = db.query(BlogReview).filter(
+        BlogReview.blog_id == blog_id,
+        BlogReview.user_id == current_user.id
+    ).first()
+    
+    return {
+        "has_reviewed": user_review is not None,
+        "review_id": user_review.id if user_review else None,
+        "user_rating": user_review.rating if user_review else None,
+        "total_reviews": blog.total_reviews,
+        "average_rating": blog.rating
+    }
+
+@router.get("/{blog_id}/reviews/my-review", response_model=BlogReviewResponse)
+async def get_my_blog_review(
+    blog_id: str,
+    current_user: User = Depends(get_current_verified_user),
+    db: Session = Depends(get_db)
+):
+    """Get current user's review for a blog"""
+    review = db.query(BlogReview).filter(
+        BlogReview.blog_id == blog_id,
+        BlogReview.user_id == current_user.id
+    ).first()
+    
+    if not review:
+        raise HTTPException(status_code=404, detail="You haven't reviewed this blog yet")
+    
+    return review
+
+@router.put("/reviews/{review_id}", response_model=BlogReviewResponse)
+async def update_blog_review(
+    review_id: str,
+    review_update: BlogReviewCreate,
+    current_user: User = Depends(get_current_verified_user),
+    db: Session = Depends(get_db)
+):
+    """Update a blog review"""
+    db_review = db.query(BlogReview).filter(BlogReview.id == review_id).first()
+    if not db_review:
+        raise HTTPException(status_code=404, detail="Review not found")
+    
+    # Check if user owns the review
+    if db_review.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to edit this review")
+    
+    # Update review
+    db_review.rating = review_update.rating
+    db_review.title = review_update.title
+    db_review.content = review_update.content
+    db_review.pros = review_update.pros
+    db_review.cons = review_update.cons
+    
+    # Recalculate blog rating statistics
+    blog = db.query(Blog).filter(Blog.id == db_review.blog_id).first()
+    if blog:
+        reviews = db.query(BlogReview).filter(BlogReview.blog_id == db_review.blog_id).all()
+        if reviews:
+            avg_rating = sum(r.rating for r in reviews) / len(reviews)
+            blog.rating = avg_rating
+            blog.total_reviews = len(reviews)
+    
+    db.commit()
+    db.refresh(db_review)
+    
+    return db_review
+
+@router.delete("/reviews/{review_id}")
+async def delete_blog_review(
+    review_id: str,
+    current_user: User = Depends(get_current_verified_user),
+    db: Session = Depends(get_db)
+):
+    """Delete a blog review"""
+    db_review = db.query(BlogReview).filter(BlogReview.id == review_id).first()
+    if not db_review:
+        raise HTTPException(status_code=404, detail="Review not found")
+    
+    # Check if user owns the review or is admin
+    if db_review.user_id != current_user.id and current_user.user_type not in ["admin", "superadmin"]:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this review")
+    
+    blog_id = db_review.blog_id
+    db.delete(db_review)
+    
+    # Recalculate blog rating statistics
+    blog = db.query(Blog).filter(Blog.id == blog_id).first()
+    if blog:
+        reviews = db.query(BlogReview).filter(BlogReview.blog_id == blog_id).all()
+        if reviews:
+            avg_rating = sum(r.rating for r in reviews) / len(reviews)
+            blog.rating = avg_rating
+            blog.total_reviews = len(reviews)
+        else:
+            blog.rating = 0.0
+            blog.total_reviews = 0
+    
+    db.commit()
+    
+    return {"message": "Review deleted successfully"}
+
 # Comment Routes
 @router.post("/{blog_id}/comments", response_model=CommentResponse)
 async def create_comment(
