@@ -195,6 +195,15 @@ const BlogDetail = () => {
                     {currentBlog.views} views
                   </span>
                 </div>
+                {/* Rating Display */}
+                {currentBlog.total_reviews > 0 && (
+                  <div className="flex items-center">
+                    <StarIconSolid className="h-5 w-5 text-yellow-400 mr-1" />
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      {currentBlog.rating?.toFixed(1) || '0.0'} ({currentBlog.total_reviews} reviews)
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Action Buttons */}
