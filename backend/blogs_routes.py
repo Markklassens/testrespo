@@ -289,8 +289,6 @@ async def get_blog_reviews(
     db: Session = Depends(get_db)
 ):
     """Get reviews for a blog with user's review status"""
-    from auth import get_current_user_optional
-    
     reviews = db.query(BlogReview).filter(BlogReview.blog_id == blog_id).offset(skip).limit(limit).all()
     
     # Add user's review status to each review
