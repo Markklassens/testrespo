@@ -12,8 +12,10 @@ import {
   ShareIcon,
   ArrowLeftIcon
 } from '@heroicons/react/24/outline';
+import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 import { toast } from 'react-hot-toast';
 import LoadingSpinner from '../components/LoadingSpinner';
+import ReviewSection from '../components/ReviewSection';
 import { fetchBlog, likeBlog } from '../store/slices/blogsSlice';
 import { fetchCategories } from '../store/slices/categoriesSlice';
 import { useAuth } from '../contexts/AuthContext';
