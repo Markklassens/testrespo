@@ -196,8 +196,8 @@ const Navbar = () => {
                   onClick={() => setIsMenuOpen(false)}
                   className={`block px-3 py-2 text-base font-medium rounded-md transition-colors duration-200 ${
                     isActive(link.href)
-                      ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900'
-                      : 'text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      ? 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900'
+                      : 'text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-gray-50 dark:hover:bg-gray-700'
                   }`}
                 >
                   {link.isComparison ? (
