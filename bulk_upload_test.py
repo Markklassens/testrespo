@@ -11,7 +11,7 @@ import csv
 from datetime import datetime
 
 # Test configuration
-BACKEND_URL = "https://6ce9bd2c-20ae-4eeb-a678-dabf40be8ee0.preview.emergentagent.com"
+BACKEND_URL = "https://93364546-03cb-4ae8-a6a0-909ce7700a55.preview.emergentagent.com"
 API_BASE = f"{BACKEND_URL}/api"
 
 class BulkUploadTester:

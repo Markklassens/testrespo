@@ -6,7 +6,7 @@ Script to verify test users for testing purposes
 import requests
 import json
 
-BACKEND_URL = "https://6ce9bd2c-20ae-4eeb-a678-dabf40be8ee0.preview.emergentagent.com"
+BACKEND_URL = "https://93364546-03cb-4ae8-a6a0-909ce7700a55.preview.emergentagent.com"
 
 def verify_users_via_api():
     """Try to verify users by directly calling the database update"""
