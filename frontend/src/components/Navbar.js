@@ -46,7 +46,7 @@ const Navbar = () => {
           {/* Logo */}
           <div className="flex items-center">
             <Link to="/" className="flex items-center">
-              <div className="text-2xl font-bold text-primary-600 dark:text-primary-400">
+              <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                 MarketMindAI
               </div>
             </Link>
