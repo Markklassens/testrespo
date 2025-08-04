@@ -286,10 +286,12 @@ class ReviewBase(BaseModel):
     content: str
     pros: Optional[str] = None
     cons: Optional[str] = None
-    tool_id: str
 
 class ReviewCreate(ReviewBase):
     pass
+
+class ReviewWithToolId(ReviewBase):
+    tool_id: str
 
 class ReviewResponse(ReviewBase):
     id: str
