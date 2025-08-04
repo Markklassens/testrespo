@@ -143,7 +143,7 @@ const ReviewSection = ({ itemId, itemType = 'tool', title = 'Reviews' }) => {
           )}
         </div>
 
-        {user && !reviewStatus?.has_reviewed && (
+        {!authLoading && user && !reviewStatus?.has_reviewed && (
           <button
             onClick={handleWriteReview}
             className="flex items-center space-x-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
@@ -151,6 +151,13 @@ const ReviewSection = ({ itemId, itemType = 'tool', title = 'Reviews' }) => {
             <PlusIcon className="h-4 w-4" />
             <span>Write Review</span>
           </button>
+        )}
+        
+        {authLoading && (
+          <div className="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
+            <LoadingSpinner size="sm" />
+            <span>Loading...</span>
+          </div>
         )}
       </div>
 
