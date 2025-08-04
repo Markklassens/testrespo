@@ -73,7 +73,7 @@ const Navbar = () => {
                         <ScaleIcon className="h-4 w-4" />
                         <span>{link.label}</span>
                         {comparisonCount > 0 && (
-                          <span className="bg-primary-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center ml-1">
+                          <span className="bg-purple-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center ml-1">
                             {comparisonCount}
                           </span>
                         )}
