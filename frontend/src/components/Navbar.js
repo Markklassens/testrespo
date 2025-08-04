@@ -64,8 +64,8 @@ const Navbar = () => {
                     to={link.href}
                     className={`px-3 py-2 text-sm font-medium transition-colors duration-200 relative ${
                       isActive(link.href)
-                        ? 'text-primary-600 dark:text-primary-400 border-b-2 border-primary-600'
-                        : 'text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400'
+                        ? 'text-purple-600 dark:text-purple-400 border-b-2 border-purple-600'
+                        : 'text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400'
                     }`}
                   >
                     {link.isComparison ? (
