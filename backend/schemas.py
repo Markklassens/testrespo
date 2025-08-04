@@ -293,7 +293,7 @@ class ReviewCreate(ReviewBase):
 class ReviewWithToolId(ReviewBase):
     tool_id: str
 
-class ReviewResponse(ReviewBase):
+class ReviewResponse(ReviewWithToolId):
     id: str
     user_id: str
     is_verified: bool
