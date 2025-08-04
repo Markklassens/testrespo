@@ -21,7 +21,7 @@ import {
 
 const ReviewSection = ({ itemId, itemType = 'tool', title = 'Reviews' }) => {
   const dispatch = useDispatch();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { 
     toolReviews, 
     blogReviews, 
